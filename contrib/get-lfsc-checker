@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#
+set -e -o pipefail
+
+[ ! -d contrib ] && echo "$0 not called from base directory" && exit 1
+
+DEPS_DIR="$(pwd)/deps"
+INSTALL_DIR="$DEPS_DIR/install"
+INSTALL_LIB_DIR="$INSTALL_DIR/lib"
+INSTALL_INCLUDE_DIR="$INSTALL_DIR/include"
+INSTALL_BIN_DIR="$INSTALL_DIR/bin"
+
+mkdir -p "$DEPS_DIR"
+
+function webget {
+  if [ -x "$(command -v wget)" ]; then
+    wget -c -O "$2" "$1"
+  elif [ -x "$(command -v curl)" ]; then
+    curl -L "$1" >"$2"
+  else
+    echo "Can't figure out how to download from web.  Please install wget or curl." >&2
+    exit 1
+  fi
+}
+
+function setup_dep
+{
+  url="$1"
+  directory="$2"
+  echo "Setting up $directory ..."
+  mkdir -p "$directory"
+  cd "$directory"
+  webget "$url" archive
+  tar xf archive --strip 1 # Strip top-most directory
+  rm archive
+}
+
+function check_dep_dir
+{
+  if [ -e "$1" ]; then
+    echo "error: file or directory '$1' exists; please move it out of the way." >&2
+    exit 1
+  fi
+}
+
+LFSC_DIR="$DEPS_DIR/lfsc-checker"
+version="master"
+
+check_dep_dir "$LFSC_DIR"
+setup_dep "https://github.com/CVC4/LFSC/archive/$version.tar.gz" "$LFSC_DIR"
+cd "$LFSC_DIR"
+
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" ..
+make install -j$(nproc)
+
+echo
+echo ===================== Now configure CVC4 with =====================
+echo ./configure.sh --lfsc

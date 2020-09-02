@@ -1,0 +1,32 @@
+on: [push, pull_request]
+name: CI
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Install Packages
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgmp-dev \
+          flex \
+          libfl-dev \
+          flexc++
+
+    - name: Setup LFSC Checker
+      run: |
+        ./contrib/get-lfsc-checker
+
+    - name: Run Tests
+      run: |
+        make test
