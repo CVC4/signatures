@@ -1,0 +1,34 @@
+(declare U sort)
+(declare V sort)
+(define a (var 1 U))
+(define b (var 2 U))
+(define c (var 3 V))
+(define f (var 4 (arrow U V)))
+(define g (var 5 (arrow U U)))
+(define h (var 6 (arrow V U)))
+
+; Show f(a)=b from forall x. f(x)=b
+(check
+(% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
+(: (holds (= (apply f a) b))
+  (instantiate 
+    (= (apply f (bvar 7 U)) b) 
+    7 
+    U  
+    a 
+    (= (apply f a) b) 
+    p
+))))
+
+;Show f(g(h(c)))=b
+(check
+(% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
+(: (holds (= (apply f (apply g (apply h c))) b)
+  (instantiate
+  (= (apply f (bvar 7 U)) b)
+    7
+    U
+    (apply g (apply h c))
+    (= (apply f (apply g (apply h c))) b)
+    p
+)))))

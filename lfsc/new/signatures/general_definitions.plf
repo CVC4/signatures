@@ -1,0 +1,48 @@
+; Sorts and terms:
+(declare sort type)
+(declare term type)
+
+; Theory holds: term t holds, where t should have Boolean type
+(declare holds (! t term type))
+
+; sorts :
+(declare Bool sort)
+
+; function constructor :
+(declare arrow (! s1 sort (! s2 sort sort)))
+
+; high-order apply :
+(declare apply (! t1 term (! t2 term term)))
+
+; Booleans :
+(declare true term)
+(declare false term)
+
+; Negation
+(declare f_not term)
+(define not (# t term (apply f_not t)))
+
+; ITE
+;(declare f_ite term)
+;(define ite (# condition term (# then_branch ($ else_branch (apply f)ite condition then_branch else_branch)))) 
+
+; Equality:
+; f_= is an equality symbol, which is a term, to be used with an apply
+(declare f_=  term)
+; this macro enables writing (= t1 t2)
+(define = (# t1 term (# t2 term (apply (apply f_= t1) t2))))
+
+; Free constants :
+(declare var (! v mpz (! s sort term)))
+; BOUND_VARIABLE, i.e. a variable
+(declare bvar (! v mpz (! s sort term)))
+
+; Quantifiers : 
+; universals
+(declare forall (! v mpz (! s sort term)))
+
+;;;; To write (forall ((x Int)) (P x)):
+; (apply (forall 1 Int) (apply P (bvar 1 Int)))
+
+(declare Ok type)
+(declare ok Ok)

@@ -1,0 +1,25 @@
+(program mpz_ifequal ((v1 mpz) (v mpz) (t term) (s term)) term
+  (mp_ifzero (mp_add (mp_neg v1) v) t s)
+)
+
+(program substitute ((t term) (v mpz) (s term)) term
+  (match t
+    ((bvar v1 u1) 
+       (mpz_ifequal v v1 s t))
+    ((apply t1 t2) (apply (substitute t1 v s) (substitute t2 v s)))
+    (default t)
+  ))
+
+(program substitute_and_type_check ((t term) (v mpz) (s term) (u sort)) term
+  (ifequal (type_check s) u (substitute t v s) (fail term)))
+
+(declare instantiate (! body term
+                     (! v mpz
+                     (! u sort
+                     (! s term
+                     (! bodyi term
+                     (! p (holds (apply (forall v u) body))
+;                     (! r1 (^ (type_check s) u)
+;                     (! r2 (^ (substitute body v s) bodyi)
+                     (! r (^ (substitute_and_type_check body v s u) bodyi)
+                     (holds bodyi)))))))))

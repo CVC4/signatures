@@ -1,0 +1,105 @@
+(declare sort type)
+(declare term type)
+(declare holds (! t term type))
+(declare Bool sort)
+(declare arrow (! s1 sort (! s2 sort sort)))
+(declare apply (! t1 term (! t2 term term)))
+(declare true term)
+ (declare false term)
+(declare f_=  term)
+(define = (# t1 term (# t2 term (apply (apply f_= t1) t2))))
+(declare var (! v mpz (! s sort term)))
+(declare bvar (! v mpz (! s sort term)))
+(declare forall (! v mpz (! s sort term)))
+(declare Ok type)
+(declare ok Ok)
+(program type_check ((t term)) sort
+  (match t
+    ; [1] uninterpreted function symbol
+    ((var n s) s)
+    ((bvar n s) s)
+    ((apply t1 t2)
+      (match t1
+        ; [2] parametric interpreted function symbols
+        (f_= (arrow (type_check t2) Bool))
+        ; ...
+        ; [3] function applications of non-parametric function symbols
+        (default 
+          (let s1 (type_check t1)
+          (match s1
+            ; application of function
+            ((arrow sarg sreturn) 
+                (let s2 (type_check t2)
+                (ifequal s2 sarg 
+                  sreturn 
+                  ; fail: function applied to terms of different sorts
+                  (fail sort))))
+            ; fail: application of non-function
+            (default (fail sort)))))))
+    ; [4] quantifiers are indexed by their universal variable
+    ((forall n s) (arrow Bool Bool))
+    ; [5] all non-parametric interpreted function symbols
+    (true Bool)
+    (false Bool)
+    ; ...
+    ; fail: unknown term
+    (default (fail sort))
+  )
+)
+
+(program mpz_ifequal ((v1 mpz) (v mpz) (t term) (s term)) term (mp_ifzero (mp_add (mp_neg v1) v) t s) )
+
+(program substitute ((t term) (v mpz) (s term)) term
+  (match t
+    ((bvar v1 u1) 
+       (mpz_ifequal v v1 s t))
+    ((apply t1 t2) (apply (substitute t1 v s) (substitute t2 v s)))
+    (default t)
+  ))
+
+(program substitute_and_type_check ((t term) (v mpz) (s term) (u sort)) term
+  (ifequal (type_check s) u (substitute t v s) (fail term)))
+
+(declare instantiate (! body term
+                     (! v mpz
+                     (! u sort
+                     (! s term
+                     (! bodyi term
+                     (! p (holds (apply (forall v u) body))
+                     (! r (^ (substitute_and_type_check body v s u) bodyi)
+                     (holds bodyi)))))))))
+
+(declare U sort)
+(declare V sort)
+(define a (var 1 U))
+(define b (var 2 U))
+(define c (var 2 V))
+(define f (var 4 (arrow U V)))
+(define g (var 5 (arrow U U)))
+(define h (var 6 (arrow V U)))
+
+; Show f(a)=b from forall x. f(x)=b
+(check
+(% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
+(: (holds (= (apply f a) b))
+  (instantiate 
+    (= (apply f (bvar 7 U)) b) 
+    7 
+    U  
+    a 
+    (= (apply f a) b) 
+    p
+))))
+
+;Show f(g(h(c)))=b
+(check
+(% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
+(: (holds (= (apply f (apply g (apply h c))) b)
+  (instantiate
+  (= (apply f (bvar 7 U)) b)
+    7
+    U
+    (apply g (apply h c))
+    (= (apply f (apply g (apply h c))) b)
+    p
+)))))

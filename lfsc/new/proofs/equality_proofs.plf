@@ -1,0 +1,82 @@
+; to test: lfscc signatures/general_definitions.plf signatures/type_checking_programs.plf signatures/equality_rules.plf signatures/boolean_rules.plf proofs/cong_proof.plf
+
+
+
+(declare U sort)
+(declare V sort)
+(define a (var 1 U))
+(define b (var 2 U))
+(define c (var 3 U))
+(define f (var 4 (arrow U V)))
+
+
+; Show (= (f a) (f b)) assuming (= a b) ...
+(check
+(% p (holds (= a b))
+(: (holds (= (apply f a) (apply f b)))
+   (cong _ _ _ _ (refl f) p))
+))
+
+; Show (= (f b) (f a)) assuming (= b a) ...
+(check
+(% p (holds (= b a))
+(: (holds (= (apply f b) (apply f a)))
+   (cong _ _ _ _ (refl f) p))
+))
+
+; Show (= (f b) (f a)) assuming (= (f a ) (f b))
+(check
+(% p (holds (= (apply f a) (apply f b))) 
+(: (holds (= (apply f b) (apply f a)))
+   (symm (apply f a) (apply f b) p))
+))
+
+; Show (= (f b) (f a)) assuming (= a b)
+(check
+(% p (holds (= a b))
+(: (holds (= (apply f b) (apply f a)))
+   (symm (apply f a) (apply f b) (cong f f a b (refl f) p)))
+))
+
+; Show (not (= (f b) (f a))) assuming (not (= (f a ) (f b)))
+(check
+(% p (holds (not (= (apply f a) (apply f b))))
+(: (holds (not (= (apply f b) (apply f a))))
+   (neg_symm (apply f a) (apply f b) p))
+))
+
+; Show (= (f a) (f c)) assuming (= (f a ) (f b)) and (= (f b) ( f c))
+(check
+(% p1 (holds (= (apply f a) (apply f b))) 
+(% p2 (holds (= (apply f b) (apply f c))) 
+(: (holds (= (apply f a) (apply f c)))
+   (trans (apply f a) (apply f b) (apply f c) p1 p2))
+)))
+
+; Show (= (f a) (f c)) assuming (= a b) and (= c b)
+(check
+(% p1 (holds (= a b))
+(% p2 (holds (= c b))
+(: (holds (= (apply f a) (apply f c)))
+   (trans (apply f a) (apply f b) (apply f c) (cong f f a b (refl f) p1) (symm (apply f c) (apply f b) (cong f f c b (refl f) p2))))
+)))
+
+; Show (= true true) using true_intro
+(check
+(: (holds (= true true))
+(true_intro true true_holds)))
+
+; Show true using a true_elim and refl
+(check
+(: (holds true)
+(true_elim true (refl true))))
+
+; Show (= false false) using false_intro and true_elim
+(check
+(: (holds (= false false))
+(false_intro false (true_elim (not false) not_false_true))))
+
+; Show (not false) using false_elim and refl
+(check
+(: (holds (not false))
+(false_elim false (refl false))))

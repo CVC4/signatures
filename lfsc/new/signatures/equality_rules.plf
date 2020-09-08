@@ -1,0 +1,47 @@
+; Congruence :
+
+(declare refl (! t term
+	(holds (= t t))))
+
+(declare symm (! s term
+        (! t term
+        (! u (holds (= s t))
+        (holds (= t s))))))
+
+(declare neg_symm (! s term
+        (! t term
+        (! u (holds (not (= s t)))
+        (holds (not (= t s)))))))
+
+(declare trans (! t1 term
+        (! t2 term
+        (! t3 term
+        (! u1 (holds (= t1 t2))
+        (! u2 (holds (= t2 t3))
+        (holds (= t1 t3))))))))
+
+(declare cong (! a1 term
+              (! b1 term
+              (! a2 term
+              (! b2 term
+              (! u1 (holds (= a1 b1))
+              (! u2 (holds (= a2 b2))
+              (! t (^ (well_typed (apply a1 a2)) ok)
+                (holds (= (apply a1 a2) (apply b1 b2)))))))))))
+
+(declare true_intro (! f term
+                    (! u (holds f)
+                    (holds (= f true)))))
+
+(declare true_elim (! f term
+                   (! u (holds (= f true))
+                   (holds f))))
+
+(declare false_intro (! f term
+                    (! u (holds (not f))
+                    (holds (= f false)))))
+
+(declare false_elim (! f term
+                   (! u (holds (= f false))
+                   (holds (not f)))))
+

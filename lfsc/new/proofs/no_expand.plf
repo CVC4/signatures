@@ -1,0 +1,47 @@
+(declare sort type)
+(declare term type)
+(declare holds (! t term type))
+(declare apply (! t1 term (! t2 term term)))
+(declare f_=  term)
+(define = (# t1 term (# t2 term (apply (apply f_= t1) t2))))
+(declare var (! v mpz (! s sort term)))
+(declare bvar (! v mpz (! s sort term)))
+(declare forall (! v mpz (! s sort term)))
+(declare arrow (! s1 sort (! s2 sort sort)))    
+(program mpz_ifequal ((v1 mpz) (v mpz) (t term) (s term)) term (mp_ifzero (mp_add (mp_neg v1) v) t s))
+
+(program substitute ((t term) (v mpz) (s term)) term
+  (match t
+    ((bvar v1 u1) 
+       (mpz_ifequal v v1 (bvar v1 u1) s))
+    ((apply t1 t2) (apply (substitute t1 v s) (substitute t2 v s)))
+    (default t)
+  ))
+
+(declare instantiate (! body term
+                     (! v mpz
+                     (! u sort
+                     (! s term
+                     (! bodyi term
+                     (! p (holds (apply (forall v u) body))
+                     (! r2 (^ (substitute body v s) bodyi)
+                     (holds bodyi))))))))
+
+(declare U sort)
+(declare V sort)
+(define a (var 1 U))
+(define b (var 2 U))
+(define c (var 3 U))
+(define f (var 4 (arrow U V)))
+
+(check
+(% p (holds (apply (forall 5 U) (= (apply f (bvar 5 U)) b)))
+(: (holds (= (apply f a) b))
+  (instantiate 
+    (= (apply f (bvar 5 U)) b) 
+    5 
+    U  
+    a 
+    (= (apply f a) b) 
+    p
+))))
