@@ -1,0 +1,374 @@
+\documentclass{article}
+
+\usepackage{url}
+\usepackage{xspace}
+\usepackage{xparse}
+\usepackage{xcolor}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{stmaryrd}
+\usepackage{mathrsfs}
+\usepackage{array}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{bussproofs}
+\EnableBpAbbreviations
+
+% for an infinite page
+\geometry{textwidth=500pt, marginparwidth=120pt, footskip=20pt}
+% \geometry{textwidth=400pt, marginparwidth=120pt, paperheight=16383pt, textheight=16263pt, footskip=40pt}
+% \addtolength{\oddsidemargin}{-.875in}
+
+% Columns with math mode in displaystyle
+\newcolumntype{D}[1]{>{\displaystyle} #1 <{}}
+\newcolumntype{F}[1]{>{$\displaystyle} #1 <{$}}
+
+\DeclareDocumentCommand{\enum}{ O{n} m O{,\,} O{1} O{}}{#2_{#4}#5#3\dots #3#2_{#1}#5}
+
+\begin{document}
+
+{\sf
+  \begin{center}
+    \Large --- \textbf{A proof calculus for the BV bitblasting in CVC4} ---\\
+  \end{center}
+}\vspace{.5in}
+
+\tableofcontents
+
+\section{Proof Calculus}
+
+The proof calculus is extended with rules for representing the bit-blasting of
+bit-vector terms. This is independent of other rules for preprocessing, Boolean
+and theory reasoning.
+
+\subsection{Bit-blasting}
+
+Judgment for bit-blasting:
+$$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]$$
+in which $n$ is a positive number, $x$ is a term of the bit-vector type for size
+$n$, and $x_i$, with $x_i\in\{\bot,\top\}$, for $0\leq i< n$, is the Boolean
+equivalent of the $i$-th bit of $x$ (from least to most significant). Thus
+$[\enum[n-1]{x}[;][0]]$ is the Boolean bit-level interpretation corresponding to the
+bit-vector term $x$.\\
+
+\noindent
+List of rules for bit-blasting
+
+\subsubsection{Variables and constants}
+
+    \begin{center}
+        \AXC{\strut}
+        \RL{\textsc{BBVar}}
+        \UIC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]$}
+        \DP\qquad
+        \AXC{\strut}
+        \RL{\textsc{BBConst}}
+        \UIC{\strut$\mathtt{bbT}\ n\ v\ [\enum[n-1]{v}[;][0]]$}
+        \DP
+    \end{center}
+
+\subsubsection{Bit-wise operations (\texttt{bvand}, \texttt{bvor},
+    \texttt{bvxor},
+    \texttt{bvnot})}
+
+    \begin{center}
+      \begin{tabular}{c}
+        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
+        \mathtt{bbT}\ n\ y\ [\enum[n-1]{y}[;][0]]$}
+        \RL{\textsc{BBAnd}}
+        \UIC{\strut$\mathtt{bbT}\ n\ (bvand\ x\ y)\ [x_0 \land y_0; \ldots; x_{n-1} \land y_{n-1}]$}
+        \DP\\ \\
+        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
+        \mathtt{bbT}\ n\ y\ [\enum[n-1]{y}[;][0]]$}
+        \RL{\textsc{BBOr}}
+        \UIC{\strut$\mathtt{bbT}\ n\ (bvor\ x\ y)\ [x_0 \lor y_0; \ldots; x_{n-1} \lor y_{n-1}]$}
+        \DP\\ \\
+        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
+        \mathtt{bbT}\ n\ y\ [\enum[n-1]{y}[;][0]]$}
+        \RL{\textsc{BBXor}}
+        \UIC{\strut$\mathtt{bbT}\ n\ (bvxor\ x\ y)\ [x_0 \oplus y_0; \ldots; x_{n-1} \oplus y_{n-1}]$}
+        \DP\\ \\
+        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]$}
+        \RL{\textsc{BBNot}}
+        \UIC{\strut$\mathtt{bbT}\ n\ (bvnot\ x)\ [\neg x_0; \ldots; \neg x_{n-1}]$}
+        \DP\\
+      \end{tabular}
+    \end{center}
+
+\subsubsection{Arithmetic operations (addition, negation, multiplication)}
+
+\paragraph{Addition}
+
+    Bit-blasted following the \emph{ripple carry adder} way of
+    computing:
+
+ \[
+      \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad \mathtt{bbT}\ n\
+        y\ [\enum[n-1]{y}[;][0]]$} \RL{\textsc{BBAdd}} \UIC{\strut$\mathtt{bbT}\ n\
+        (bvadd\ x\ y)\ [(x_0 \oplus y_0)\oplus\mathrm{carry}_0; \ldots; (x_{n-1}
+        \oplus y_{n-1})\oplus\mathrm{carry}_{n-1}]$} \DP
+    \]
+    in which, for $i\geq 0$,
+    \[
+      \begin{array}{lcl}
+        \mathrm{carry}_0&=&\bot\\
+        \mathrm{carry}_{i+1}&=&(x_i\wedge y_i)\vee((x_i\oplus y_i)\wedge \mathrm{carry}_i)
+      \end{array}
+    \]
+
+\paragraph{Negation}
+
+      Bit-blasted following $(\mathit{bvneg}\ a)\equiv (\mathit{bvadd}\
+      (\mathit{bvnot}\ a)\ 1)$:
+      \[
+        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]$} \RL{\textsc{BBNeg}}
+        \UIC{\strut$\mathtt{bbT}\ n\ (bvneg\ x)\ [(\neg x_0 \oplus
+          \bot)\oplus\mathrm{carry}_0; \ldots; (\neg x_{n-1}
+          \oplus\bot)\oplus\mathrm{carry}_{n-1}]$} \DP
+      \]
+      in which, for $i\geq 0$,
+      \[
+        \begin{array}{lcl}
+          \mathrm{carry}_0&=&\top\\
+          \mathrm{carry}_{i+1}&=&(\neg x_i\wedge \bot)\vee((\neg x_i\oplus
+                                  \bot)\wedge \mathrm{carry}_i)
+        \end{array}
+      \]
+
+
+\paragraph{Multiplication}
+
+      Bit-blasted following the \emph{shift add multiplier} way of computing:
+
+      \[
+        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad \mathtt{bbT}\ n\
+          y\ [\enum[n-1]{y}[;][0]]$} \RL{\textsc{BBMult}} \UIC{\strut$\mathtt{bbT}\
+          n\ (bvmult\ x\ y)\ [\mathrm{res}^{n-1}_0; \ldots; \mathrm{res}^{n-1}_{n-1}]$} \DP
+      \]
+      in which, for $i,j\geq 0$,
+      \[
+        \begin{array}{lcl}
+          \mathrm{res}^0_i&=&\mathrm{sh}^0_i\\[1ex]
+          \mathrm{res}^j_0&=&\mathrm{sh}^0_0\\[1ex]
+          \mathrm{res}^{j+1}_i&=&\mathrm{res}^j_i\oplus\mathrm{sh}^{j+1}_i\oplus\mathrm{carry}^{j+1}_i\\[1ex]
+          \mathrm{carry}^0_i&=&\bot\\[1ex]
+          \mathrm{carry}^{j+1}_{i+1}&=&\left\{
+                                        \begin{tabular}{F{l}l}
+                                          \mathrm{res}^j_i\wedge\mathrm{sh}^{j+1}_i\vee((\mathrm{res}^j_i\oplus\mathrm{sh}^{j+1}_i)\wedge\mathrm{carry}^{j+1}_i)&if $j < i$\\
+                                          \bot&otherwise\\
+                                        \end{tabular}\right.\\[3ex]
+          \mathrm{sh}^j_i&=&\left\{
+                             \begin{tabular}{F{l}l}
+                               x_{i-j}\wedge y_j&if $j \leq i$\\
+                               \bot&otherwise\\
+                             \end{tabular}\right.
+        \end{array}
+      \]
+      Example mult for $n = 4$:
+      \[
+        \left[
+          \begin{tabular}{F{l}F{c}F{l}}
+            \mathrm{res}^3_0&=&(x_0 \wedge y_0);\\
+            \mathrm{res}^3_1&=&\underbrace{(x_1\wedge y_0)\oplus(x_0\wedge
+                                          y_1)}\oplus\underbrace{\mathrm{carry}^3_1};\\
+                            &&\qquad\,\underbrace{\mathrm{res}^0_1\oplus\mathrm{sh}^1_1}\qquad\qquad\
+                               \bot\\
+                            &&\qquad\quad\ \,\mathrm{res}^2_1\\
+            \mathrm{res}^3_2&=&\underbrace{(x_2\wedge y_0)\oplus(x_1\wedge y_1)}\oplus\underbrace{\mathrm{carry}^1_2}\oplus\underbrace{(x_0\wedge
+                                          y_2)}\oplus\underbrace{\mathrm{carry}^3_2};\\
+                            &&\qquad\,\underbrace{\mathrm{res}^0_2\oplus\mathrm{sh}^1_2}\qquad\mathrm{res}^0_1\wedge\mathrm{sh}^1_1\dots\quad\mathrm{sh}^2_2\qquad\quad\bot\\
+                            &&\qquad\qquad\underbrace{\mathrm{res}^1_2\qquad\qquad\qquad\qquad}\\
+                            &&\qquad\qquad\qquad\qquad\mathrm{res}^2_2\\
+             \mathrm{res}^3_3&=&\underbrace{(x_3\wedge y_0)\oplus(x_2\wedge y_1)}\oplus\underbrace{\mathrm{carry}^1_3}\oplus\underbrace{(x_1\wedge
+                                          y_2)}\oplus\underbrace{\mathrm{carry}^2_3}\oplus\underbrace{(x_0\wedge y_3)}\oplus\underbrace{\mathrm{carry}^3_3};\\
+                            &&\qquad\
+                               \underbrace{\mathrm{res}^0_3\oplus\mathrm{sh}^1_3\qquad\qquad
+                               \dots}\qquad\quad\mathrm{sh}^2_3\ \ \ \mathrm{res}^1_2\wedge\mathrm{sh}^2_2\dots\quad\mathrm{sh}^3_3\qquad\quad\bot\\
+                            &&\qquad\qquad\qquad\underbrace{\mathrm{res}^1_3\qquad\qquad\qquad\qquad\qquad\qquad\qquad}\\
+            &&\qquad\qquad\qquad\qquad\qquad\qquad\quad\mathrm{res}^2_3
+          \end{tabular}
+        \right]
+      \]
+      with
+      \[
+      \begin{tabular}{F{l}cF{l}l}
+        \mathrm{carry}^1_3&=&\mathrm{res}^0_2\wedge\mathrm{sh}^1_2\vee((\mathrm{res}^0_2\oplus\mathrm{sh}^1_2)\wedge\mathrm{carry}^1_2)\\[1ex]
+\mathrm{carry}^1_2&=&\mathrm{res}^0_1\wedge\mathrm{sh}^1_1\vee((\mathrm{res}^0_1\oplus\mathrm{sh}^1_1)\wedge\underbrace{\mathrm{carry}^1_1})\\
+        &&\qquad\qquad\qquad\qquad\qquad\qquad\quad\!\bot\\[1ex]
+\mathrm{carry}^2_3&=&\mathrm{res}^1_2\wedge\mathrm{sh}^2_2\vee((\mathrm{res}^1_2\oplus\mathrm{sh}^2_2)\wedge\underbrace{\mathrm{carry}^2_2})\\
+                          &&\qquad\qquad\qquad\qquad\qquad\qquad\quad\!\bot\\[1ex]
+      \end{tabular}
+\]
+
+\subsubsection{Extraction}
+
+      \[
+       \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad 0\leq j \leq
+         i< n$}
+       \RL{\textsc{BBExtract}}
+       \UIC{\strut$\mathtt{bbT}\ i-j+1\ (extract\ i\ j\ x)\ [ x_j; \ldots; x_i]$}
+       \DP
+     \]
+
+\subsubsection{Concatenation}
+
+      \[
+       \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
+          \mathtt{bbT}\ m\ y\ [\enum[m-1]{y}[;][0]]$}
+       \RL{\textsc{BBConcat}}
+       \UIC{\strut$\mathtt{bbT}\ n+m\ (concat\ x\ y)\ [ \enum[m-1]{y}[;][0]; \enum[n-1]{x}[;][0]]$}
+       \DP
+     \]
+
+\subsubsection{Equality}
+      \[
+       \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
+          \mathtt{bbT}\ n\ y\ [\enum[n-1]{y}[;][0]]$}
+       \RL{\textsc{BBEq}}
+       \UIC{\strut$(bveq\ x\ y)\ \leftrightarrow\ (x_0 \leftrightarrow y_0\ \land\ \ldots\ \land\ x_{n-1} \leftrightarrow y_{n-1})$}
+       \DP
+      \]
+
+\subsubsection{Comparison predicates (signed/unsigned)}
+
+\paragraph{Unsigned less than}
+
+
+Bit-blasted following $a < b$ iff, for $0\leq i<n$, $(\sim a[i]\mbox{ AND
+}b[i])\mbox{ OR }( a[i] \leftrightarrow
+b[i]\mbox{ AND }a[i+1:n] < b[i+1:n])$
+
+\[
+  \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
+    \mathtt{bbT}\ n\ y\ [\enum[n-1]{y}[;][0]]$}
+  \RL{\textsc{BBUlt}}
+  \UIC{\strut$(bvult\ x\ y)\ \leftrightarrow\
+    \mathrm{res}_{n-1}$}
+  \DP
+\]
+in which, for $i\geq 0$,
+\[
+  \begin{array}{lcl}
+    \mathrm{res}_0&=&\neg x_0 \wedge y_0\\
+    \mathrm{res}_{i+1}&=&((x_{i+1}\leftrightarrow y_{i+1})\wedge
+                          \mathrm{res}_i)\vee (\neg x_{i+1}\wedge y_{i+1})
+  \end{array}
+\]
+
+\paragraph{Signed less than}
+
+Bit-blasted following $a < b$ iff $a$ is negative and $b$ positive, or they
+have the same sign and the value of $a$ is less than the value of $b$ (i.e.\ the
+same as above)
+
+\[
+  \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
+    \mathtt{bbT}\ n\ y\ [\enum[n-1]{y}[;][0]]$}
+  \RL{\textsc{BBSlt}}
+  \UIC{\strut$(bvslt\ x\ y)\ \leftrightarrow\ (x_{n-1}\wedge\neg y_{n-1})\vee
+    \left((x_{n-1}\wedge y_{n-1}) \wedge
+    \mathrm{res}_{n-2}\right)$}
+  \DP
+\]
+in which, for $i\geq 0$,
+\[
+  \begin{array}{lcl}
+    \mathrm{res}_0&=&\neg x_0 \wedge y_0\\
+    \mathrm{res}_{i+1}&=&((x_{i+1}\leftrightarrow y_{i+1})\wedge
+                          \mathrm{res}_i)\vee (\neg x_{i+1}\wedge y_{i+1})
+  \end{array}
+\]
+
+\subsubsection{Signed extension}
+
+    \begin{center}
+        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]$}
+        \RL{\textsc{BBSExt}}
+        \UIC{\strut$\mathtt{bbT}\ n+k\ (bbsextend\ k\ x)\ [\enum[n-1]{x}[;][0];\enum[n+k-1]{x}[;][n]]$}
+        \DP
+    \end{center}
+\noindent
+in which $\enum[n+k-1]{x}[;][n][=x_{n-1}]$, i.e., all the extension bits are equal
+to the signed bit (the most significant one in the original bit-vector).
+
+
+% \subsection{Arrays}
+
+%   \[
+%     \begin{array}{c}
+%     \AXC{\strut}
+%     \RL{\textsc{ReadOverWrite$_{Same}$}}
+%     \UIC{\strut$a[\,i \leftarrow v\,][\,i\,]\ =\ v$}
+%     \DP\\[2em]
+%     \AXC{\strut}
+%     \RL{\textsc{ReadOverWrite$_{Other}$}}
+%     \UIC{\strut$a[\,i \leftarrow v\,][\,j\,]\ =\ a[\,j\,]$}
+%     \DP\\[2em]
+%     \AXC{\strut$a \neq b$}
+%     \RL{\textsc{Extensionality}}
+%     \UIC{\strut$\exists k.\ a[\,k\,]\ \neq\ b[\,k\,]$}
+%     \DP
+%     \end{array}
+%   \]
+
+\section{veriT proof format}
+
+Proofs involving bit-vector reasoning will have an overall structure with four
+components:
+\begin{enumerate}
+  \item Inputs
+  \item Definition of bit-vector terms (via the above bit-blasting rules)
+  \item Resolution subproof of each bit-vector lemma learned
+
+  The subproof will depend on the bit-blasting definitions and Boolean reasoning,
+  such that one can derive e.g.\ the following valid clause
+\begin{verbatim}
+(resolution ((not (= #b1 a)) (not (= #b0 b)) (not (= #b1 c)) (= (bvadd a b) c)) n1...nk)
+\end{verbatim}
+  in which \texttt{n1}, ..., \texttt{nk} will be the Boolean reasoning clauses.
+
+  \item Resolution proof using the learned bit-vector lemmas and inputs to
+  derive a conflict.
+\end{enumerate}
+
+
+\subsection{Bit-blasting}
+
+Examples of \textsc{BBVar} and \textsc{BBConst}:
+
+\begin{verbatim}
+(bbvar ((bbT a [ (bitof 0 a) (bitof 1 a) (bitof 2 a) (bitof 3 a)])))
+(bbconst ((bbT #b0010 [ false true false false])))
+\end{verbatim}
+
+\noindent
+Example of \textsc{BBEq}:
+
+\begin{verbatim}
+(bbeq ((=
+         (= #b0010 a)
+         (and
+           (= false (bitof 0 a))
+           (and
+             (= true (bitof 1 a))
+             (and
+               (= false (bitof 2 a))
+               (= false (bitof 3 a))))))) n1 n2)
+\end{verbatim}
+in which \texttt{n1} is the definition of \texttt{\#b0010} via \textsc{BBConst}
+and \texttt{n2} the definition of \texttt{a} via \textsc{BBvVar}.
+
+% \begin{verbatim}
+% (bbvar ((bbT (select a (select b (select c v1)))
+%         [ (bitof 0 (select a (select b (select c v1))))
+%           (bitof 1 (select a (select b (select c v1))))
+%           (bitof 2 (select a (select b (select c v1))))
+%           (bitof 3 (select a (select b (select c v1))))])))
+
+% (bbvar ((bbT v0 [ (bitof 0 v0) (bitof 1 v0) (bitof 2 v0) (bitof 3 v0)])))
+% \end{verbatim}
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
