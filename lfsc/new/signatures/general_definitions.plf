@@ -23,8 +23,8 @@
 (define not (# t term (apply f_not t)))
 
 ; ITE
-;(declare f_ite term)
-;(define ite (# condition term (# then_branch ($ else_branch (apply f)ite condition then_branch else_branch)))) 
+(declare f_ite (! s sort term))
+(define ite (# s sort (# condition term (# then_branch term (# else_branch term (apply (apply (apply (f_ite s) condition) then_branch) else_branch))))))
 
 ; Equality:
 ; f_= is an equality symbol, which is a term, to be used with an apply

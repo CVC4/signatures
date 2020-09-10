@@ -9,6 +9,11 @@
 (define c (var 3 U))
 (define f (var 4 (arrow U V)))
 
+; Show (ite (= a b) a b) is equal to itself
+(check
+(: (holds (= (ite U (= a b) a b) (ite U (= a b) a b)))
+   (refl (ite U (= a b) a b))))
+
 
 ; Show (= (f a) (f b)) assuming (= a b) ...
 (check

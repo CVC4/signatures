@@ -27,8 +27,10 @@
     ; [4] quantifiers are indexed by their universal variable
     ((forall n s) (arrow Bool Bool))
     ; [5] all non-parametric interpreted function symbols
+
     (true Bool)
     (false Bool)
+    ((f_ite s) (arrow Bool (arrow s (arrow s s))))
     ; ...
     ; fail: unknown term
     (default (fail sort))
