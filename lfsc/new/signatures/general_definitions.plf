@@ -41,6 +41,9 @@
 ; universals
 (declare forall (! v mpz (! s sort term)))
 
+; witness
+(declare witness (! v mpz (! s sort term)))
+
 ;;;; To write (forall ((x Int)) (P x)):
 ; (apply (forall 1 Int) (apply P (bvar 1 Int)))
 

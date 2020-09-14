@@ -10,6 +10,7 @@
       (match t1
         ; [2] parametric interpreted function symbols
         (f_= (arrow (type_check t2) Bool))
+
         ; ...
         ; [3] function applications of non-parametric function symbols
         (default 
@@ -26,6 +27,7 @@
             (default (fail sort)))))))
     ; [4] quantifiers are indexed by their universal variable
     ((forall n s) (arrow Bool Bool))
+    ((witness n s) (arrow Bool s))
     ; [5] all non-parametric interpreted function symbols
 
     (true Bool)

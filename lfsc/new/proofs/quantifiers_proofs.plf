@@ -7,6 +7,10 @@
 (define g (var 5 (arrow U U)))
 (define h (var 6 (arrow V U)))
 
+
+(check
+(: term (apply (witness 8 U) (= (bvar 8 U) (bvar 8 U)))))
+
 ; Show f(a)=b from forall x. f(x)=b
 (check
 (% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
@@ -32,3 +36,6 @@
     (= (apply f (apply g (apply h c))) b)
     p
 )))))
+
+(check
+(: U (apply (witness 8 U) (= (bvar 8 U) (bvar 8 U)))))
