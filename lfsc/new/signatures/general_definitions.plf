@@ -34,8 +34,11 @@
 
 ; Free constants :
 (declare var (! v mpz (! s sort term)))
+
+
 ; BOUND_VARIABLE, i.e. a variable
 (declare bvar (! v mpz (! s sort term)))
+
 
 ; Quantifiers : 
 ; universals
@@ -44,8 +47,12 @@
 ; witness
 (declare witness (! v mpz (! s sort term)))
 
+;map to witness
+(declare map_to_witness (! k term (! w term type)))
+
 ;;;; To write (forall ((x Int)) (P x)):
-; (apply (forall 1 Int) (apply P (bvar 1 Int)))
+; (apply (forall v Int) (apply P (bvar v Int)))
+
 
 (declare Ok type)
 (declare ok Ok)

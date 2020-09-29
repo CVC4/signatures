@@ -19,8 +19,31 @@
                      (! s term
                      (! bodyi term
                      (! p (holds (apply (forall v u) body))
-;                     (! r1 (^ (type_check s) u)
-;                     (! r2 (^ (substitute body v s) bodyi)
                      (! r (^ (substitute_and_type_check body v s u) bodyi)
                      (holds bodyi)))))))))
+
+
+
+(declare mk_skolemize (! body term
+                     (! v mpz
+                     (! s sort
+		     (! goal term
+                     (! p (holds (not (apply (forall v s) body)))
+		     (! u (! v' mpz
+		     (! r (map_to_witness (var v' s) (apply (witness v s)
+		        (not body)))
+		     (holds goal)))
+		     (holds goal))))))))
+
+
+(declare skolemize (! body term
+                     (! v mpz
+                     (! s sort
+                     (! bodyi term
+		     (! k term
+                     (! p (holds (not (apply (forall v s) body)))
+		     (! u (map_to_witness k (apply (witness v s) (not body)))
+                     (! r (^ (substitute_and_type_check body v k s) bodyi)
+		     (holds bodyi))))))))))
+
 
