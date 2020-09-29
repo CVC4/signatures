@@ -22,6 +22,10 @@
 (declare f_not term)
 (define not (# t term (apply f_not t)))
 
+; Conjunction
+(declare f_and term)
+(define and (# t1 term (# t2 term (apply (apply f_and t1) t2))))
+
 ; ITE
 (declare f_ite (! s sort term))
 (define ite (# s sort (# condition term (# then_branch term (# else_branch term (apply (apply (apply (f_ite s) condition) then_branch) else_branch))))))

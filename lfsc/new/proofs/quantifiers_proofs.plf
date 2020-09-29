@@ -8,37 +8,37 @@
 (define h (var 6 (arrow V U)))
 
 
-(check
-(: term (apply (witness 8 U) (= (bvar 8 U) (bvar 8 U)))))
+; (check
+; (: term (apply (witness 8 U) (= (bvar 8 U) (bvar 8 U)))))
 
-; Show f(a)=b from forall x. f(x)=b
-(check
-(% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
-(: (holds (= (apply f a) b))
-  (instantiate 
-    (= (apply f (bvar 7 U)) b) 
-    7 
-    U  
-    a 
-    (= (apply f a) b) 
-    p
-))))
+; ; Show f(a)=b from forall x. f(x)=b
+; (check
+; (% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
+; (: (holds (= (apply f a) b))
+;   (instantiate 
+;     (= (apply f (bvar 7 U)) b) 
+;     7 
+;     U  
+;     a 
+;     (= (apply f a) b) 
+;     p
+; ))))
 
-;Show f(g(h(c)))=b
-(check
-(% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
-(: (holds (= (apply f (apply g (apply h c))) b)
-  (instantiate
-  (= (apply f (bvar 7 U)) b)
-    7
-    U
-    (apply g (apply h c))
-    (= (apply f (apply g (apply h c))) b)
-    p
-)))))
+; ;Show f(g(h(c)))=b
+; (check
+; (% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
+; (: (holds (= (apply f (apply g (apply h c))) b)
+;   (instantiate
+;   (= (apply f (bvar 7 U)) b)
+;     7
+;     U
+;     (apply g (apply h c))
+;     (= (apply f (apply g (apply h c))) b)
+;     p
+; )))))
 
-(check
-(: U (apply (witness 8 U) (= (bvar 8 U) (bvar 8 U)))))
+; (check
+; (: U (apply (witness 8 U) (= (bvar 8 U) (bvar 8 U)))))
 
 
 
@@ -49,9 +49,31 @@
 (% p1 (holds (not (= a b)))
 (% p2 (holds (not (apply (forall 7 U) (not (and (= a (bvar 7 U)) (= (bvar 7 U) b))))))
 (: (holds false)
-(mk_skolemize _ _ _ _ p2 (\ v' (\ r
-  (contra
-    (trans _ _ _ (and_elim_1 (not_not_elim (skolemize _ _ _ _ _ p2 r)))
-                 (and_elim_2 (not_not_elim (skolemize _ _ _ _ _ p2 r)))
+  (mk_skolemize
+    (not (and (= a (bvar 7 U)) (= (bvar 7 U) b)))
+    7
+    U
+    false
+    p2
+    (\ v' (\ r
+      (contradiction
+        (trans
+	a
+	(bvar 7 U)
+	b
+	(and_elim_1
+	  (not_not_elim
+	    (and (= a (bvar 7 U)) (= (bvar 7 U) b))
+	    (skolemize
+	      (not (and (= a (bvar 7 U)) (= (bvar 7 U) b)))
+	      7
+	      U
+	      _
+	      _
+	      p2
+	      r
+	    )
+	  ))
+        (and_elim_2 (not_not_elim _ (skolemize _ _ _ _ _ p2 r)))
     )
     p1))))))))

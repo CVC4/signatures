@@ -45,5 +45,3 @@
 		     (! u (map_to_witness k (apply (witness v s) (not body)))
                      (! r (^ (substitute_and_type_check body v k s) bodyi)
 		     (holds bodyi))))))))))
-
-
