@@ -18,7 +18,8 @@
     _
     _
     p2
-    (\ v' (\ k
+    (\ v' (\ r
+      (@ sko (skolemize _ _ _ _ _ p2 r)
       (contradiction
         _
         (trans
@@ -30,19 +31,10 @@
 	  _
 	  (not_not_elim
 	    _
-	    (skolemize
-	      _
-	      _
-	      _
-	      _
-	      _
-	      p2
-	      k
-	    )
-	  ))
-        (and_elim_2 _ _ (not_not_elim _ (skolemize _ _ _ _ _ p2 k)))
+	    sko))
+        (and_elim_2 _ _ (not_not_elim _ sko ))
     )
-    p1))))))))
+    p1)))))))))
 
 
 ; (check
