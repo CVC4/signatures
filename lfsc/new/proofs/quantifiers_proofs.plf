@@ -18,29 +18,15 @@
     _
     _
     p2
-    (\ v' (\ k
+    (\ v' (\ r
       (contradiction
         _
         (trans
 	_
 	_
 	_
-	(and_elim_1
-	  _
-	  _
-	  (not_not_elim
-	    _
-	    (skolemize
-	      _
-	      _
-	      _
-	      _
-	      _
-	      p2
-	      k
-	    )
-	  ))
-        (and_elim_2 _ _ (not_not_elim _ (skolemize _ _ _ _ _ p2 k)))
+        (and_elim_1 _ _ (not_not_elim _ (skolemize _ _ _ _ _ p2 r)))
+        (and_elim_2 _ _ (not_not_elim _ (skolemize _ _ _ _ _ p2 r)))
     )
     p1))))))))
 

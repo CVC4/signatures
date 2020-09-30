@@ -39,7 +39,6 @@
 ; Free constants :
 (declare var (! v mpz (! s sort term)))
 
-
 ; BOUND_VARIABLE, i.e. a variable
 (declare bvar (! v mpz (! s sort term)))
 
