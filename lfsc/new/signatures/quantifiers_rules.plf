@@ -23,8 +23,7 @@
                      (holds bodyi)))))))))
 
 
-
-(declare mk_skolemize (! body term
+(declare mk_skolemize_forall (! body term
                      (! v mpz
                      (! s sort
 		     (! goal term
@@ -36,7 +35,7 @@
 		     (holds goal))))))))
 
 
-(declare skolemize (! body term
+(declare skolemize_forall (! body term
                      (! v mpz
                      (! s sort
                      (! bodyi term
@@ -45,3 +44,25 @@
 		     (! u (map_to_witness k (apply (witness v s) (not body)))
                      (! r (^ (substitute_and_type_check body v k s) bodyi)
 		     (holds (not bodyi)))))))))))
+
+(declare mk_skolemize_exists (! body term
+                     (! v mpz
+                     (! s sort
+		     (! goal term
+                     (! p (holds (apply (exists v s) body))
+		     (! u (! v' mpz
+		          (! r (map_to_witness (bvar v' s) (apply (witness v s)
+		               body))
+		     (holds goal)))
+		     (holds goal))))))))
+
+
+(declare skolemize_exists (! body term
+                     (! v mpz
+                     (! s sort
+                     (! bodyi term
+		     (! k term
+                     (! p (holds (apply (exists v s) body))
+		     (! u (map_to_witness k (apply (witness v s) body))
+                     (! r (^ (substitute_and_type_check body v k s) bodyi)
+		     (holds bodyi))))))))))

@@ -47,6 +47,9 @@
 ; universals
 (declare forall (! v mpz (! s sort term)))
 
+; existentials
+(declare exists (! v mpz (! s sort term)))
+
 ; witness
 (declare witness (! v mpz (! s sort term)))
 

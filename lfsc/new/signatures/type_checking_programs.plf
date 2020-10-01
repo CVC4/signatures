@@ -27,6 +27,7 @@
             (default (fail sort)))))))
     ; [4] quantifiers are indexed by their universal variable
     ((forall n s) (arrow Bool Bool))
+    ((exists n s) (arrow Bool Bool))
     ((witness n s) (arrow Bool s))
     ; [5] all non-parametric interpreted function symbols
 
