@@ -30,7 +30,7 @@
 		     (! goal term
                      (! p (holds (not (apply (forall v s) body)))
 		     (! u (! v' mpz
-		          (! r (map_to_witness (var v' s) (apply (witness v s)
+		          (! r (map_to_witness (bvar v' s) (apply (witness v s)
 		               (not body)))
 		     (holds goal)))
 		     (holds goal))))))))
