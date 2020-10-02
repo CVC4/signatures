@@ -1,0 +1,74 @@
+(declare sort type)
+(declare term type)
+(declare holds (! t term type))
+(declare Bool sort)
+(declare arrow (! s1 sort (! s2 sort sort)))
+(declare apply (! t1 term (! t2 term term)))
+(declare false term)
+(declare bvar (! v mpz (! s sort term)))
+(declare f_exists (! v mpz (! s sort term)))
+(define exists (# v mpz (# s sort (# t term (apply (f_exists v s) t)))))
+(declare f_witness (! v mpz (! s sort term)))
+(define witness (# v mpz (# s sort (# t term (apply (f_witness v s) t)))))
+(declare skolem (! w term term))
+(declare Ok type)
+(declare ok Ok)
+
+(program type_check ((t term)) sort
+  (match t
+    ; [1] uninterpreted function symbol
+    ((bvar n s) s)
+    ((skolem w) (type_check w))
+    ((apply t1 t2)
+      (match t1
+        ; [2] parametric interpreted function symbols
+        ; ...
+        ; [3] function applications of non-parametric function symbols
+        (default 
+          (let s1 (type_check t1)
+          (match s1
+            ; application of function
+            ((arrow sarg sreturn) 
+                (let s2 (type_check t2)
+                (ifequal s2 sarg 
+                  sreturn 
+                  ; fail: function applied to terms of different sorts
+                  (fail sort))))
+            ; fail: application of non-function
+            (default (fail sort)))))))
+    ; [4] quantifiers are indexed by their universal variable
+    ((f_exists n s) (arrow Bool Bool))
+    ((f_witness n s) (arrow Bool s))
+    ; [5] all non-parametric interpreted function symbols
+
+    (false Bool)
+    ; ...
+    ; fail: unknown term
+    (default (fail sort))
+  )
+)
+(program well_typed ((t term)) Ok
+  (do (type_check t) ok))
+
+(program mpz_ifequal ((v1 mpz) (v mpz) (t term) (s term)) term
+  (mp_ifzero (mp_add (mp_neg v1) v) t s)
+)
+
+(program substitute ((t term) (v mpz) (s term)) term
+  (match t
+    ((bvar v1 u1) 
+       (mpz_ifequal v v1 s t))
+    ((apply t1 t2) (apply (substitute t1 v s) (substitute t2 v s)))
+    (default t)
+  ))
+
+(program substitute_and_type_check ((t term) (v mpz) (s term) (u sort)) term
+  (ifequal (type_check s) u (substitute t v s) (fail term)))
+
+(declare skolemize_exists (! body term
+                     (! v mpz
+                     (! s sort
+                     (! bodyi term
+                     (! p (holds (exists v s body))
+                     (! r (^ (substitute_and_type_check body v (skolem (witness v s body)) s) bodyi)
+		     (holds bodyi))))))))

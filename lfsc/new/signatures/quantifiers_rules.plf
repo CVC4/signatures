@@ -18,58 +18,17 @@
                      (! u sort
                      (! s term
                      (! bodyi term
-                     (! p (holds (apply (forall v u) body))
+                     (! p (holds (forall v u body))
                      (! r (^ (substitute_and_type_check body v s u) bodyi)
                      (holds bodyi)))))))))
 
-
-(declare mk_skolemize_forall (! body term
-                     (! v mpz
-                     (! s sort
-		     (! goal term
-                     (! p (holds (not (apply (forall v s) body)))
-		     (! u (! v' mpz
-		          (! r (map_to_witness (bvar v' s) (apply  (witness v s)
-		               (not body)))
-		     (holds goal)))
-		     (holds goal))))))))
-
-
-(declare skolemize_forall (! body term
-                     (! v mpz
-                     (! s sort
-                     (! bodyi term
-		     (! k term
-                     (! p (holds (not (apply (forall v s) body)))
-		     (! u (map_to_witness k (apply (witness v s) (not body)))
-                     (! r (^ (substitute_and_type_check body v k s) bodyi)
-		     (holds (not bodyi)))))))))))
-
-(declare mk_skolemize_exists (! body term
-                     (! v mpz
-                     (! s sort
-		     (! goal term
-                     (! p (holds (apply (exists v s) body))
-		     (! u (! v' mpz
-		          (! r (map_to_witness (bvar v' s) (apply (witness v s)
-		               body))
-		     (holds goal)))
-		     (holds goal))))))))
 
 (declare skolemize_exists (! body term
                      (! v mpz
                      (! s sort
                      (! bodyi term
-		     (! k term
-                     (! p (holds (apply (exists v s) body))
-		     (! u (map_to_witness k (apply (witness v s) body))
-                     (! r (^ (substitute_and_type_check body v k s) bodyi)
-		     (holds bodyi))))))))))
-
-(declare skolemize_exists_2 (! body term
-                     (! v mpz
-                     (! s sort
-                     (! bodyi term
-                     (! p (holds (apply (exists v s) body))
-                     (! r (^ (substitute_and_type_check body v (skolem (apply (witness v s) body)) s) bodyi)
+                     (! p (holds (exists v s body))
+                     (! r (^ (substitute_and_type_check body v (skolem (witness v s body)) s) bodyi)
 		     (holds bodyi))))))))
+
+(declare not_forall_to_exists_not (! body term (! v mpz (! s sort (! p (holds (not (forall v s body))) (holds (exists v s (not body))))))))

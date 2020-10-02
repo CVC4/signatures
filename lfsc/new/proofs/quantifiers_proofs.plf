@@ -7,64 +7,15 @@
 (define g (var 5 (arrow U U)))
 (define h (var 6 (arrow V U)))
 
+
+; ;TODOS:
+; ; 2. try to prove that this is unsound and fail (challange freshness)
+; ; 3. try to prove that this is incomplete and fail
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; SKOLEMIAZATION STUFF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
-; a != b  /\ (exists x. x = a /\ x = b) |- BOT
-; no holes
-(check
-(% p1 (holds (not (= a b)))
-(% p2 (holds (not (apply (forall 7 U) (not (and (= a (bvar 7 U)) (= (bvar 7 U) b))))))
-(: (holds false)
-  (mk_skolemize_forall
-    (not (and (= a (bvar 7 U)) (= (bvar 7 U) b)))
-    7
-    U
-    false
-    p2
-    (\ v' (\ r
-      (contradiction
-        (= a b)
-        (trans
-	  a
-	  (bvar v' U)
-	  b
-          (and_elim_1 
-            (= a (bvar v' U))
-            (= (bvar v' U) b)
-            (not_not_elim 
-              (and (= a (bvar v' U)) (= (bvar v' U) b)) 
-              (skolemize_forall 
-                (not (and (= a (bvar 7 U)) (= (bvar 7 U) b))) 
-                7 
-                U 
-                (not (and (= a (bvar v' U)) (= (bvar v' U) b))) 
-                (bvar v' U)
-                p2 r))
-          )
-          (and_elim_2
-            (= a (bvar v' U))
-            (= (bvar v' U) b)
-            (not_not_elim 
-              (and (= a (bvar v' U)) (= (bvar v' U) b)) 
-              (skolemize_forall 
-                (not (and (= a (bvar 7 U)) (= (bvar 7 U) b))) 
-                7 
-                U 
-                (not (and (= a (bvar v' U)) (= (bvar v' U) b))) 
-                (bvar v' U)
-                p2 r))
-          )
-        )
-        p1
-      )
-    ))
-  )
-))))
-
 
 
 ;with holes
@@ -73,7 +24,7 @@
 ; da new proof, for real for real
 (check
 (% p1 (holds (not (= a b)))
-(% p2 (holds (apply (exists 7 U) (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
+(% p2 (holds (exists 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
 (: (holds false)
       (contradiction
         _
@@ -81,86 +32,46 @@
 	_
 	_
 	_
-        (and_elim_1 _ _ (skolemize_exists_2 _ _ _ _ p2))
-        (and_elim_2 _ _ (skolemize_exists_2 _ _ _ _ p2))
+        (and_elim_1 _ _ (skolemize_exists _ _ _ _ p2))
+        (and_elim_2 _ _ (skolemize_exists _ _ _ _ p2))
         )
     p1)))))
 
-
-;TODOS:
-; 0. add a rule from forall to exists and use it in all forall proofs (of this file).
-; 1. change the rest of the proofs accordingly 
-; 2. try to prove that this is unsound and fail (challange freshness)
-; 3. try to prove that this is incomplete and fail
-
-
-
-
-
-;with holes
-; a != b  /\ (exists x. x = a /\ x = b) |- BOT
-; but for real, with exists
-(check
-(% p1 (holds (not (= a b)))
-(% p2 (holds (apply (exists 7 U) (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
-(: (holds false)
-  (mk_skolemize_exists
+; ; a != b  /\ (exists x. x = a /\ x = b) |- BOT
+; ; with let expressions
+; actually with forall and not exists
+ (check
+ (% p1 (holds (not (= a b)))
+ (% p2 (holds (not (forall 7 U (not (and (= a (bvar 7 U)) (= (bvar 7 U) b))))))
+ (: (holds false)
+  (contradiction
     _
-    _
-    _
-    _
-    p2
-    (\ v' (\ r
-      (contradiction
-        _
-        (trans
-	_
-	_
-	_
-        (and_elim_1 _ _ (skolemize_exists _ _ _ _ _ p2 r))
-        (and_elim_2 _ _ (skolemize_exists _ _ _ _ _ p2 r))
-        )
-    p1))))))))
+    (trans
+      _
+      _
+      _
+      (and_elim_1 _ _ 
+        (not_not_elim _
+          (skolemize_exists _ _ _ _ 
+            (not_forall_to_exists_not _ _ _ p2))))
+      (and_elim_2 _ _ 
+        (not_not_elim _
+          (skolemize_exists _ _ _ _ 
+            (not_forall_to_exists_not _ _ _ p2)))))
+  p1)))))
 
 
-; a != b  /\ (exists x. x = a /\ x = b) |- BOT
-; with let expressions
-(check
-(% p1 (holds (not (= a b)))
-(% p2 (holds (not (apply (forall 7 U) (not (and (= a (bvar 7 U)) (= (bvar 7 U) b))))))
-(: (holds false)
-  (mk_skolemize_forall
-    _
-    _
-    _
-    _
-    p2
-    (\ v' (\ r
-      (@ sko (skolemize_forall _ _ _ _ _ p2 r)
-      (contradiction
-        _
-        (trans
-	_
-	_
-	_
-	(and_elim_1
-	  _
-	  _
-	  (not_not_elim
-	    _
-	    sko))
-        (and_elim_2 _ _ (not_not_elim _ sko ))
-    )
-    p1)))))))))
-
+; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; ; INSTANTIATION STUFF 
+; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (check
-(: term (apply (witness 8 U) (= (bvar 8 U) (bvar 8 U)))))
+(: term (witness 8 U (= (bvar 8 U) (bvar 8 U)))))
 
 ; Show f(a)=b from forall x. f(x)=b
 (check
-(% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
+(% p (holds (forall 7 U (= (apply f (bvar 7 U)) b)))
 (: (holds (= (apply f a) b))
   (instantiate 
     (= (apply f (bvar 7 U)) b) 
@@ -173,7 +84,7 @@
 
 ;Show f(g(h(c)))=b
  (check
- (% p (holds (apply (forall 7 U) (= (apply f (bvar 7 U)) b)))
+ (% p (holds (forall 7 U (= (apply f (bvar 7 U)) b)))
  (: (holds (= (apply f (apply g (apply h c))) b))
    (instantiate
    (= (apply f (bvar 7 U)) b)
@@ -184,5 +95,3 @@
      p
  ))))
 
-(check
-(: term (apply (witness 8 U) (= (bvar 8 U) (bvar 8 U)))))

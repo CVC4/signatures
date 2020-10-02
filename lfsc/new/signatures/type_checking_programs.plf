@@ -27,15 +27,16 @@
             ; fail: application of non-function
             (default (fail sort)))))))
     ; [4] quantifiers are indexed by their universal variable
-    ((forall n s) (arrow Bool Bool))
-    ((exists n s) (arrow Bool Bool))
-    ((witness n s) (arrow Bool s))
+    ((f_forall n s) (arrow Bool Bool))
+    ((f_exists n s) (arrow Bool Bool))
+    ((f_witness n s) (arrow Bool s))
     ; [5] all non-parametric interpreted function symbols
 
     (true Bool)
     (false Bool)
     ((f_ite s) (arrow Bool (arrow s (arrow s s))))
     (f_and (arrow Bool (arrow Bool Bool)))
+    (f_not (arrow Bool Bool))
     ; ...
     ; fail: unknown term
     (default (fail sort))

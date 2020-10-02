@@ -45,16 +45,16 @@
 
 ; Quantifiers : 
 ; universals
-(declare forall (! v mpz (! s sort term)))
+(declare f_forall (! v mpz (! s sort term)))
+(define forall (# v mpz (# s sort (# t term (apply (f_forall v s) t)))))
 
 ; existentials
-(declare exists (! v mpz (! s sort term)))
+(declare f_exists (! v mpz (! s sort term)))
+(define exists (# v mpz (# s sort (# t term (apply (f_exists v s) t)))))
 
 ; witness
-(declare witness (! v mpz (! s sort term)))
-
-; map to witness
-(declare map_to_witness (! k term (! w term type)))
+(declare f_witness (! v mpz (! s sort term)))
+(define witness (# v mpz (# s sort (# t term (apply (f_witness v s) t)))))
 
 ; w must be a witness (verify in typechecking or whatever)
 (declare skolem (! w term term))
