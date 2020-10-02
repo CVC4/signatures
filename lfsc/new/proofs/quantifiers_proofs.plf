@@ -8,11 +8,6 @@
 (define h (var 6 (arrow V U)))
 
 
-; ;TODOS:
-; ; 2. try to prove that this is unsound and fail (challange freshness)
-; ; 3. try to prove that this is incomplete and fail
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; SKOLEMIAZATION STUFF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -20,8 +15,6 @@
 
 ;with holes
 ; a != b  /\ (exists x. x = a /\ x = b) |- BOT
-; but for real, with exists, but second version
-; da new proof, for real for real
 (check
 (% p1 (holds (not (= a b)))
 (% p2 (holds (exists 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
@@ -37,8 +30,29 @@
         )
     p1)))))
 
-; ; a != b  /\ (exists x. x = a /\ x = b) |- BOT
-; ; with let expressions
+
+
+;no holes
+; a != b  /\ (exists x. x = a /\ x = b) |- BOT
+(check
+(% p1 (holds (not (= a b)))
+(% p2 (holds (exists 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
+(: (holds false)
+      (contradiction
+        (= a b)
+        (trans
+	  a
+	  (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
+	  b
+          (and_elim_1 (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) (skolemize_exists (and (= a (bvar 7 U)) (= (bvar 7 U) b)) 7 U (and (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) ) p2))
+          (and_elim_2 (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) (skolemize_exists (and (= a (bvar 7 U)) (= (bvar 7 U) b)) 7 U (and (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) ) p2))
+         )
+    p1)))))
+
+
+
+
+; a != b  /\ (exists x. x = a /\ x = b) |- BOT
 ; actually with forall and not exists
  (check
  (% p1 (holds (not (= a b)))
