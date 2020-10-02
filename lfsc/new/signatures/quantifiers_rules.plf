@@ -29,7 +29,7 @@
 		     (! goal term
                      (! p (holds (not (apply (forall v s) body)))
 		     (! u (! v' mpz
-		          (! r (map_to_witness (bvar v' s) (apply (witness v s)
+		          (! r (map_to_witness (bvar v' s) (apply  (witness v s)
 		               (not body)))
 		     (holds goal)))
 		     (holds goal))))))))
@@ -56,7 +56,6 @@
 		     (holds goal)))
 		     (holds goal))))))))
 
-
 (declare skolemize_exists (! body term
                      (! v mpz
                      (! s sort
@@ -66,3 +65,11 @@
 		     (! u (map_to_witness k (apply (witness v s) body))
                      (! r (^ (substitute_and_type_check body v k s) bodyi)
 		     (holds bodyi))))))))))
+
+(declare skolemize_exists_2 (! body term
+                     (! v mpz
+                     (! s sort
+                     (! bodyi term
+                     (! p (holds (apply (exists v s) body))
+                     (! r (^ (substitute_and_type_check body v (skolem (apply (witness v s) body)) s) bodyi)
+		     (holds bodyi))))))))

@@ -53,8 +53,11 @@
 ; witness
 (declare witness (! v mpz (! s sort term)))
 
-;map to witness
+; map to witness
 (declare map_to_witness (! k term (! w term type)))
+
+; w must be a witness (verify in typechecking or whatever)
+(declare skolem (! w term term))
 
 ;;;; To write (forall ((x Int)) (P x)):
 ; (apply (forall v Int) (apply P (bvar v Int)))

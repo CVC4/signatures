@@ -6,6 +6,7 @@
     ; [1] uninterpreted function symbol
     ((var n s) s)
     ((bvar n s) s)
+    ((skolem w) (type_check w))
     ((apply t1 t2)
       (match t1
         ; [2] parametric interpreted function symbols
@@ -34,6 +35,7 @@
     (true Bool)
     (false Bool)
     ((f_ite s) (arrow Bool (arrow s (arrow s s))))
+    (f_and (arrow Bool (arrow Bool Bool)))
     ; ...
     ; fail: unknown term
     (default (fail sort))
