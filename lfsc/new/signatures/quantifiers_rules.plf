@@ -1,3 +1,5 @@
+(declare not_forall_to_exists_not (! body term (! v mpz (! s sort (! p (holds (not (forall v s body))) (holds (exists v s (not body))))))))
+
 (program mpz_ifequal ((v1 mpz) (v mpz) (t term) (s term)) term
   (mp_ifzero (mp_add (mp_neg v1) v) t s)
 )
@@ -31,4 +33,3 @@
                      (! r (^ (substitute_and_type_check body v (skolem (witness v s body)) s) bodyi)
 		     (holds bodyi))))))))
 
-(declare not_forall_to_exists_not (! body term (! v mpz (! s sort (! p (holds (not (forall v s body))) (holds (exists v s (not body))))))))
