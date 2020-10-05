@@ -8,11 +8,6 @@
 (define h (var 6 (arrow V U)))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; SKOLEMIAZATION STUFF
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 ;with holes
 ; a != b  /\ (exists x. x = a /\ x = b) |- BOT
 (check
@@ -74,14 +69,6 @@
             (not_forall_to_exists_not _ _ _ p2)))))
   p1)))))
 
-
-; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; ; INSTANTIATION STUFF 
-; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(check
-(: term (witness 8 U (= (bvar 8 U) (bvar 8 U)))))
 
 ; Show f(a)=b from forall x. f(x)=b
 (check
