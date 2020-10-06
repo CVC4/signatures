@@ -225,6 +225,9 @@ def mkIffSimp : option term → option term → option term :=
 def mkDistinct : list (option term) → option term :=
   λ ol, mkAndN $ list.map (function.uncurry mkIneq) (genAllPairs ol)
 
+def mkForall (p : pos_num) (obody : option term) : option term :=
+  do body ← obody, (qforall p body)
+
 -- retrieve the identifier of a constant
 def numOf : term → option pos_num
 | (const n _) := n
@@ -598,23 +601,20 @@ constant smtcongn_p : Π {f : term} {c₁ c₂ : clause} ,
 
 /-*************** instantiation ***************-/
 
+def substitute : pos_num → term → term → option term
+-- if finds shadowing, break
+| p₁ (qforall p₂ body) t :=
+   if p₁ = p₂ then option.none else
+                               do res ← (substitute p₁ body t), (qforall p₂ res)
+-- if found variable, replace by instantiation term
+| p₁ (const p₂ os) t :=
+  do s ← os, st ← sortof t, if p₁ = p₂ ∧ s = st then t else (const p₂ s)
+-- replace each term in application
+| p₁ (f • t₁) t :=
+  do fs ← (substitute p₁ f t), t₁s ← (substitute p₁ t₁ t), mkApp fs t₁s
 
--- recursively find all constants with p, and replace with other term
-def substitute : option term → option term → option term
-| (option.some (qforall p₁ (const p₂ os₁))) ot₂ :=
-    if p₁ = p₂
-    then (do t₂ ← ot₂, s₂ ← sortof t₂, s₁ ← os₁,
-             if s₁ = s₂ then ot₂ else option.none)
-    else (const p₂ os₁)
-| (option.some (qforall p₁ (t₁₁ • t₁₂))) ot₂ :=
-  do left_term ← substitute (qforall p₁ t₁₁) ot₂,
-     right_term ← substitute (qforall p₁ t₁₂) ot₂,
-   left_term • right_term
-| _ _ := option.none
-
-
-constant inst_forall : Π (quant instTerm : term),
-         holds [mkNot quant, substitute quant instTerm]
+constant inst_forall : Π {v : pos_num} {body : term} (term : term),
+  holds [mkNot $ mkForall v body, substitute v body term]
 
 end term
 
@@ -651,12 +651,13 @@ def t2 := const 63 u2
 def p1 := const 64 (arrow u1 boolsort)
 
 def myquant := qforall 60 (f1 • x) -- this binds the variable
+def myquant2 := qforall 60 x -- this binds the variable
 
--- noncomputable lemma testInst : holds [mkNot myquant, f1 • t1] :=
---   inst_forall myquant t1
+noncomputable lemma testInst : holds [mkNot myquant, f1 • t1] :=
+  inst_forall t1
 
--- does not go through
--- noncomputable lemma testInst2 : holds [mkNot myquant, f1 • t2] :=
---   @inst_forall myquant t2
+-- does not go through since t2 has different type from x
+-- noncomputable lemma testInst2 : holds [mkNot myquant2, t2] :=
+--   inst_forall t2
 
 end debug
