@@ -71,7 +71,7 @@ namespace term
 open sort
 
 infixl ` • ` :20  := app
-infixl ` » ` :21  := bind_var
+infixl ` » ` :21  := qforall
 
 #check (λ (p : pos_num) (t : term), p » t)
 
