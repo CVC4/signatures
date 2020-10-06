@@ -64,12 +64,16 @@ end sort
 inductive term : Type
 | const : pos_num → option sort → term
 | app : term → term → term
+| qforall : pos_num → term → term
 
 namespace term
 
 open sort
 
 infixl ` • ` :20  := app
+infixl ` » ` :21  := bind_var
+
+#check (λ (p : pos_num) (t : term), p » t)
 
 def toUnary (t : term) : term → term := λ t₁: term, t • t₁
 def toBinary (t : term) : term → term → term := λ t₁ t₂ : term, t • t₁ • t₂
@@ -89,16 +93,15 @@ def cstr (p : pos_num) : term := const p (option.some constructor)
 @[pattern] def implies : term → term → term := toBinary $ cstr implies_num
 @[pattern] def xor     : term → term → term := toBinary $ cstr xor_num
 @[pattern] def iff     : term → term → term := toBinary $ cstr iff_num
-@[pattern] def qforall : term → term → term := toBinary $ cstr forall_num
 
 def term_to_string : term → string
 | (const name option.none) := "(" ++ repr name ++ ":none)"
 | (const name (option.some srt)) :=  repr name ++ ":" ++ sort_to_string srt
 | (app f t) :=
   "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
+| (qforall p t) := repr p ++ " » " ++ term_to_string t
 
 meta instance: has_repr term := ⟨term_to_string⟩
-
 
 def sortof_aux : term → option sort
 | (const bot_num _) := boolsort
@@ -109,9 +112,9 @@ def sortof_aux : term → option sort
 | (const xor_num _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const iff_num _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const _ s)      := s
-| (qforall t₁ t₂)  :=
-  do s₁ ← sortof_aux t₁, s₂ ← sortof_aux t₂,
-    if s₂ = boolsort then boolsort else option.none
+| (qforall p₁ t₁)  :=
+  do s₁ ← sortof_aux t₁,
+    if s₁ = boolsort then boolsort else option.none
 | (eq t₁ t₂) :=
   do s₁ ← sortof_aux t₁, s₂ ← sortof_aux t₂,
     if s₁ = s₂ then boolsort else option.none
@@ -595,28 +598,23 @@ constant smtcongn_p : Π {f : term} {c₁ c₂ : clause} ,
 
 /-*************** instantiation ***************-/
 
--- relies on constants with the same identifier having the same sort
--- and on quantifiers being well-sorted
-def substituteAux : term → term → term → option term
--- if finds shadowing, break
-| (qforall v' body) v t :=
-  do vnum ← numOf v, vnum' ← numOf v',
-    if vnum = vnum' then option.none else substituteAux body v t
--- if found variable, replace by instantiation term
-| (const vnum' s) v t :=
-  do vnum ← numOf v,
-    if vnum = vnum' then t else (const vnum' s)
-| (f • t₁) v t₀ :=
-  do fs ← (substituteAux f v t₀), t₁s ← (substituteAux t₁ v t₀), (fs • t₁s)
 
-def substitute : term → term → option term
-| (qforall v body) t :=
-  do sv ← sortof_aux v, st ← sortof_aux t,
-    if sv = st then substituteAux body v t else option.none
-| t _ := t
+-- recursively find all constants with p, and replace with other term
+def substitute : option term → option term → option term
+| (option.some (qforall p₁ (const p₂ os₁))) ot₂ :=
+    if p₁ = p₂
+    then (do t₂ ← ot₂, s₂ ← sortof t₂, s₁ ← os₁,
+             if s₁ = s₂ then ot₂ else option.none)
+    else (const p₂ os₁)
+| (option.some (qforall p₁ (t₁₁ • t₁₂))) ot₂ :=
+  do left_term ← substitute (qforall p₁ t₁₁) ot₂,
+     right_term ← substitute (qforall p₁ t₁₂) ot₂,
+   left_term • right_term
+| _ _ := option.none
 
-constant inst_forall : Π {quant instTerm : term},
-         holds [mkNot quant, (substitute quant instTerm)]
+
+constant inst_forall : Π (quant instTerm : term),
+         holds [mkNot quant, substitute quant instTerm]
 
 end term
 
@@ -652,10 +650,10 @@ def t1  := const 62 u1
 def t2 := const 63 u2
 def p1 := const 64 (arrow u1 boolsort)
 
-def myquant := qforall x (f1 • x)
+def myquant := qforall 60 (f1 • x) -- this binds the variable
 
-noncomputable lemma testInst : holds [mkNot myquant, f1 • t1] :=
-  @inst_forall myquant t1
+-- noncomputable lemma testInst : holds [mkNot myquant, f1 • t1] :=
+--   inst_forall myquant t1
 
 -- does not go through
 -- noncomputable lemma testInst2 : holds [mkNot myquant, f1 • t2] :=
