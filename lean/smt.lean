@@ -608,10 +608,10 @@ def substitute : pos_num → term → term → option term
                                do res ← (substitute p₁ body t), (qforall p₂ res)
 -- if found variable, replace by instantiation term
 | p₁ (const p₂ os) t :=
-  do s ← os, st ← sortof t, if p₁ = p₂ ∧ s = st then t else (const p₂ s)
+  do s ← os, st ← sortof t, if p₁ ≠ p₂ then (const p₂ s) else if s = st then t else option.none
 -- replace each term in application
 | p₁ (f • t₁) t :=
-  do fs ← (substitute p₁ f t), t₁s ← (substitute p₁ t₁ t), mkApp fs t₁s
+  do fs ← (substitute p₁ f t), t₁s ← (substitute p₁ t₁ t), fs • t₁s
 
 constant inst_forall : Π {v : pos_num} {body : term} (term : term),
   holds [mkNot $ mkForall v body, substitute v body term]
