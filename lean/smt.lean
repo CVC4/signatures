@@ -606,9 +606,11 @@ def substitute : pos_num → term → term → option term
 | p₁ (qforall p₂ body) t :=
    if p₁ = p₂ then option.none else
                                do res ← (substitute p₁ body t), (qforall p₂ res)
--- if found variable, replace by instantiation term
+-- if found variable, replace by instantiation term *if types match*,
+-- otherwise fail
 | p₁ (const p₂ os) t :=
-  do s ← os, st ← sortof t, if p₁ ≠ p₂ then (const p₂ s) else if s = st then t else option.none
+  do s ← os, st ← sortof t,
+    if p₁ ≠ p₂ then (const p₂ s) else if s = st then t else option.none
 -- replace each term in application
 | p₁ (f • t₁) t :=
   do fs ← (substitute p₁ f t), t₁s ← (substitute p₁ t₁ t), fs • t₁s
