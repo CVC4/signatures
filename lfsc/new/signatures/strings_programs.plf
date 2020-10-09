@@ -1,0 +1,5 @@
+(program is_empty ((s term)) Ok
+  (match s
+    ((str.concat s1 s2) ok)
+  )
+)

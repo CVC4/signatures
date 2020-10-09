@@ -7,6 +7,8 @@
 
 ; sorts :
 (declare Bool sort)
+(declare String sort)
+(declare Int sort)
 
 ; function constructor :
 (declare arrow (! s1 sort (! s2 sort sort)))
@@ -35,6 +37,18 @@
 (declare f_=  term)
 ; this macro enables writing (= t1 t2)
 (define = (# t1 term (# t2 term (apply (apply f_= t1) t2))))
+
+
+;Arith:
+(declare int_value (! v mpz term))
+(define int_zero (int_value 0))
+
+; Strings stuff
+(declare emptystr term)
+(declare c_Char (! x mpz term))
+(declare str.len (! x term term))
+(declare str.concat (! x term (! y term term)))
+
 
 ; Free constants :
 (declare var (! v mpz (! s sort term)))

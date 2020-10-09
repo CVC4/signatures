@@ -1,0 +1,5 @@
+(declare STRING_LENGTH_NON_EMPTY (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) int_zero))))))
+
+(declare string_is_not_empty (! s term (! r (^ (is_empty s) ok) (holds (not (= s emptystr))))))
+
+(declare CONCAT_EQ_b_simple (! s term (! t term (! x term (! p (holds (= (str.concat s x) (str.concat t x))) (holds (= s t)))))))

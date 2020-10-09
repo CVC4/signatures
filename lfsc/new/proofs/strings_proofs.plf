@@ -1,0 +1,31 @@
+(define s (var 1 String))
+(define t (var 2 String))
+
+; prove bottom from a non-empty string whose length is 0
+(check
+(% p1 (holds (not (= s emptystr)))
+(% p2 (holds (= (str.len s) int_zero))
+(: (holds false)
+  (contradiction
+    _
+    p2
+    (STRING_LENGTH_NON_EMPTY s p1)
+  )))))
+
+; prove bottom from the fact that a specific 
+; non-empty string has length 0
+(check
+(@tmp_s (str.concat (c_Char 65) emptystr)
+(% p2 (holds (= (str.len tmp_s) int_zero))
+(: (holds false)
+  (contradiction
+    _
+    p2
+    (STRING_LENGTH_NON_EMPTY tmp_s (string_is_not_empty tmp_s))
+  )))))
+
+;prove s=t from s++A=t++A
+(check 
+(% p (holds (= (str.concat s (c_Char 65)) (str.concat t (c_Char 65))))
+(: (holds (= s t))
+(CONCAT_EQ_b_simple _ _ _ p))))
