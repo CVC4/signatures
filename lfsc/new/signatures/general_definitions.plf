@@ -45,9 +45,12 @@
 
 ; Strings stuff
 (declare emptystr term)
-(declare c_Char (! x mpz term))
-(declare str.len (! x term term))
-(declare str.concat (! x term (! y term term)))
+(declare f_c_Char term)
+(define c_Char (# x term (apply f_c_Char x)))
+(declare f_str.len term)
+(define str.len (# x term (apply f_str.len x)))
+(declare f_str.concat term)
+(define str.concat (# x term (# y term (apply (apply f_str.concat x) y))))
 
 
 ; Free constants :
