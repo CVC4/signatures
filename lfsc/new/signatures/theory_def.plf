@@ -1,0 +1,17 @@
+; sorts :
+(declare Bool sort)
+(declare String sort)
+(declare Int sort)
+
+;Arith:
+(declare int_value (! v mpz term))
+(define int_zero (int_value 0))
+
+; Strings
+(declare emptystr term)
+(declare f_c_Char term)
+(define c_Char (# x term (apply f_c_Char x)))
+(declare f_str.len term)
+(define str.len (# x term (apply f_str.len x)))
+(declare f_str.concat term)
+(define str.concat (# x term (# y term (apply (apply f_str.concat x) y))))
