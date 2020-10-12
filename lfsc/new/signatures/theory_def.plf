@@ -15,3 +15,8 @@
 (define str.len (# x term (apply f_str.len x)))
 (declare f_str.concat term)
 (define str.concat (# x term (# y term (apply (apply f_str.concat x) y))))
+
+(declare term_list type)
+(declare term_list_empty term_list)
+(declare term_list_insert (! tl term_list (! t term) term_list))
+(declare has_term_list (! t term (! tl term_list type)))
