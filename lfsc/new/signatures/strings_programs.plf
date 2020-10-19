@@ -13,8 +13,6 @@
     (default emptystr)))
  
 (program reverse ((t term)) term
-  ... hard
-  ... google reversing a list in functional programing
   TODO
 
 ;t = x, s=y ---> (str.concat x y)
