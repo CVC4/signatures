@@ -10,4 +10,9 @@
   (ifequal (head s) (head t) (= (tail s) (tail t)) (fail term))   
 )
 
-(declare CONCAT_EQ_ltr_simple (! s term (! t term (! res term (! p (holds (= s t)) (! r (^ (sc_concat_eq s t) res) (holds res))))))) 
+(declare CONCAT_EQ_ltr_simple (! s term 
+                              (! t term 
+                              (! res term 
+                              (! p (holds (= s t)) 
+                              (! r (^ (sc_concat_eq s t) res) 
+                                (holds res))))))) 
