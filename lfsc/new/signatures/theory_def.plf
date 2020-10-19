@@ -4,19 +4,19 @@
 (declare Int sort)
 
 ;Arith:
-(declare int_value (! v mpz term))
-(define int_zero (int_value 0))
+(declare c_int (! v mpz term))
+(define int_zero (c_int 0))
 
 ; Strings
 (declare emptystr term)
-(declare f_c_Char term)
-(define c_Char (# x term (apply f_c_Char x)))
+(declare char (! v mpz term))
 (declare f_str.len term)
 (define str.len (# x term (apply f_str.len x)))
 (declare f_str.concat term)
 (define str.concat (# x term (# y term (apply (apply f_str.concat x) y))))
+(define tail 
 
-(declare term_list type)
-(declare term_list_empty term_list)
-(declare term_list_insert (! tl term_list (! t term) term_list))
-(declare has_term_list (! t term (! tl term_list type)))
+;(str.concat x (str.concat y z))
+;(apply (apply f_str.concat x) (apply (apply f_str.concat y) z))
+
+
