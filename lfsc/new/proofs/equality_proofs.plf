@@ -14,13 +14,20 @@
 (: (holds (= (ite U (= a b) a b) (ite U (= a b) a b)))
    (refl (ite U (= a b) a b))))
 
-
 ; Show (= (f a) (f b)) assuming (= a b) ...
 (check
 (% p (holds (= a b))
 (: (holds (= (apply f a) (apply f b)))
    (cong _ _ _ _ (refl f) p))
 ))
+
+; Show (= (f a) (f b)) assuming (= a b) ... with a detour
+(check
+(% p (holds (= a b))
+(: (holds (= (apply f a) (apply f b)))
+   (plet _ _ p (\ v (cong _ _ _ _ (refl f) v)))
+)))
+
 
 ; Show (= (f b) (f a)) assuming (= b a) ...
 (check
