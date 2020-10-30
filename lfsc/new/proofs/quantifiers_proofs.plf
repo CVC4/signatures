@@ -20,8 +20,8 @@
 	_
 	_
 	_
-        (and_pos_1 _ _ (skolemize_exists _ _ _ _ p2))
-        (and_pos_2 _ _ (skolemize_exists _ _ _ _ p2))
+        (cnf_and_pos_1 _ _ (skolemize_exists _ _ _ _ p2))
+        (cnf_and_pos_2 _ _ (skolemize_exists _ _ _ _ p2))
         )
     p1)))))
 
@@ -39,8 +39,8 @@
 	  a
 	  (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
 	  b
-          (and_pos_1 (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) (skolemize_exists (and (= a (bvar 7 U)) (= (bvar 7 U) b)) 7 U (and (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) ) p2))
-          (and_pos_2 (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) (skolemize_exists (and (= a (bvar 7 U)) (= (bvar 7 U) b)) 7 U (and (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) ) p2))
+          (cnf_and_pos_1 (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) (skolemize_exists (and (= a (bvar 7 U)) (= (bvar 7 U) b)) 7 U (and (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) ) p2))
+          (cnf_and_pos_2 (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) (skolemize_exists (and (= a (bvar 7 U)) (= (bvar 7 U) b)) 7 U (and (= a (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))) (= (skolem (witness 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b)))) b) ) p2))
          )
     p1)))))
 
@@ -59,11 +59,11 @@
       _
       _
       _
-      (and_pos_1 _ _ 
+      (cnf_and_pos_1 _ _ 
         (not_not_elim _
           (skolemize_exists _ _ _ _ 
             (not_forall_to_exists_not _ _ _ p2))))
-      (and_pos_2 _ _ 
+      (cnf_and_pos_2 _ _ 
         (not_not_elim _
           (skolemize_exists _ _ _ _ 
             (not_forall_to_exists_not _ _ _ p2)))))
