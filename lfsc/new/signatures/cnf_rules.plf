@@ -1,3 +1,6 @@
 (declare cnf_and_pos_1 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f1)))))
 (declare cnf_and_pos_2 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f2)))))
 (declare cnf_and_neg (! f1 term (! f2 term (! p (holds (not (and f1 f2))) (holds (or (not f1) (not f2)))))))
+;(declare cnf_or_pos ???
+(declare cnf_or_neg_1 (! f1 term (! f2 term (! p (holds (not (or f1 f2))) (holds (not f1))))))
+(declare cnf_or_neg_2 (! f1 term (! f2 term (! p (holds (not (or f1 f2))) (holds (not f2))))))
