@@ -1,6 +1,4 @@
 (declare true_holds (holds true))
 (declare not_false_true (holds (= (not false) true)))
 (declare contradiction (! f term (! p1 (holds f) (! p2 (holds (not f)) (holds false)))))
-(declare and_elim_1 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f1)))))
-(declare and_elim_2 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f2)))))
 (declare not_not_elim (! f term (! p (holds (not (not f))) (holds f))))

@@ -12,8 +12,8 @@
     ((str.concat s1 s2) s2)
     (default emptystr)))
  
-(program reverse ((t term)) term
-  TODO
+;(program reverse ((t term)) term
+;  TODO
 
 ;t = x, s=y ---> (str.concat x y)
 ;t = (str.concat x1 x2), s = y1 ----> (str.concat x1 (str.concat x2 y1))
