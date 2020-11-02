@@ -27,6 +27,14 @@
 (declare f_or term)
 (define or (# t1 term (# t2 term (apply (apply f_or t1) t2))))
 
+; Implication
+(declare f_implies term)
+(define implies (# t1 term (# t2 term (apply (apply f_implies t1) t2))))
+
+; Xor
+(declare f_xor term)
+(define xor (# t1 term (# t2 term (apply (apply f_xor t1) t2))))
+
 ; ITE
 (declare f_ite (! s sort term))
 (define ite (# s sort (# condition term (# then_branch term (# else_branch term (apply (apply (apply (f_ite s) condition) then_branch) else_branch))))))
