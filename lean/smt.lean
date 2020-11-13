@@ -1,19 +1,36 @@
 import init.control.combinators
 import data.num.basic
 
+/- Takes element a and list l, and generates list l' of all possible pairs of 
+   a along with elements in l, except pairs containing the same element twice -/
 def genPairs {α : Type} [s : decidable_eq α] (a : α) : list α → list (α × α) :=
   list.filter_map (λ x : α, if a = x then option.none else option.some (a,x))
+#eval genPairs 1 [1,2,3]
+--[(1, 2), (1, 3)]
 
+/- All possible pairwise combinations of the elements in the input list 
+   except pairs containing the same element twice -/
 def genAllPairs {α : Type} [s : decidable_eq α] : list α → list (α×α)
 | [] := []
 | (h::t) := genPairs h t ++ genAllPairs t
+#eval genAllPairs [1,2,3] --[(1, 2), (1, 3), (2, 3)]
+#eval genAllPairs [1,2,3,2] --[(1, 2), (1, 3), (1, 2), (2, 3), (3, 2)]
+/- Prevents (2,2) but not (1,2) being repeated -/
 
 namespace smt
 
+/- remove a l removes the first occurrence of a in list l if 
+   a occurs in l, otherwise it returns the list unchanged -/
 def {u} remove {α : Type u} [decidable_eq α] : α → list α → list α
 | x [] := []
 | x (y :: c) := if x = y then c else y :: remove x c
+#eval remove 7 [4,7,10] -- [4,10]
+#eval remove 1 [2,3,4] -- [2,3,4]
+#eval remove 3 [3,3,3] -- [3,3]
 
+/- constructor is the special sort for predicates. This should change to Prop.
+   Additionally, we have atomic sorts, parametrized by a positive number,
+   and arrow or functional sorts -/
 @[derive decidable_eq]
 inductive sort : Type
 | constructor : sort
@@ -38,15 +55,26 @@ def bool_num  : pos_num := one
 end
 
 namespace sort
--- the special sort for predicates. Later on this should change to Prop
+
 def sort_to_string : sort → string
 | constructor := "constructor"
-| (atom pos) := repr pos
-| (arrow s1 s2) :=
-  "(→ " ++ (sort_to_string s1) ++ " " ++ (sort_to_string s2) ++ ")"
+| (atom pos) := 
+  match pos with
+  | 1 := "bool"
+  | _ := repr pos
+  end
+| (arrow s1 s2) := 
+  "(" ++ (sort_to_string s1) ++ " → " ++ (sort_to_string s2) ++ ")"
+
+def option_sort_to_string : option sort → string 
+| (some x) := sort_to_string x
+| none := "none"
 
 meta instance: has_repr sort := ⟨sort_to_string⟩
 
+/- mkArrowN curries multi-argument types
+   f : X₁ × X₂ × ... into 
+   f : X₁ → X₂ → ... -/
 def mkArrowN_aux : sort → list sort → sort
 | hd [] := hd
 | hd (h::t) := arrow hd (mkArrowN_aux h t)
@@ -60,6 +88,8 @@ do sort_list ← monad.sequence l,
 
 end sort
 
+-- terms are constants of a sort, applications,
+-- or quantified formulas
 @[derive decidable_eq]
 inductive term : Type
 | const : pos_num → option sort → term
@@ -75,13 +105,25 @@ infixl ` » ` :21  := qforall
 
 #check (λ (p : pos_num) (t : term), p » t)
 
+-- unary, binary and ternary applications
 def toUnary (t : term) : term → term := λ t₁: term, t • t₁
 def toBinary (t : term) : term → term → term := λ t₁ t₂ : term, t • t₁ • t₂
 def toTernary (t : term) : term → term → term → term := λ t₁ t₂ t₃ : term, t • t₁ • t₂ • t₃
 
+-- constant term constructor
 def cstr (p : pos_num) : term := const p (option.some constructor)
 
+-- Boolean sort definition
+
 @[pattern] def boolsort := sort.atom bool_num
+
+#eval sort_to_string constructor
+#eval sort_to_string boolsort
+#eval sort_to_string (arrow boolsort boolsort)
+#eval sort_to_string (arrow boolsort (arrow boolsort boolsort))
+#eval option_sort_to_string (mkArrowN [some boolsort, some boolsort, some boolsort])
+
+-- term definitions
 @[pattern] def b_ite : term → term → term → term := toTernary $ cstr b_ite_num
 @[pattern] def f_ite : term → term → term → term := toTernary $ cstr f_ite_num
 @[pattern] def not : term → term := toUnary $ cstr not_num
@@ -101,8 +143,18 @@ def term_to_string : term → string
   "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
 | (qforall p t) := repr p ++ " » " ++ term_to_string t
 
+#eval term_to_string bot
+#eval term_to_string top
+#eval term_to_string (not bot)
+#eval term_to_string (not top)
+#eval term_to_string (and bot bot)
+#eval term_to_string (b_ite top bot top)
+#eval term_to_string (eq bot bot)
+#eval term_to_string (const bot_num none)
+
 meta instance: has_repr term := ⟨term_to_string⟩
 
+-- sort of terms
 def sortof_aux : term → option sort
 | (const bot_num _) := boolsort
 | (const not_num _) := (arrow boolsort boolsort)
@@ -127,10 +179,28 @@ def sortof_aux : term → option sort
     | (arrow s1 s2) := if s1 = s then s2 else option.none
     | _ := option.none
     end
-
+/- bind : (m : option term) → (f : (term → option sort))
+   unpacks the term from m and applies f to it.
+   Here, we have f first and expect sortof to take m as 
+   the argument so we use flip to reverse the argument
+   order -/
 def sortof : option term → option sort :=
  (flip option.bind) sortof_aux
 
+#eval sortof_aux (eq bot bot)
+#eval sortof (eq bot bot)
+/- Sorts can only be none for ill-formed 
+   `forall`, `eq`, `f_ite` and `app` -/
+#eval sortof_aux (const 1 none)
+#eval sortof (const 1 none)
+#eval sortof (app (const (20 : pos_num) (arrow boolsort boolsort)) bot)
+#eval option_sort_to_string (sortof_aux (eq bot bot))
+#eval option_sort_to_string (sortof (eq bot bot))
+#eval option_sort_to_string (sortof_aux (const 1 none))
+#eval option_sort_to_string (sortof (const 1 none))
+#eval option_sort_to_string (sortof (app (const (20 : pos_num) (arrow boolsort boolsort)) bot))
+
+-- application of term to term
 def mkApp_aux : term → term → option term :=
   λ t₁ t₂,
     do s₁ ← sortof t₁, s₂ ← sortof t₂,
@@ -139,15 +209,30 @@ def mkApp_aux : term → term → option term :=
       | _ := option.none
       end
 
-def bind2 {m : Type → Type} [has_bind m] {α β γ : Type} (f : α → β → m γ) (a : m α) (b : m β) : m γ :=
-  do a' ← a, b' ← b, f a' b'
-def bind3 {m : Type → Type} [has_bind m] {α β γ δ : Type} (f : α → β → γ → m δ) (a : m α) (b : m β) (c : m γ) : m δ :=
-  do a' ← a, b' ← b, c' ← c, f a' b' c'
+/- bind : (x : m α) → (f : (α → m α)) 
+   unpacks the term from the monad x and applies 
+   f to it. bind2 and bind3 are versions of bind where 
+   f is binary and ternary respectively, with the 
+   arguments reordered, as in sortof -/
+def bind2 {m : Type → Type} [has_bind m] {α β γ : Type} 
+  (f : α → β → m γ) (a : m α) (b : m β) : m γ :=
+    do a' ← a, b' ← b, f a' b'
+def bind3 {m : Type → Type} [has_bind m] {α β γ δ : Type} 
+  (f : α → β → γ → m δ) (a : m α) (b : m β) (c : m γ) : m δ :=
+    do a' ← a, b' ← b, c' ← c, f a' b' c'
 
+-- binary and n-ary application
 def mkApp : option term → option term → option term := bind2 mkApp_aux
 def mkAppN (t : option term) (l : list (option term)) : option term :=
   do s ← t, l' ← monad.sequence l, mfoldl mkApp_aux s l'
 
+#check (λ (n:term), bot)
+--#check mkApp (λ (n:term), bot) bot
+#eval mkApp (const (20 : pos_num) (arrow boolsort boolsort)) bot
+#eval mkAppN (const (21 : pos_num) (arrow boolsort (arrow boolsort boolsort))) [bot, bot]
+
+
+-- if-then-else
 def mkIte_aux (c t₀ t₁ : term) : option term :=
   if (sortof c) = option.some boolsort
   then
@@ -158,8 +243,13 @@ def mkIte_aux (c t₀ t₁ : term) : option term :=
       end
   else option.none
 
-def mkIte : option term → option term → option term → option term := bind3 mkIte_aux
+def mkIte : option term → option term → option term → option term := 
+  bind3 mkIte_aux
 
+#eval (mkIte (eq bot bot) bot top)
+
+
+-- negation
 def mkNot : option term → option term :=
   flip option.bind $
     λ t, do s ← sortof t, if s = boolsort then not t else option.none
@@ -169,7 +259,18 @@ def mkNotSimp : option term → option term
 | (option.some t)        := mkNot (option.some t)
 | _                      := option.none
 
-def constructBinaryTerm (constructor : term → term → term) (test : sort → sort → bool) : option term → option term → option term :=
+-- Notice mkNotSimp gives double negation elimination
+#eval mkNot bot
+#eval mkNot top
+#eval mkNotSimp bot
+#eval mkNotSimp top
+#eval mkNotSimp (mkNotSimp (mkNotSimp top))
+
+
+/- term constructors for binary and n-ary terms. `test` is the predicate on the sort of 
+   the arguments that needs to be satisfied -/
+def constructBinaryTerm (constructor : term → term → term) (test : sort → sort → bool) : 
+  option term → option term → option term :=
   bind2 $ λ t₁ t₂,
             do s₁ ← sortof t₁, s₂ ← sortof t₂,
                 if test s₁ s₂ then constructor t₁ t₂ else option.none
@@ -185,10 +286,14 @@ def constructNaryTerm (constructor : term → term → term) (test : sort → so
 def comp2 {α β γ δ : Type} (f : γ → δ) (g : α → β → γ) : α → β → δ :=
 λ a b, f (g a b)
 
+
+-- Boolean ops
 @[simp] def mkEq : option term → option term → option term :=
   constructBinaryTerm eq (λ s₁ s₂, s₁ = s₂)
+
 def mkIneq : option term → option term → option term :=
   comp2 mkNot mkEq
+
 def mkOr : option term → option term → option term :=
   constructBinaryTerm or (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
 def mkOrSimp : option term → option term → option term :=
@@ -196,6 +301,7 @@ def mkOrSimp : option term → option term → option term :=
     (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
 def mkOrN : list (option term) → option term :=
     constructNaryTerm or (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort) bot
+
 def mkAnd : option term → option term → option term :=
   constructBinaryTerm and (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
 def mkAndSimp : option term → option term → option term :=
@@ -203,10 +309,13 @@ def mkAndSimp : option term → option term → option term :=
     (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
 def mkAndN : list (option term) → option term :=
     constructNaryTerm and (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort) top
+
 def mkImplies : option term → option term → option term :=
   constructBinaryTerm implies (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
+
 def mkXor : option term → option term → option term :=
   constructBinaryTerm xor (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
+
 def mkIff : option term → option term → option term :=
   constructBinaryTerm iff (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
 def mkIffSimp : option term → option term → option term :=
@@ -228,6 +337,20 @@ def mkDistinct : list (option term) → option term :=
 def mkForall (p : pos_num) (obody : option term) : option term :=
   do body ← obody, (qforall p body)
 
+#eval mkEq top bot
+#eval mkIneq top bot
+#eval mkOr top (const 22 boolsort)
+#eval mkOrSimp top (const 22 boolsort)
+#eval mkOrSimp bot (const 22 boolsort)
+#eval mkOrN [const 20 boolsort, const 21 boolsort, const 23 boolsort]
+#eval mkAnd top bot
+#eval mkAndSimp top bot
+#eval mkAndN [const 20 boolsort, const 21 boolsort, const 23 boolsort]
+#eval mkImplies bot (const 20 boolsort)
+#eval mkXor top top
+#eval mkIff (mkAndN [top , top , bot]) (mkOr bot bot)
+#eval mkIffSimp bot bot
+
 -- retrieve the identifier of a constant
 def numOf : term → option pos_num
 | (const n _) := n
@@ -239,12 +362,18 @@ notation `clause` := list (option term)
 def mynth : clause → ℕ → option term := comp2 monad.join (@list.nth (option term))
 def get_last : clause → option term := λ c, mynth c (c.length - 1)
 
+#eval monad.join (some (some 1))
+#eval mynth [top, bot, const 20 boolsort, const 21 boolsort] 0
+#eval list.nth [top, bot, const 20 boolsort, const 21 boolsort] 0
+#eval get_last [top, bot, const 20 boolsort, const 21 boolsort]
+
 -- eventually should give Prop
 constant holds : clause → Type
 def concat_cl : clause → clause → clause := @list.append (option term)
 def remove_duplicates : clause → clause
 | [] := []
 | (h::t) := if h ∈ t then remove_duplicates t else h::(remove_duplicates t)
+#check holds [const 20 boolsort, const 21 boolsort]
 
 -- ground resolution rules
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
@@ -263,6 +392,19 @@ constant R1 : Π {c₁ c₂ : clause}
 
 constant factoring : Π {c : clause} (p : holds c),
   holds (remove_duplicates c)
+
+#check (λ (p₀ : holds [const 20 boolsort]) 
+          (p₁ : holds [mkNot (const 20 boolsort)]), 
+         (R0 p₀ p₁ (const 20 boolsort) : holds []))
+#check (λ (p₀ : holds [const 20 boolsort]) 
+          (p₁ : holds [mkNot (const 20 boolsort)]), 
+         (R0 p₀ p₁ (const 20 boolsort)) 
+  : holds [const 20 boolsort] → holds [mkNot (const 20 boolsort)] → holds [])
+def l1 := const 20 boolsort
+def l2 := const 21 boolsort
+constant c1 : holds [l1, l2]
+constant c2 : holds [mkNot l1, l2]
+#check R0 c1 c2 l1
 
 /-*************** Simplifications ***************-/
 
@@ -304,36 +446,30 @@ constant ite_intro : Π {t : term}, holds [mkIteDef t]
 /-------------------- with premises ---------------/
 
 
--- get n-th element in AND / NOT OR chain (right-associative)
-
-
+-- get n-th element in AND chain (right-associative)
 def reduce_and_nth : ℕ → term → option term
 | 0            (and t _)           := t
 | 1            (and _ t)           := t
 | (nat.succ n) (and  _ (and t₀ t₁)) :=
     reduce_and_nth n (and t₀ t₁)
 | _            _                   := option.none
-
 def reduce_and (n : ℕ) : option term → option term :=
   flip bind (reduce_and_nth n)
-
 constant cnf_and : Π {t : option term} (p : holds [t]) (n : nat),
   holds [reduce_and n t]
 
+-- get n-th in NOT-OR chain (right-associative)
 def reduce_or_nth : ℕ → term → option term
 | 0            (or t _)          := t
 | 1            (or _ t)          := t
 | (nat.succ n) (or _ (or t₀ t₁)) := reduce_or_nth n (or t₀ t₁)
 | _            _                 := option.none
-
-
 def reduce_not_or (n : ℕ) : option term → option term :=
   (flip bind) $ λ t,
     match t with
     | not t' := mkNot $ reduce_or_nth n t'
     | _ := option.none
     end
-
 constant cnf_not_or : Π {t : option term} (p : holds [t]) (n : nat),
   holds [reduce_not_or n t]
 
