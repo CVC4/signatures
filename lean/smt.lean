@@ -28,12 +28,14 @@ def {u} remove {α : Type u} [decidable_eq α] : α → list α → list α
 #eval remove 1 [2,3,4] -- [2,3,4]
 #eval remove 3 [3,3,3] -- [3,3]
 
-/- constructor is the special sort for predicates. This should change to Prop.
+/- dep is the sort for terms that have dependent types such as 
+   equality and forall. We handle these in a special way to 
+   avoid dependent types.
    Additionally, we have atomic sorts, parametrized by a positive number,
    and arrow or functional sorts -/
 @[derive decidable_eq]
 inductive sort : Type
-| constructor : sort
+| dep : sort
 | atom : pos_num → sort
 | arrow : sort → sort → sort
 
@@ -57,7 +59,7 @@ end
 namespace sort
 
 def sort_to_string : sort → string
-| constructor := "constructor"
+| dep := "dep"
 | (atom pos) := 
   match pos with
   | 1 := "bool"
@@ -111,37 +113,62 @@ def toBinary (t : term) : term → term → term := λ t₁ t₂ : term, t • t
 def toTernary (t : term) : term → term → term → term := λ t₁ t₂ t₃ : term, t • t₁ • t₂ • t₃
 
 -- constant term constructor
-def cstr (p : pos_num) : term := const p (option.some constructor)
+def cstr (p : pos_num) (s : sort): term := const p (option.some s)
 
 -- Boolean sort definition
 
 @[pattern] def boolsort := sort.atom bool_num
 
-#eval sort_to_string constructor
+#eval sort_to_string dep
 #eval sort_to_string boolsort
 #eval sort_to_string (arrow boolsort boolsort)
 #eval sort_to_string (arrow boolsort (arrow boolsort boolsort))
 #eval option_sort_to_string (mkArrowN [some boolsort, some boolsort, some boolsort])
 
 -- term definitions
-@[pattern] def b_ite : term → term → term → term := toTernary $ cstr b_ite_num
-@[pattern] def f_ite : term → term → term → term := toTernary $ cstr f_ite_num
-@[pattern] def not : term → term := toUnary $ cstr not_num
-@[pattern] def bot : term := cstr bot_num
+@[pattern] def b_ite : term → term → term → term := toTernary $ cstr b_ite_num 
+  (arrow boolsort (arrow boolsort (arrow boolsort boolsort)))
+@[pattern] def f_ite : term → term → term → term := toTernary $ cstr f_ite_num dep
+@[pattern] def not : term → term := toUnary $ cstr not_num (arrow boolsort boolsort)
+@[pattern] def bot : term := cstr bot_num boolsort
 @[pattern] def top : term := not bot
-@[pattern] def eq      : term → term → term := toBinary $ cstr eq_num
-@[pattern] def or      : term → term → term := toBinary $ cstr or_num
+@[pattern] def eq      : term → term → term := toBinary $ cstr eq_num dep
+@[pattern] def or      : term → term → term := toBinary $ cstr or_num 
+  (arrow boolsort (arrow boolsort boolsort))
 @[pattern] def and     : term → term → term := toBinary $ cstr and_num
+  (arrow boolsort (arrow boolsort boolsort))
 @[pattern] def implies : term → term → term := toBinary $ cstr implies_num
+  (arrow boolsort (arrow boolsort boolsort))
 @[pattern] def xor     : term → term → term := toBinary $ cstr xor_num
+  (arrow boolsort (arrow boolsort boolsort))
 @[pattern] def iff     : term → term → term := toBinary $ cstr iff_num
+  (arrow boolsort (arrow boolsort boolsort))
+
+def pos_to_string : pos_num → string
+| bot_num := "bot"
+| not_num := "not"
+| or_num := "or"
+| and_num := "and"
+| implies_num := "implies"
+| xor_num := "xor"
+| iff_num := "iff"
+| b_ite_num := "b_ite"
+| f_ite_num := "f_ite"
+| eq_num := "eq"
+| forall_num := "forall"
+| _ := "ILL-TYPED"
 
 def term_to_string : term → string
+| (const name _) := pos_to_string name
+| (app f t) := "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
+| (qforall p t) := pos_to_string p ++ " » " ++ term_to_string t
+
+def sorted_term_to_string : term → string
 | (const name option.none) := "(" ++ repr name ++ ":none)"
 | (const name (option.some srt)) :=  repr name ++ ":" ++ sort_to_string srt
 | (app f t) :=
-  "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
-| (qforall p t) := repr p ++ " » " ++ term_to_string t
+  "(" ++ (sorted_term_to_string f) ++ " " ++ (sorted_term_to_string t) ++ ")"
+| (qforall p t) := repr p ++ " » " ++ sorted_term_to_string t
 
 #eval term_to_string bot
 #eval term_to_string top
@@ -152,7 +179,16 @@ def term_to_string : term → string
 #eval term_to_string (eq bot bot)
 #eval term_to_string (const bot_num none)
 
-meta instance: has_repr term := ⟨term_to_string⟩
+#eval sorted_term_to_string bot
+#eval sorted_term_to_string top
+#eval sorted_term_to_string (not bot)
+#eval sorted_term_to_string (not top)
+#eval sorted_term_to_string (and bot bot)
+#eval sorted_term_to_string (b_ite top bot top)
+#eval sorted_term_to_string (eq bot bot)
+#eval sorted_term_to_string (const bot_num none)
+
+meta instance: has_repr term := ⟨sorted_term_to_string⟩
 
 -- sort of terms
 def sortof_aux : term → option sort
