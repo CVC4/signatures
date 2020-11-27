@@ -80,16 +80,6 @@ def simp_iff_clause : clause → clause :=
 constant simp_iff : Π {c : clause} (p : holds c),
   holds (simp_iff_clause c)
 
-/-*************** ITE ***************-/
-
-def mkIteDef : option term → option term
-| (option.some $ f_ite c t₀ t₁) :=
-  let ite_term := (f_ite c t₀ t₁) in
-    option.some $ b_ite c (eq ite_term t₀) (eq ite_term t₁)
-| _ := option.some top
-
-constant ite_intro : Π {t : term}, holds [mkIteDef t]
-
 /-------------------- with premises ---------------/
 
 
