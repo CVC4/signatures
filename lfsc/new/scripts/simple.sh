@@ -12,5 +12,6 @@ lfscc \
   quantifiers_rules.plf \
   ../proofs/equality_proofs.plf \
   ../proofs/quantifiers_proofs.plf \
+  $1
 
 cd -
