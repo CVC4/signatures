@@ -14,7 +14,7 @@
 (% p1 (holds (not (= a b)))
 (% p2 (holds (exists 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
 (: (holds false)
-      (contradiction
+      (contra
         _
         (trans
 	_
@@ -33,7 +33,7 @@
 (% p1 (holds (not (= a b)))
 (% p2 (holds (exists 7 U (and (= a (bvar 7 U)) (= (bvar 7 U) b))))
 (: (holds false)
-      (contradiction
+      (contra
         (= a b)
         (trans
 	  a
@@ -53,7 +53,7 @@
  (% p1 (holds (not (= a b)))
  (% p2 (holds (not (forall 7 U (not (and (= a (bvar 7 U)) (= (bvar 7 U) b))))))
  (: (holds false)
-  (contradiction
+  (contra
     _
     (trans
       _

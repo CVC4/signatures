@@ -1,0 +1,20 @@
+(declare U sort)
+(declare V sort)
+(define a (var 1 U))
+(define b (var 2 U))
+(define c (var 3 U))
+(define f (var 4 (arrow U V)))
+
+; pivot is in the middle of both
+(check
+(% p1 (holds (or (= a b) (or (= b c) (= a c))))
+(% p2 (holds (or (not (= b c)) (= (apply f a) (apply f b))))
+(: (holds (or (= a b) (or (= a c) (= (apply f a) (apply f b)))))
+  (resolution _ _ p1 p2 true (= b c) (or (= a b) (or (= a c) (= (apply f a) (apply f b)))))
+))))
+
+
+; one unit and one non-unit
+
+
+; two units

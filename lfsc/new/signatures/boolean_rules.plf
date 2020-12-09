@@ -1,4 +1,5 @@
 (declare true_holds (holds true))
 (declare not_false_true (holds (= (not false) true)))
-(declare contradiction (! f term (! p1 (holds f) (! p2 (holds (not f)) (holds false)))))
+(declare contra (! f term (! p1 (holds f) (! p2 (holds (not f)) (holds false)))))
 (declare not_not_elim (! f term (! p (holds (not (not f))) (holds f))))
+(declare resolution (! c1 term (! c2 term (! p1 (holds c1) (! p2 (holds c2) (! pol term (! l term (! c term (! r (^ (is_resolvent c1 c2 pol l c) tt) (holds c))))))))))

@@ -1,0 +1,33 @@
+(program union ((c1 term) (c2 term)) term
+  ()
+)
+
+(program is_resolvent_two_disjunctions ((c1 term) (c2 term) (pol term) (l term) (c term)) term
+  (match pol
+    (true (isequal c (union (del_first_of c1 l) (del_first_of c2 (not l)))))
+    (false (isequal c (union (del_first_of c1 (not l)) (del_first_of c2 l))))
+    (default (fail term))
+  )
+)
+
+(program is_resolvent ((c1 term) (c2 term) (pol term) (l term) (c term)) term
+  (match c1
+    (l
+      (match pol
+        (true (isequal c (del_first_of c2 c1)))
+        (default (fail term))
+      ) 
+    )
+    (default
+      (match c2 
+        (l 
+          (match pol
+            (false (isequal c (del_first_of c1 (not c2))))
+            (default (fail term))
+          )
+        )
+        (default (is_resolvent_two_disjunctions c1 c2 pol l c))
+      )
+    )
+  )
+)

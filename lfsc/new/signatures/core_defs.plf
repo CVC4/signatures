@@ -45,6 +45,13 @@
 ; this macro enables writing (= t1 t2)
 (define = (# t1 term (# t2 term (apply (apply f_= t1) t2))))
 
+; disequality:
+; f_distinct is a disequality symbol, which is a term, to be used with an apply
+(declare f_distinct  term)
+; this macro enables writing (distinct t1 t2)
+(define distinct (# t1 term (# t2 term (apply (apply f_distinct t1) t2))))
+
+
 ; Free constants :
 (declare var (! v mpz (! s sort term)))
 
