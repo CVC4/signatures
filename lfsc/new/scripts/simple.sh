@@ -11,8 +11,6 @@ lfscc \
   cnf_rules.plf \
   equality_rules.plf \
   quantifiers_rules.plf \
-  ../proofs/equality_proofs.plf \
-  ../proofs/quantifiers_proofs.plf \
   $1
 
 rlfsc \
@@ -24,8 +22,6 @@ rlfsc \
   cnf_rules.plf \
   equality_rules.plf \
   quantifiers_rules.plf \
-  ../proofs/equality_proofs.plf \
-  ../proofs/quantifiers_proofs.plf \
   $1
 
 
