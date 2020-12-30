@@ -51,6 +51,7 @@
            (apply c11 c12)
            (match c11
              (f_or
+
                (match c12
                  (
                    t 
@@ -62,6 +63,7 @@
                  )
                  (default (del_first_of c2  t c12 false))
                )
+
              )
            )
          )
@@ -79,14 +81,13 @@
  )
 
  (program is_resolvent ((c1 term) (c2 term) (pol term) (l term) (c term)) term
-   (match c1
-     (l
+  (ifequal c1 l
+       ; then
        (match pol
          (true (ifequal c (del_first_of c2 c1 true true) true false))
          (default (fail term))
        ) 
-     )
-     (default
+       ; else
        (match c2 
          (l 
            (match pol
@@ -96,6 +97,5 @@
          )
          (default (is_resolvent_two_disjunctions c1 c2 pol l c))
        )
-     )
    )
  )

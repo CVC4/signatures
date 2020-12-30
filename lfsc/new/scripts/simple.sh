@@ -2,7 +2,7 @@
 MY_DIR="`dirname \"$0\"`"
 cd $MY_DIR
 cd ../signatures
-lfscc \
+lfscc --show-runs \
   core_defs.plf \
   theory_def.plf \
   type_checking_programs.plf \
@@ -13,7 +13,7 @@ lfscc \
   quantifiers_rules.plf \
   $1
 
-rlfsc \
+rlfsc --trace-sc \
   core_defs.plf \
   theory_def.plf \
   type_checking_programs.plf \
