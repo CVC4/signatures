@@ -12,12 +12,8 @@
                 (
                   (apply f_or t112)
                   (match first_call 
-                    ( ;; TODO not working :(
-                      true 
-                      (or true true)
-                    )
-;                     (true (or t112 (or t12 (or c2 false))))
-;                     (false (or result (or (t112 (or t12 (or c2 false))))))
+                     (true (apply (apply f_or t112) (apply (apply f_or t12) (apply (apply f_or c2) false))))
+                     (false (apply (apply f_or t112) (apply (apply f_or t12) (apply (apply f_or c2) false))))
                   )
                 )
               )
@@ -27,17 +23,18 @@
       )
     ) 
 ;         ; t2 is (apply t21 t22)
-;         ((apply t21 t22) 
-;           (match t21
+         ((apply t21 t22) 
+           (match t21
 ;             ; t2 is (apply (apply f_or t212) t22)
-;             ((apply f_or t212) 
-;               (match first_call
-;                 (true (union t22 c2 t212 false))
-;                 (false (union t22 c2 (or result t212) false) )
-;               )
-;             )
-;           )
-;         )
+             ((apply f_or t212) 
+               (match first_call
+               (true true)
+                 (true (union t22 c2 t212 false))
+                  (false (union t22 c2 (apply (apply f_or result) t212) false))                
+               )
+             )
+           )
+         )
     (
       default 
       (fail term)
@@ -45,57 +42,60 @@
   )
 )
 
-; (program del_first_of ((c term) (t term) (result term) (first_call term)) term 
-;   (match c
-;     (
-;       (apply c1 c2)
-;       (match c1
-;         (apply f_or c12)
-;         (match c12
-;           (
-;             t 
-;             (match first_call (true c2) (false (or result c2)))
-;           )
-;           (
-;             default
-;             (match first_call (true (del_first_of c2 t c12 false)) (false (del_first_of c2 t (or result c12) false)))
-;           )
-;           (match first_call
-;             () 
-;           )
-;           (default (del_first_of c2  t c12 false))
-;         )
-;       )
-;     )
-;   )
-; )
+ (program del_first_of ((c term) (t term) (result term) (first_call term)) term 
+   (match c
+     (
+       (apply c1 c2)
+       (match c1 
+         (
+           (apply c11 c12)
+           (match c11
+             (f_or
+               (match c12
+                 (
+                   t 
+                   (match first_call (true c2) (false (apply (apply f_or result) c2)))
+                 )
+                 (
+                   default
+                   (match first_call (true (del_first_of c2 t c12 false)) (false (del_first_of c2 t (apply (apply f_or result) c12) false)))
+                 )
+                 (default (del_first_of c2  t c12 false))
+               )
+             )
+           )
+         )
+       )  
+     )
+   )
+ )
 
-; (program is_resolvent_two_disjunctions ((c1 term) (c2 term) (pol term) (l term) (c term)) term
-;   (match pol
-;     (true (isequal c (union (del_first_of c1 l) (del_first_of c2 (not l)) true true)))
-;     (false (isequal c (union (del_first_of c1 (not l)) (del_first_of c2 l) true true)))
-;     (default (fail term))
-;   )
-; )
+ (program is_resolvent_two_disjunctions ((c1 term) (c2 term) (pol term) (l term) (c term)) term
+   (match pol
+     (true (ifequal c (union (del_first_of c1 l true true) (del_first_of c2 (apply f_not l) true true) true true) true false))
+     (false (ifequal c (union (del_first_of c1 (apply f_not l) true true) (del_first_of c2 l true true) true true) true false))
+     (default (fail term))
+   )
+ )
 
-; (program is_resolvent ((c1 term) (c2 term) (pol term) (l term) (c term)) term
-;   (match c1
-;     (l
-;       (match pol
-;         (true (isequal c (del_first_of c2 c1)))
-;         (default (fail term))
-;       ) 
-;     )
-;     (default
-;       (match c2 
-;         (l 
-;           (match pol
-;             (false (isequal c (del_first_of c1 (not c2))))
-;             (default (fail term))
-;           )
-;         )
-;         (default (is_resolvent_two_disjunctions c1 c2 pol l c))
-;       )
-;     )
-;   )
-; )
+ (program is_resolvent ((c1 term) (c2 term) (pol term) (l term) (c term)) term
+   (match c1
+     (l
+       (match pol
+         (true (ifequal c (del_first_of c2 c1 true true) true false))
+         (default (fail term))
+       ) 
+     )
+     (default
+       (match c2 
+         (l 
+           (match pol
+             (false (ifequal c (del_first_of c1 (apply f_not c2) true true) true false))
+             (default (fail term))
+           )
+         )
+         (default (is_resolvent_two_disjunctions c1 c2 pol l c))
+       )
+     )
+   )
+ )
