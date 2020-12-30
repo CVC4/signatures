@@ -6,6 +6,7 @@ lfscc \
   core_defs.plf \
   theory_def.plf \
   type_checking_programs.plf \
+  boolean_programs.plf \
   boolean_rules.plf \
   cnf_rules.plf \
   equality_rules.plf \
@@ -18,6 +19,7 @@ rlfsc \
   core_defs.plf \
   theory_def.plf \
   type_checking_programs.plf \
+  boolean_programs.plf \
   boolean_rules.plf \
   cnf_rules.plf \
   equality_rules.plf \
