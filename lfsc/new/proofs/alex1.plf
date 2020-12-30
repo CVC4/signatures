@@ -1,0 +1,12 @@
+(declare term type)
+(declare apply (! t1 term (! t2 term term)))
+(declare f_not term)
+(define not (# t term (apply f_not t)))
+(program p ((t term)) term
+  (match t
+    ; ((not t1) (not t2)) ; mostly desired
+    ; ((apply f_not t1) (not t1)) ; better than nothing 1
+    ; ((not t1) (apply f_not t1)) ; better than nothing 2
+     ((apply f_not t1) (apply f_not t1)) ; reality
+  )
+)
