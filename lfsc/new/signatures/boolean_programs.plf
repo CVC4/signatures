@@ -81,6 +81,8 @@
    )
  )
 
+(program assert_is_disjunction ((c term)) term (match c ((apply c1 c2) (match c1 ((apply c11 c12) (match c11 (f_or true)))))))
+
  (program is_resolvent ((c1 term) (c2 term) (pol term) (l term) (c term)) term
   (ifequal c1 l
        ; then
@@ -88,15 +90,15 @@
          (true (ifequal c (del_first_of c2 c1 true true) true false))
          (default (fail term))
        ) 
-       ; else
-       (match c2 
-         (l 
+       ; else if
+       (ifequal c2 l
+           ; then
            (match pol
              (false (ifequal c (del_first_of c1 (apply f_not c2) true true) true false))
              (default (fail term))
            )
-         )
-         (default (is_resolvent_two_disjunctions c1 c2 pol l c))
+         ; else
+         (ifequal (assert_is_disjunction c1) true (ifequal (assert_is_disjunction c2) true (is_resolvent_two_disjunctions c1 c2 pol l c) (fail term)) (fail term))
        )
    )
  )
