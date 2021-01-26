@@ -165,11 +165,13 @@ def sorted_term_to_string : term → string
 
 meta instance: has_repr term := ⟨term_to_string⟩
 
+/-
 def option_term_to_string : option term → string
 | (some x) := term_to_string x
 | none := "none"
 
---meta instance: has_repr (option term) := ⟨option_term_to_string⟩
+meta instance: has_repr (option term) := ⟨option_term_to_string⟩
+-/
 
 #eval bot
 #eval top
@@ -180,13 +182,6 @@ def option_term_to_string : option term → string
 #eval (eq bot bot)
 #eval (const bot_num none)
 #eval (qforall pos_num.one bot)
-
-/- This is weird behavior -/
-#eval term_to_string (and bot bot)
-#eval term_to_string 
-  ((const and_num boolsort) • (const bot_num boolsort) • (const bot_num boolsort))
-#eval term_to_string 
-  ((const and_num boolsort) • (app (const bot_num boolsort) (const bot_num boolsort)))
 
 #eval sorted_term_to_string bot
 #eval sorted_term_to_string top
