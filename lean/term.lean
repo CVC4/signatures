@@ -5,14 +5,18 @@ namespace smt
 /- dep is the sort for terms that have dependent types such as 
    equality and forall. We handle these in a special way to 
    avoid dependent types.
-   Additionally, we have atomic sorts, parametrized by a positive number,
-   and arrow or functional sorts -/
+   Additionally, we have atomic sorts, parameterized by a positive 
+   number, and arrow or functional sorts -/
 @[derive decidable_eq]
 inductive sort : Type
 | dep : sort
 | atom : pos_num → sort
 | arrow : sort → sort → sort
 
+/- Each term type is also parameterized by a positive number,
+   an application of terms is parametrized by all the positive
+   numbers involved in the application, thus giving unique 
+   sets of positive numbers to unique terms -/
 section
 open pos_num
 @[pattern] def bot_num     : pos_num := one
@@ -64,8 +68,10 @@ do sort_list ← monad.sequence l,
 
 end sort
 
--- terms are constants of a sort, applications,
--- or quantified formulas
+/- terms are constants of a sort, applications,
+   or quantified formulas 
+   Notice that quantified variables are also 
+   parameterized by a positive number -/
 @[derive decidable_eq]
 inductive term : Type
 | const : pos_num → option sort → term
@@ -90,7 +96,6 @@ def toTernary (t : term) : term → term → term → term := λ t₁ t₂ t₃ 
 def cstr (p : pos_num) (s : sort): term := const p (option.some s)
 
 -- Boolean sort definition
-
 @[pattern] def boolsort := sort.atom bool_num
 
 #eval sort_to_string dep
@@ -119,39 +124,69 @@ def cstr (p : pos_num) (s : sort): term := const p (option.some s)
   (arrow boolsort (arrow boolsort boolsort))
 
 def pos_to_string : pos_num → string
-| bot_num := "bot"
-| not_num := "not"
-| or_num := "or"
-| and_num := "and"
-| implies_num := "implies"
-| xor_num := "xor"
-| iff_num := "iff"
+| bot_num := "⊥"
+| not_num := "¬"
+| or_num := "∨"
+| and_num := "∧"
+| implies_num := "⇒"
+| xor_num := "⊕"
+| iff_num := "⇔"
 | b_ite_num := "b_ite"
 | f_ite_num := "f_ite"
-| eq_num := "eq"
-| forall_num := "forall"
-| _ := "ILL-TYPED"
+| eq_num := "≃"
+| forall_num := "∀"
+| x := repr x
 
+def term_to_string : term → string
+| (app (const not_num _) t) := "¬ " ++ term_to_string t
+| ((const or_num _) • t1 • t2) := term_to_string t1 ++ " ∨ " ++ term_to_string t2
+| ((const and_num _) • t1 • t2) := term_to_string t1 ++ " ∧ " ++ term_to_string t2
+| ((const implies_num _) • t1 • t2) := term_to_string t1 ++ " ⇒ " ++ term_to_string t2
+| ((const xor_num _) • t1 • t2) := term_to_string t1 ++ " ⊕ " ++ term_to_string t2
+| ((const iff_num _) • t1 • t2) := term_to_string t1 ++ " ⇔ " ++ term_to_string t2
+| ((const eq_num _) • t1 • t2) := term_to_string t1 ++ " ≃ " ++ term_to_string t2
+| (app f t) := "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
+| (qforall p t) := "∀ " ++ repr p ++ " . " ++ term_to_string t
+| (const name _) := pos_to_string name
+
+/-
 def term_to_string : term → string
 | (const name _) := pos_to_string name
 | (app f t) := "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
 | (qforall p t) := pos_to_string p ++ " » " ++ term_to_string t
+-/
 
 def sorted_term_to_string : term → string
-| (const name option.none) := "(" ++ repr name ++ ":none)"
-| (const name (option.some srt)) :=  repr name ++ ":" ++ sort_to_string srt
+| (const name option.none) := "(" ++ pos_to_string name ++ ":none)"
+| (const name (option.some srt)) :=  pos_to_string name ++ ":" ++ sort_to_string srt
 | (app f t) :=
   "(" ++ (sorted_term_to_string f) ++ " " ++ (sorted_term_to_string t) ++ ")"
-| (qforall p t) := repr p ++ " » " ++ sorted_term_to_string t
+| (qforall p t) := "∀ " ++ repr p ++ " . " ++ sorted_term_to_string t
 
-#eval term_to_string bot
-#eval term_to_string top
-#eval term_to_string (not bot)
-#eval term_to_string (not top)
+meta instance: has_repr term := ⟨term_to_string⟩
+
+def option_term_to_string : option term → string
+| (some x) := term_to_string x
+| none := "none"
+
+--meta instance: has_repr (option term) := ⟨option_term_to_string⟩
+
+#eval bot
+#eval top
+#eval (not bot)
+#eval (not top)
+#eval (and bot bot)
+#eval (b_ite top bot top)
+#eval (eq bot bot)
+#eval (const bot_num none)
+#eval (qforall pos_num.one bot)
+
+/- This is weird behavior -/
 #eval term_to_string (and bot bot)
-#eval term_to_string (b_ite top bot top)
-#eval term_to_string (eq bot bot)
-#eval term_to_string (const bot_num none)
+#eval term_to_string 
+  ((const and_num boolsort) • (const bot_num boolsort) • (const bot_num boolsort))
+#eval term_to_string 
+  ((const and_num boolsort) • (app (const bot_num boolsort) (const bot_num boolsort)))
 
 #eval sorted_term_to_string bot
 #eval sorted_term_to_string top
@@ -161,8 +196,7 @@ def sorted_term_to_string : term → string
 #eval sorted_term_to_string (b_ite top bot top)
 #eval sorted_term_to_string (eq bot bot)
 #eval sorted_term_to_string (const bot_num none)
-
-meta instance: has_repr term := ⟨sorted_term_to_string⟩
+#eval sorted_term_to_string (qforall pos_num.one bot)
 
 -- sort of terms
 def sortof_aux : term → option sort
@@ -365,8 +399,6 @@ def mkForall (p : pos_num) (obody : option term) : option term :=
 def numOf : term → option pos_num
 | (const n _) := n
 | _ := option.none
-
-
 
 end term
 
