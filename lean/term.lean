@@ -34,6 +34,7 @@ open pos_num
 @[pattern] def forall_num  : pos_num := succ eq_num
 
 def bool_num  : pos_num := one
+def int_num : pos_num := succ bool_num
 end
 
 namespace sort
@@ -75,6 +76,7 @@ end sort
 @[derive decidable_eq]
 inductive value : Type
 | bitvec : list bool → value
+| integer : ℤ → value
 
 def bv_to_string : list bool → string 
 | [] := ""
@@ -83,6 +85,7 @@ def bv_to_string : list bool → string
 --set_option trace.eqn_compiler.elim_match true
 def value_to_string : value → string
 | (value.bitvec l) := bv_to_string l
+| (value.integer i) := repr i
 
 meta instance: has_repr value := ⟨value_to_string⟩
 
@@ -117,6 +120,7 @@ def cstr (p : pos_num) (s : sort): term := const p (some s)
 
 -- Boolean sort definition
 @[pattern] def boolsort := sort.atom bool_num
+@[pattern] def intsort := sort.atom int_num
 
 #eval sort_to_string dep
 #eval sort_to_string boolsort
@@ -160,6 +164,7 @@ def pos_to_string : pos_num → string
 
 def term_to_string : term → string
 | (val (value.bitvec l) _) := bv_to_string l
+| (val (value.integer i) _) := repr i
 | ((const or_num _) • t1 • t2) := term_to_string t1 ++ " ∨ " ++ term_to_string t2
 | ((const and_num _) • t1 • t2) := term_to_string t1 ++ " ∧ " ++ term_to_string t2
 | ((const implies_num _) • t1 • t2) := term_to_string t1 ++ " ⇒ " ++ term_to_string t2
@@ -181,6 +186,8 @@ def term_to_string : term → string
 def sorted_term_to_string : term → string
 | (val (value.bitvec l) none) := (bv_to_string l) ++ ":none"
 | (val (value.bitvec l) (some srt)) := (bv_to_string l) ++ sort_to_string srt
+| (val (value.integer i) none) := (repr i) ++ ":none"
+| (val (value.integer i) (some srt)) := (repr i) ++ sort_to_string srt
 | (const name none) := "(" ++ pos_to_string name ++ ":none)"
 | (const name (some srt)) :=  pos_to_string name ++ ":" ++ sort_to_string srt
 | (app f t) :=
@@ -223,6 +230,7 @@ def sortof_aux : term → option sort
                                 none 
                               else 
                                 bv (pos_num.of_nat (list.length l))
+| (val (value.integer i) _) := intsort
 | (const bot_num _) := boolsort
 | (const not_num _) := (arrow boolsort boolsort)
 | (const or_num  _) := (arrow boolsort (arrow boolsort boolsort))

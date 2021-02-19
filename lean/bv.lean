@@ -1,6 +1,6 @@
 import term
 import aux
-import euf 
+import cdclt 
 
 open proof
 open proof.sort proof.term
@@ -47,6 +47,7 @@ def bitOf : option term → ℕ → option term :=
 
 @[pattern] def bveq : pos_num → term → term → term := λ n, toBinary $ cstr bveq_num (bv n)
 
+-- try removing the pos_num
 @[simp] def mkbvEq : pos_num → option term → option term → option term :=
   λ (n : pos_num), constructBinaryTerm eq (λ s₁ s₂, (s₁ = (bv n)) ∧ (s₂ = (bv n)))
 
@@ -118,5 +119,5 @@ end term
 
 end proof
 
-constant bveq {t₁ t₂ : option term} (n : pos_num): 
+constant bblast_bveq {t₁ t₂ : option term} (n : pos_num): 
   holds [mkNot (proof.term.mkbvEq n t₁ t₂), (proof.term.bblast_bvEq t₁ t₂)]

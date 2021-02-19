@@ -1,5 +1,5 @@
 import term
-import euf
+import cdclt
 
 open rules
 open proof
@@ -10,7 +10,7 @@ def x₁ := const 51 s
 def x₂ := const 52 s
 
 noncomputable lemma lem : holds [mkIneq x₁ x₂, mkEq (mkApp f x₁) (mkApp f x₂)] :=
-  let s₀ := @smtcong f x₁ f x₂ in
+  let s₀ := @smtcong f x₁ f x₂ in 
   let s₁ := @smtrefl f in
    R0 s₁ s₀ (mkEq f f)
 
