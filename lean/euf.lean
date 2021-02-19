@@ -1,8 +1,9 @@
 import term
 
-open smt
-open smt.sort smt.term
+open proof
+open proof.sort proof.term
 
+namespace rules
 -- define calculus
 notation `clause` := list (option term)
 
@@ -375,6 +376,9 @@ constant smtcongn_p : Π {f : term} {c₁ c₂ : clause} ,
 /-*************** instantiation ***************-/
 
 def substitute : pos_num → term → term → option term
+-- Constant case
+| p (val (value.bitvec l) s) t := t
+
 -- if finds shadowing, break
 | p₁ (qforall p₂ body) t :=
    if p₁ = p₂ then option.none else
@@ -390,3 +394,5 @@ def substitute : pos_num → term → term → option term
 
 constant inst_forall : Π {v : pos_num} {body : term} (term : term),
   holds [mkNot $ mkForall v body, substitute v body term]
+
+end rules

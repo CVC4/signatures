@@ -25,3 +25,10 @@ def {u} remove {α : Type u} [decidable_eq α] : α → list α → list α
 #eval remove 7 [4,7,10] -- [4,10]
 #eval remove 1 [2,3,4] -- [2,3,4]
 #eval remove 3 [3,3,3] -- [3,3]
+
+/- Given two lists, and a function that transforms elements of 
+   each list into a third type, apply the function index-wise 
+   on the lists -/
+def zip {α β γ : Type} : list α → list β →  (α → β → γ) → list γ
+   | (h₁ :: t₁) (h₂ :: t₂) p := (p h₁ h₂) :: (zip t₁ t₂ p)
+   | _ _ _ := []

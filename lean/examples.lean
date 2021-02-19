@@ -1,7 +1,9 @@
-import .smt
+import term
+import euf
 
-open smt
-open smt.sort smt.term
+open rules
+open proof
+open proof.sort proof.term
 def s := boolsort
 def f := const 50 (arrow s s)
 def x₁ := const 51 s

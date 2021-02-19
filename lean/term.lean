@@ -1,22 +1,24 @@
 import aux
 
-namespace smt
+namespace proof
 
 /- dep is the sort for terms that have dependent types such as 
    equality and forall. We handle these in a special way to 
    avoid dependent types.
    Additionally, we have atomic sorts, parameterized by a positive 
-   number, and arrow or functional sorts -/
+   number, arrow or functional sorts, and bitvector sorts 
+   parameterized by their length -/
 @[derive decidable_eq]
 inductive sort : Type
 | dep : sort
 | atom : pos_num → sort
 | arrow : sort → sort → sort
+| bv : pos_num → sort
 
-/- Each term type is also parameterized by a positive number,
-   an application of terms is parametrized by all the positive
-   numbers involved in the application, thus giving unique 
-   sets of positive numbers to unique terms -/
+/- Each predefined function is also parameterized by a 
+   positive number, an application of terms is parametrized 
+   by all the positive numbers involved in the application, 
+   thus giving unique sets of positive numbers to unique terms -/
 section
 open pos_num
 @[pattern] def bot_num     : pos_num := one
@@ -45,6 +47,7 @@ def sort_to_string : sort → string
   end
 | (arrow s1 s2) := 
   "(" ++ (sort_to_string s1) ++ " → " ++ (sort_to_string s2) ++ ")"
+| (bv n) := "bv " ++ (repr n)
 
 def option_sort_to_string : option sort → string 
 | (some x) := sort_to_string x
@@ -62,18 +65,35 @@ def mkArrowN_aux : sort → list sort → sort
 def mkArrowN (l : list (option sort)) : option sort :=
 do sort_list ← monad.sequence l,
  match sort_list with
- | [] := option.none
+ | [] := none
  | (h :: t) := mkArrowN_aux h t
  end
 
 end sort
 
-/- terms are constants of a sort, applications,
+
+@[derive decidable_eq]
+inductive value : Type
+| bitvec : list bool → value
+
+def bv_to_string : list bool → string 
+| [] := ""
+| (h :: t) := (if h then "1" else "0") ++ bv_to_string t
+
+--set_option trace.eqn_compiler.elim_match true
+def value_to_string : value → string
+| (value.bitvec l) := bv_to_string l
+
+meta instance: has_repr value := ⟨value_to_string⟩
+
+/- terms are values (nullary constants), 
+   constants of a sort, applications,
    or quantified formulas 
-   Notice that quantified variables are also 
+   Quantified variables are also 
    parameterized by a positive number -/
 @[derive decidable_eq]
 inductive term : Type
+| val : value → option sort → term
 | const : pos_num → option sort → term
 | app : term → term → term
 | qforall : pos_num → term → term
@@ -93,7 +113,7 @@ def toBinary (t : term) : term → term → term := λ t₁ t₂ : term, t • t
 def toTernary (t : term) : term → term → term → term := λ t₁ t₂ t₃ : term, t • t₁ • t₂ • t₃
 
 -- constant term constructor
-def cstr (p : pos_num) (s : sort): term := const p (option.some s)
+def cstr (p : pos_num) (s : sort): term := const p (some s)
 
 -- Boolean sort definition
 @[pattern] def boolsort := sort.atom bool_num
@@ -103,6 +123,7 @@ def cstr (p : pos_num) (s : sort): term := const p (option.some s)
 #eval sort_to_string (arrow boolsort boolsort)
 #eval sort_to_string (arrow boolsort (arrow boolsort boolsort))
 #eval option_sort_to_string (mkArrowN [some boolsort, some boolsort, some boolsort])
+#check const 19 (some (bv 2))
 
 -- term definitions
 @[pattern] def b_ite : term → term → term → term := toTernary $ cstr b_ite_num 
@@ -138,16 +159,17 @@ def pos_to_string : pos_num → string
 | x := repr x
 
 def term_to_string : term → string
-| (app (const not_num _) t) := "¬ " ++ term_to_string t
+| (val (value.bitvec l) _) := bv_to_string l
 | ((const or_num _) • t1 • t2) := term_to_string t1 ++ " ∨ " ++ term_to_string t2
 | ((const and_num _) • t1 • t2) := term_to_string t1 ++ " ∧ " ++ term_to_string t2
 | ((const implies_num _) • t1 • t2) := term_to_string t1 ++ " ⇒ " ++ term_to_string t2
 | ((const xor_num _) • t1 • t2) := term_to_string t1 ++ " ⊕ " ++ term_to_string t2
 | ((const iff_num _) • t1 • t2) := term_to_string t1 ++ " ⇔ " ++ term_to_string t2
 | ((const eq_num _) • t1 • t2) := term_to_string t1 ++ " ≃ " ++ term_to_string t2
+| (const name _) := pos_to_string name
+| (app (const not_num _) t) := "¬ " ++ term_to_string t
 | (app f t) := "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
 | (qforall p t) := "∀ " ++ repr p ++ " . " ++ term_to_string t
-| (const name _) := pos_to_string name
 
 /-
 def term_to_string : term → string
@@ -157,8 +179,10 @@ def term_to_string : term → string
 -/
 
 def sorted_term_to_string : term → string
-| (const name option.none) := "(" ++ pos_to_string name ++ ":none)"
-| (const name (option.some srt)) :=  pos_to_string name ++ ":" ++ sort_to_string srt
+| (val (value.bitvec l) none) := (bv_to_string l) ++ ":none"
+| (val (value.bitvec l) (some srt)) := (bv_to_string l) ++ sort_to_string srt
+| (const name none) := "(" ++ pos_to_string name ++ ":none)"
+| (const name (some srt)) :=  pos_to_string name ++ ":" ++ sort_to_string srt
 | (app f t) :=
   "(" ++ (sorted_term_to_string f) ++ " " ++ (sorted_term_to_string t) ++ ")"
 | (qforall p t) := "∀ " ++ repr p ++ " . " ++ sorted_term_to_string t
@@ -195,6 +219,10 @@ meta instance: has_repr (option term) := ⟨option_term_to_string⟩
 
 -- sort of terms
 def sortof_aux : term → option sort
+| (val (value.bitvec l) _) := if ((list.length l) = 0) then 
+                                none 
+                              else 
+                                bv (pos_num.of_nat (list.length l))
 | (const bot_num _) := boolsort
 | (const not_num _) := (arrow boolsort boolsort)
 | (const or_num  _) := (arrow boolsort (arrow boolsort boolsort))
@@ -205,18 +233,18 @@ def sortof_aux : term → option sort
 | (const _ s)      := s
 | (qforall p₁ t₁)  :=
   do s₁ ← sortof_aux t₁,
-    if s₁ = boolsort then boolsort else option.none
+    if s₁ = boolsort then boolsort else none
 | (eq t₁ t₂) :=
   do s₁ ← sortof_aux t₁, s₂ ← sortof_aux t₂,
-    if s₁ = s₂ then boolsort else option.none
+    if s₁ = s₂ then boolsort else none
 | (f_ite t₁ t₂ t₃) :=
     do s₁ ← sortof_aux t₁, s₂ ← sortof_aux t₂, s₃ ← sortof_aux t₂,
-        if s₁ = boolsort ∧ s₂ = s₃ then s₂ else option.none
+        if s₁ = boolsort ∧ s₂ = s₃ then s₂ else none
 | (f • t)  :=
   do sf ← sortof_aux f, s ← sortof_aux t,
     match sf with
-    | (arrow s1 s2) := if s1 = s then s2 else option.none
-    | _ := option.none
+    | (arrow s1 s2) := if s1 = s then s2 else none
+    | _ := none
     end
 /- bind : (m : option term) → (f : (term → option sort))
    unpacks the term from m and applies f to it.
@@ -244,8 +272,8 @@ def mkApp_aux : term → term → option term :=
   λ t₁ t₂,
     do s₁ ← sortof t₁, s₂ ← sortof t₂,
       match s₁ with
-      | (arrow srt _) := if srt = s₂ then option.some (app t₁ t₂) else option.none
-      | _ := option.none
+      | (arrow srt _) := if srt = s₂ then some (app t₁ t₂) else none
+      | _ := none
       end
 
 /- bind : (x : m α) → (f : (α → m α)) 
@@ -273,14 +301,14 @@ def mkAppN (t : option term) (l : list (option term)) : option term :=
 
 -- if-then-else
 def mkIte_aux (c t₀ t₁ : term) : option term :=
-  if (sortof c) = option.some boolsort
+  if (sortof c) = some boolsort
   then
     do s₀ ← sortof t₀, s₁ ← sortof t₁,
       match (s₀,s₁) with
-      | (boolsort, boolsort) := option.some $ b_ite c t₀ t₁
-      | (_,_) :=  if s₀ = s₁ then f_ite c t₀ t₁ else option.none
+      | (boolsort, boolsort) := some $ b_ite c t₀ t₁
+      | (_,_) :=  if s₀ = s₁ then f_ite c t₀ t₁ else none
       end
-  else option.none
+  else none
 
 def mkIte : option term → option term → option term → option term := 
   bind3 mkIte_aux
@@ -291,12 +319,12 @@ def mkIte : option term → option term → option term → option term :=
 -- negation
 def mkNot : option term → option term :=
   flip option.bind $
-    λ t, do s ← sortof t, if s = boolsort then not t else option.none
+    λ t, do s ← sortof t, if s = boolsort then not t else none
 
 def mkNotSimp : option term → option term
-| (option.some (not s')) := option.some s'
-| (option.some t)        := mkNot (option.some t)
-| _                      := option.none
+| (some (not s')) := some s'
+| (some t)        := mkNot (some t)
+| _                      := none
 
 -- Notice mkNotSimp gives double negation elimination
 #eval mkNot bot
@@ -312,13 +340,13 @@ def constructBinaryTerm (constructor : term → term → term) (test : sort → 
   option term → option term → option term :=
   bind2 $ λ t₁ t₂,
             do s₁ ← sortof t₁, s₂ ← sortof t₂,
-                if test s₁ s₂ then constructor t₁ t₂ else option.none
+                if test s₁ s₂ then constructor t₁ t₂ else none
 
 def constructNaryTerm (constructor : term → term → term) (test : sort → sort → bool) : option term → list (option term) → option term :=
   λ ot₁ ots₂,
   let auxfxn : term → term → option term := (λ t₁ t₂,
             do s₁ ← sortof t₁, s₂ ← sortof t₂,
-                if test s₁ s₂ then constructor t₁ t₂ else option.none)
+                if test s₁ s₂ then constructor t₁ t₂ else none)
     in (do t₁ ← ot₁, ts₂ ← monad.sequence ots₂, mfoldl auxfxn t₁ ts₂)
 
 
@@ -393,8 +421,8 @@ def mkForall (p : pos_num) (obody : option term) : option term :=
 -- retrieve the identifier of a constant
 def numOf : term → option pos_num
 | (const n _) := n
-| _ := option.none
+| _ := none
 
 end term
 
-end smt
+end proof
