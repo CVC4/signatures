@@ -18,38 +18,17 @@ end
 
 namespace term
 
--- Sort definition
+-- For equation compiler related debugging:
+--set_option trace.eqn_compiler.elim_match true
+
+-- sort definition
 @[pattern] def bvsort := sort.bv
 
 -- term definitions
---set_option trace.eqn_compiler.elim_match true
-def bit_to_term : bool → option term :=
-  λ b, if b then some top else some bot
-
-/-
-def bitOf : option term → ℕ → option term := 
-  λ ot n, 
-    do t ← ot, 
-    match t with
-    | val (value.bitvec l) s := 
-      (match (list.nth l n) with
-      | some b := bit_to_term b
-      | none := none
-      end)
-    | const p _ := 
-      do s ← sortof t,
-      (match s with
-      | bv m := 
-        if (n < m) then none/- This is incorrect -/else none
-      | _ := none
-      end)
-    | _ := none
-    end
--/
-
 @[pattern] def bitOf : ℕ → term → term → term := λ n, toBinary $ cstr bvBitOfNum (bv n)
 @[pattern] def bvEq : ℕ → term → term → term := λ n, toBinary $ cstr bvEqNum (bv n)
 
+-- Check that both terms have the same BV type
 @[simp] def mkBvEq : option term → option term → option term :=
   λ ot₁ ot₂, 
   do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,
@@ -60,6 +39,8 @@ def bitOf : option term → ℕ → option term :=
 
 /- mkBitOf bv n, returns the nth element
    of bv if it exists; none otherwise -/
+-- We don't use this yet, but it should 
+-- prove useful
 def mkBitOf : term → ℕ → option term :=
 λ t m, do s ← sortof t, 
 match s with
@@ -77,6 +58,9 @@ match s with
 end
 
 /-
+-- This would've been the way to go to built 
+-- BV term equalities but the equation compiler
+-- can't see that recursion will terminate
 def bitOfN : term → ℕ → ℕ → list (option term)
 | t n₁ n₂ := if n₁ < n₂ then 
               (mkBitOf t n₁) :: (bitOfN  t (n₁ + 1) n₂)
@@ -84,10 +68,34 @@ def bitOfN : term → ℕ → ℕ → list (option term)
               []
 -/
 
-def mkRevBitsConst : ℕ → term → ℕ → list (option term)
-| p t 0 := []
-| p t (n + 1) := (bitOf p t (val (value.integer n) (bv p))) :: mkRevBitsConst p t n
+/-
+mkRevBitsConst n t m
 
+Precondition: t is a BV variable (const p (bv n), for some p).
+
+n is the length of the BV variable, t the BV variable, m is 
+the successor of the index of t we want to represent. 
+Function outputs (in reverse) a list of option terms that represent 
+each bit of t (bit-blasting). 
+
+So, for term x of type bv 4, (mkRevBitsConst 4 x 4) returns
+[(some x₃) (some x₂) (some x₁) (some x₀)] where 
+xᵢ is a fresh variable representing x[i].
+-/
+def mkRevBitsConst : ℕ → term → ℕ → list (option term)
+| n t 0 := []
+| n t (m + 1) := (bitOf n t (val (value.integer m) (bv n))) :: mkRevBitsConst n t m
+
+/-
+mkBitsVal t
+
+Precondition: t is a BV constant (val (value.bitvector l) (bv n), for some n).
+
+Function outputs a list of Boolean terms representing the bits of t.
+
+So for x = [true true false false], (mkBitsVal x) returns
+[(some top) (some top) (some bot) (some bot)].
+-/
 def mkBitsVal : term → list (option term)
 | (val (value.bitvec (h :: t)) s) := 
   if h then 
@@ -97,8 +105,9 @@ def mkBitsVal : term → list (option term)
 | (val (value.bitvec []) s) := []
 | _ := []
 
+/-
 def bitOfN : term → list (option term) :=
-λ t, do s ← sortof t, 
+λ t, do s ← sortof t,
 match s with
 | bv n := (match t with 
           | (val (value.bitvec l) s₁) := mkBitsVal (val (value.bitvec l) s₁)
@@ -107,15 +116,42 @@ match s with
           end)
 | _ := []
 end
+-/
 
+/-
+bitOfN n t
+t is a BV term of type (bv n). We have to explicitly 
+provide n to bitOfN because its not able to infer it from t, 
+using sortof. See the commented version above for the issue.
+
+If t is a BV const, bitOfN returns a list of Boolean option 
+terms representing its bits.
+If t is a BV var, bitOfN returns a list of variables 
+representing each bit of t.
+Otherwise, it retursn an empty list.
+-/
+def bitOfN : ℕ → term → list (option term) :=
+λ n t, 
+match t with 
+| (val (value.bitvec l) s₁) := mkBitsVal (val (value.bitvec l) s₁)
+| const p s₁ := let l := (mkRevBitsConst n t n) in list.reverse l
+| _ := []
+end
+
+/-
+Given option terms t₁ and t₂ of type (bv n), 
+bblastBvEq t₁ t₂ returns an option term representing 
+the bit-blasted version of their equality, which is a 
+conjunction of the equality of their corresponding bits.
+-/
 def bblastBvEq : option term → option term → option term :=
   λ ot₁ ot₂,
     do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,
     match (s₁, s₂) with
     |  (bv m, bv n) := 
       if (m = n) then (
-        let l₁ := bitOfN t₁,
-            l₂ := bitOfN t₂ in
+        let l₁ := bitOfN m t₁,
+            l₂ := bitOfN m t₂ in
             mkAndN (zip l₁ l₂ mkEq)
       ) else none
     | (_, _) := none
