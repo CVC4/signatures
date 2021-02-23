@@ -88,7 +88,7 @@ constant simp_iff : Π {c : clause} (p : holds c),
 def reduce_and_nth : ℕ → term → option term
 | 0            (and t _)           := t
 | 1            (and _ t)           := t
-| (nat.succ n) (and  _ (and t₀ t₁)) :=
+| (n+1) (and  _ (and t₀ t₁)) :=
     reduce_and_nth n (and t₀ t₁)
 | _            _                   := option.none
 def reduce_and (n : ℕ) : option term → option term :=
@@ -100,7 +100,7 @@ constant cnf_and : Π {t : option term} (p : holds [t]) (n : nat),
 def reduce_or_nth : ℕ → term → option term
 | 0            (or t _)          := t
 | 1            (or _ t)          := t
-| (nat.succ n) (or _ (or t₀ t₁)) := reduce_or_nth n (or t₀ t₁)
+| (n+1) (or _ (or t₀ t₁)) := reduce_or_nth n (or t₀ t₁)
 | _            _                 := option.none
 def reduce_not_or (n : ℕ) : option term → option term :=
   (flip bind) $ λ t,
@@ -375,24 +375,24 @@ constant smtcongn_p : Π {f : term} {c₁ c₂ : clause} ,
 
 /-*************** instantiation ***************-/
 
-def substitute : pos_num → term → term → option term
+def substitute : ℕ → term → term → option term
 -- Constant case
-| p (val (value.bitvec l) s) t := t
+| n (val _ s) t := t
 
 -- if finds shadowing, break
-| p₁ (qforall p₂ body) t :=
-   if p₁ = p₂ then option.none else
-                               do res ← (substitute p₁ body t), (qforall p₂ res)
+| n₁ (qforall n₂ body) t :=
+   if n₁ = n₂ then option.none else
+                               do res ← (substitute n₁ body t), (qforall n₂ res)
 -- if found variable, replace by instantiation term *if types match*,
 -- otherwise fail
-| p₁ (const p₂ os) t :=
+| n₁ (const n₂ os) t :=
   do s ← os, st ← sortof t,
-    if p₁ ≠ p₂ then (const p₂ s) else if s = st then t else option.none
+    if n₁ ≠ n₂ then (const n₂ s) else if s = st then t else option.none
 -- replace each term in application
-| p₁ (f • t₁) t :=
-  do fs ← (substitute p₁ f t), t₁s ← (substitute p₁ t₁ t), fs • t₁s
+| n (f • t₁) t :=
+  do fs ← (substitute n f t), t₁s ← (substitute n t₁ t), fs • t₁s
 
-constant inst_forall : Π {v : pos_num} {body : term} (term : term),
+constant inst_forall : Π {v : ℕ} {body : term} (term : term),
   holds [mkNot $ mkForall v body, substitute v body term]
 
 end rules
