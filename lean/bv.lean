@@ -10,15 +10,16 @@ namespace proof
 
 section
 open pos_num
-@[pattern] def bvnot_num : pos_num := succ forall_num
-@[pattern] def bvand_num : pos_num := succ bvnot_num
-@[pattern] def bvor_num : pos_num := succ bvand_num
-@[pattern] def bveq_num : pos_num := succ bvor_num
+@[pattern] def bvBitOfNum : pos_num := succ forall_num
+@[pattern] def bvEqNum : pos_num := succ bvBitOfNum
+@[pattern] def bvNotNum : pos_num := succ bvEqNum
+@[pattern] def bvAndNum : pos_num := succ bvNotNum
+@[pattern] def bvOrNum : pos_num := succ bvAndNum
 end
 
 namespace term
 
--- Boolean sort definition
+-- Sort definition
 @[pattern] def bvsort := sort.bv
 
 -- term definitions
@@ -26,6 +27,7 @@ namespace term
 def bit_to_term : bool → option term :=
   λ b, if b then some top else some bot
 
+/-
 def bitOf : option term → ℕ → option term := 
   λ ot n, 
     do t ← ot, 
@@ -44,54 +46,107 @@ def bitOf : option term → ℕ → option term :=
       end)
     | _ := none
     end
+-/
 
-@[pattern] def bveq : pos_num → term → term → term := λ n, toBinary $ cstr bveq_num (bv n)
+@[pattern] def bitOf : pos_num → term → term → term := λ n, toBinary $ cstr bvBitOfNum (bv n)
+@[pattern] def bvEq : pos_num → term → term → term := λ n, toBinary $ cstr bvEqNum (bv n)
 
--- try removing the pos_num
-@[simp] def mkbvEq : pos_num → option term → option term → option term :=
-  λ (n : pos_num), constructBinaryTerm eq (λ s₁ s₂, (s₁ = (bv n)) ∧ (s₂ = (bv n)))
+@[simp] def mkBvEq : option term → option term → option term :=
+  λ ot₁ ot₂, 
+  do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,
+  match (s₁, s₂) with
+  | (bv m, bv n) := if (m = n) then (bvEq m t₁ t₂) else none
+  | (_, _) := none
+  end
 
-def bblast_bvEq : option term → option term → option term :=
+/- mkBitOf bv n, returns the nth element
+   of bv if it exists; none otherwise -/
+def mkBitOf : term → ℕ → option term :=
+λ t m, do s ← sortof t, 
+match s with
+| bv n := if (m < (cast_pos_num n)) then
+  (match t with
+  | val (value.bitvec l) s := 
+    (match (list.nth l m) with
+    | some b := if b then some top else some bot
+    | none := none
+    end)
+  | const p s := bitOf n t (val (value.integer m) (bv n))
+  | _ := none
+  end) else none
+| _ := none
+end
+
+/-
+def bitOfN : term → ℕ → ℕ → list (option term)
+| t n₁ n₂ := if n₁ < n₂ then 
+              (mkBitOf t n₁) :: (bitOfN  t (n₁ + 1) n₂)
+             else
+              []
+-/
+
+def mkRevBitsConst : pos_num → term → ℕ → list (option term)
+| p t 0 := []
+| p t (n + 1) := (bitOf p t (val (value.integer n) (bv p))) :: mkRevBitsConst p t n
+
+def mkBitsVal : term → list (option term)
+| (val (value.bitvec (h :: t)) s) := 
+  if h then 
+    (some top) :: mkBitsVal (val (value.bitvec t) s)
+  else
+    (some bot) :: mkBitsVal (val (value.bitvec t) s)
+| (val (value.bitvec []) s) := []
+| _ := []
+
+def bitOfN : term → list (option term) :=
+λ t, do s ← sortof t, 
+match s with
+| bv n := (match t with 
+          | (val (value.bitvec l) s₁) := mkBitsVal (val (value.bitvec l) s₁)
+          | const p s₁ := let l := (mkRevBitsConst n t (n-1)) in list.reverse l
+          | _ := []
+          end)
+| _ := []
+end
+
+def bblastBvEq : option term → option term → option term :=
   λ ot₁ ot₂,
     do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,
     match (s₁, s₂) with
     |  (bv m, bv n) := 
-      if (m = n) then (match (t₁, t₂) with 
-      | (val (value.bitvec l1) _, val (value.bitvec l2) _) := 
-        let l₁ := (list.map bit_to_term l1),
-            l₂ := (list.map bit_to_term l2) in
-            mkAndN (zip l₁ l₂ mkEq) 
-      | (_, _) := none
-      end) else none
+      if (m = n) then (
+        let l₁ := bitOfN t₁,
+            l₂ := bitOfN t₂ in
+            mkAndN (zip l₁ l₂ mkEq)
+      ) else none
     | (_, _) := none
     end
-
-@[pattern] def bvnot : pos_num → term → term := 
+/-
+@[pattern] def mkBvNot : pos_num → term → term := 
   λ (n : pos_num), 
-  toUnary $ cstr bvnot_num (arrow (bvsort n) (bvsort n))
+  toUnary $ cstr bvNotNum (arrow (bvsort n) (bvsort n))
 
-def bv_not : list bool → list bool := 
+def bvNot : list bool → list bool := 
   λ b, list.map bnot b
 
-def bvand : list bool → list bool → list bool := 
+def bvAnd : list bool → list bool → list bool := 
   λ b1 b2, if (list.length b1 = list.length b2) then (list.map₂ band b1 b2) else []
 
-def bvor : list bool → list bool → list bool :=
+def bvOr : list bool → list bool → list bool :=
   λ b1 b2, if (list.length b1 = list.length b2) then (list.map₂ bor b1 b2) else []
   
-def mkBvnot : option term → option term :=
+def mkBvNot2 : option term → option term :=
   flip option.bind $
     λ t, do s ← sortof t, 
     match s with
     | bv n := 
       match t with
-      | val (value.bitvec b) s := some (val (value.bitvec (bv_not b)) s)
+      | val (value.bitvec b) s := some (val (value.bitvec (bvNot b)) s)
       | _ := none
       end
     | _ := none
     end
 
-/-
 inductive bblast_term : Type
 | bvconst : pos_num → list term → term → bblast_term 
 | ill_formed : bblast_term
@@ -112,12 +167,12 @@ def check_bv_const : list term → list bool → bool
   | _ := bblast_term.ill_formed
   end
 
---constant bvconst {n : pos_num} {l : list term} {t : term} {b : bblast_term}
+constant bvconst {n : pos_num} {l : list term} {t : term} {b : bblast_term}
 -/
 
 end term
 
 end proof
 
-constant bblast_bveq {t₁ t₂ : option term} (n : pos_num): 
-  holds [mkNot (proof.term.mkbvEq n t₁ t₂), (proof.term.bblast_bvEq t₁ t₂)]
+constant bblastBvEq {t₁ t₂ : option term} : 
+  holds [mkNot (proof.term.mkBvEq t₁ t₂), (proof.term.bblastBvEq t₁ t₂)]

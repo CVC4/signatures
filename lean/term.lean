@@ -118,7 +118,7 @@ def toTernary (t : term) : term → term → term → term := λ t₁ t₂ t₃ 
 -- constant term constructor
 def cstr (p : pos_num) (s : sort): term := const p (some s)
 
--- Boolean sort definition
+-- Sort definitions
 @[pattern] def boolsort := sort.atom bool_num
 @[pattern] def intsort := sort.atom int_num
 
