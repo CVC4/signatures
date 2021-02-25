@@ -1,10 +1,12 @@
 
+
+;  FIXME
 ;(declare or_pos ???)
 (declare or_neg_1 (! f1 term (! f2 term (! p (holds (not (or f1 f2))) (holds (not f1))))))
 (declare or_neg_2 (! f1 term (! f2 term (! p (holds (not (or f1 f2))) (holds (not f2))))))
-(declare implies_pos (! f1 term (! f2 term (! p1 (holds (implies f1 f2)) (!p2 (holds f1) (holds f2))))))
-(declare implies_neg_1 (! f1 term (! f2 term (! p (holds (not (implies f1 f2))) (holds f1)))))
-(declare implies_neg_2 (! f1 term (! f2 term (! p (holds (not (implies f1 f2))) (holds (not f2))))))
+(declare implies_pos (! f1 term (! f2 term (! p1 (holds (=> f1 f2)) (!p2 (holds f1) (holds f2))))))
+(declare implies_neg_1 (! f1 term (! f2 term (! p (holds (not (=> f1 f2))) (holds f1)))))
+(declare implies_neg_2 (! f1 term (! f2 term (! p (holds (not (=> f1 f2))) (holds (not f2))))))
 (declare equiv_pos_1 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (! p2 (holds f1) (holds f2))))))
 (declare equiv_pos_2 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (! p2 (holds f2) (holds f1))))))
 (declare equiv_neg_1 (! f1 term (! f2 term (! p (holds (not (= f1 f2))) (holds (or f1 f2))))))
@@ -21,7 +23,7 @@
 ;(declare ite_neg_3 ???)
 
 
-
+; -------------------------
 
 
 (declare and_elim1 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f1)))))

@@ -4,8 +4,7 @@
   (match t
     ((apply t1 t2)
       (match t1
-        ((apply t11 t12) (ifequal t12 l t2 (apply t1 (nary_rm_first t2 l))))
-        (default (fail term))))   ; not in n-ary form
+        ((apply t11 t12) (ifequal t12 l t2 (apply t1 (nary_rm_first t2 l))))))   ; otherwise not in n-ary form
     (default (fail term)))        ; at end, l not found
 )
 
@@ -19,8 +18,7 @@
   (match t
     ((apply t1 t2)
       (match t1
-        ((apply t11 t12) (ifequal t12 l tt (nary_ctn t2 l)))
-        (default (fail flag))))   ; not in n-ary form
+        ((apply t11 t12) (ifequal t12 l tt (nary_ctn t2 l)))))   ; otherwise not in n-ary form
     (default ff))
 )
 
@@ -34,8 +32,7 @@
   (match t
     ((apply t1 t2) 
       (match t1
-        ((apply t11 t12) (ifequal (nary_ctn_or_self s t12) tt (nary_is_subset t2 s) ff))
-        (default (fail flag)))) ; not in n-ary form
+        ((apply t11 t12) (ifequal (nary_ctn_or_self s t12) tt (nary_is_subset t2 s) ff)))) ; otherwise not in n-ary form
     (default tt))
 )
   
@@ -51,9 +48,7 @@
   (match t
     ((apply t1 t2) 
       (ifequal t2 nt  ; if null terminated at this level
-        (match t1 
-          ((apply t11 t12) t12) 
-          (default (fail term))) ; not in n-ary form
+        (match t1 ((apply t11 t12) t12)) ; otherwise not in n-ary form
         t))
     (default t))
 )
@@ -74,7 +69,17 @@
   (match t
     ((apply t1 t2)
       (match t1
-        ((apply f_and t12) (apply (apply f_or (apply f_not t12)) (sc_not_and t2)))
-        (default (fail term))))   ; not in n-ary form
+        ((apply f_and t12) (apply (apply f_or (apply f_not t12)) (sc_not_and t2)))))   ; otherwise not in n-ary form
     (true false))    ; note we must flip true to false
+)
+
+; (or (not F1) ... (not Fn)) -> (and F1 ... Fn)
+(program sc_not_and_rev ((t term)) term
+  (match t
+    ((apply t1 t2)
+      (match t1
+        ((apply f_or t12) 
+          (match t12 
+            ((apply f_not t122) (apply (apply f_and t122) (sc_not_and_rev t2)))))))   ; otherwise not in n-ary form
+    (false true))    ; note we must flip true to false
 )
