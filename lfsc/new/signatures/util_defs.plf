@@ -1,0 +1,6 @@
+(declare flag type)
+(declare tt flag)
+(declare ff flag)
+
+(declare Ok type)
+(declare ok Ok)

@@ -77,9 +77,6 @@
 ;;;; To write (forall ((x Int)) (P x)):
 ; (apply (forall v Int) (apply P (bvar v Int)))
 
-(declare Ok type)
-(declare ok Ok)
-
 ; proof-let
 (declare plet (! f term (! g term (! p (holds g) (! u (! v (holds g) (holds f)) (holds f))))))
 ;scope
