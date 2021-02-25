@@ -9,7 +9,8 @@
     ((skolem w) (type_check w))
     ((apply t1 t2)
       (match t1
-        ; [2] parametric interpreted function symbols
+        ; [2] parametric interpreted function symbols. Note these must have
+        ; exceptions in well_typed below.
         (f_= (arrow (type_check t2) Bool))
 
         ; ...
@@ -26,21 +27,46 @@
                   (fail sort))))
             ; fail: application of non-function
             (default (fail sort)))))))
+    
     ; [4] quantifiers are indexed by their universal variable
     ((f_forall n s) (arrow Bool Bool))
     ((f_exists n s) (arrow Bool Bool))
     ((f_witness n s) (arrow Bool s))
-    ; [5] all non-parametric interpreted function symbols
 
+    ; [5] all non-parametric interpreted function symbols
+    ; Booleans
     (true Bool)
     (false Bool)
     ((f_ite s) (arrow Bool (arrow s (arrow s s))))
     (f_and (arrow Bool (arrow Bool Bool)))
+    (f_or (arrow Bool (arrow Bool Bool)))
+    (f_=> (arrow Bool (arrow Bool Bool)))
+    (f_xor (arrow Bool (arrow Bool Bool)))
     (f_not (arrow Bool Bool))
+    ; Strings
+    (emptystr String)
+    ((char n) String)
+    (f_str.len (arrow String Int))
+    (f_str.++ (arrow String (arrow String String)))
+    (re.allchar RegLan)
+    (re.none RegLan)
+    (re.all RegLan)
+    (f_re.* (arrow RegLan RegLan))
+    (f_re.comp (arrow RegLan RegLan))
+    (f_re.++ (arrow RegLan (arrow RegLan RegLan)))
+    (f_str.to_re (arrow String RegLan))
+    (f_str.in_re (arrow String (arrow RegLan Bool)))
+    (f_re.inter (arrow RegLan (arrow RegLan RegLan)))
+    (f_re.union (arrow RegLan (arrow RegLan RegLan)))
+    
     ; ...
     ; fail: unknown term
     (default (fail sort))
   )
 )
 (program well_typed ((t term)) Ok
-  (do (type_check t) ok))
+  (match t
+    ; special case: the equality symbol itself is well-typed
+    (f_= ok)
+    (default 
+      (do (type_check t) ok))))

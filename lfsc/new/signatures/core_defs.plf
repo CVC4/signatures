@@ -28,8 +28,8 @@
 (define or (# t1 term (# t2 term (apply (apply f_or t1) t2))))
 
 ; Implication
-(declare f_implies term)
-(define implies (# t1 term (# t2 term (apply (apply f_implies t1) t2))))
+(declare f_=> term)
+(define => (# t1 term (# t2 term (apply (apply f_=> t1) t2))))
 
 ; Xor
 (declare f_xor term)
@@ -45,9 +45,9 @@
 ; this macro enables writing (= t1 t2)
 (define = (# t1 term (# t2 term (apply (apply f_= t1) t2))))
 
-; disequality:
+; Disequality:
 ; f_distinct is a disequality symbol, which is a term, to be used with an apply
-(declare f_distinct  term)
+(declare f_distinct term)
 ; this macro enables writing (distinct t1 t2)
 (define distinct (# t1 term (# t2 term (apply (apply f_distinct t1) t2))))
 
@@ -76,9 +76,6 @@
 
 ;;;; To write (forall ((x Int)) (P x)):
 ; (apply (forall v Int) (apply P (bvar v Int)))
-
-(declare Ok type)
-(declare ok Ok)
 
 ; proof-let
 (declare plet (! f term (! g term (! p (holds g) (! u (! v (holds g) (holds f)) (holds f))))))

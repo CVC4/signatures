@@ -1,5 +1,11 @@
 (declare true_holds (holds true))
 (declare not_false_true (holds (= (not false) true)))
 (declare contra (! f term (! p1 (holds f) (! p2 (holds (not f)) (holds false)))))
+(declare eq_resolve (! f term (! g term (! p1 (holds f) (! p2 (holds (= f g)) (holds g))))))
 (declare not_not_elim (! f term (! p (holds (not (not f))) (holds f))))
-(declare resolution (! c1 term (! c2 term (! p1 (holds c1) (! p2 (holds c2) (! pol term (! l term (! c term (! r (^ (is_resolvent c1 c2 pol l c) true) (holds c))))))))))
+; 
+(declare not_and (! c1 term (! c2 term (! p1 (holds (not c1)) (! r (^ (sc_not_and c1) c2) (holds c2))))))
+(declare not_and_rev (! c1 term (! c2 term (! p1 (holds (not c1)) (! r (^ (sc_not_and_rev c1) c2) (holds c2))))))
+; Resolution and reordering
+(declare resolution (! c1 term (! c2 term (! c term (! p1 (holds c1) (! p2 (holds c2) (! pol flag (! l term (! r (^ (sc_resolution c1 c2 pol l) c) (holds c))))))))))
+(declare reordering (! c1 term (! c2 term (! p1 (holds c1) (! r (^ (nary_is_subset c1 c2) tt) (holds c2))))))
