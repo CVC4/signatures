@@ -31,6 +31,11 @@ section
 @[pattern] def f_ite_num   : ℕ := b_ite_num + 1
 @[pattern] def eq_num      : ℕ := f_ite_num + 1
 @[pattern] def forall_num  : ℕ := eq_num + 1
+@[pattern] def bvBitOfNum : ℕ := forall_num + 1
+@[pattern] def bvEqNum : ℕ := bvBitOfNum + 1
+@[pattern] def bvNotNum : ℕ := bvEqNum + 1
+@[pattern] def bvAndNum : ℕ := bvNotNum + 1
+@[pattern] def bvOrNum : ℕ := bvAndNum + 1
 
 def bool_num  : ℕ := 0
 def int_num : ℕ := bool_num + 1
@@ -146,6 +151,13 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
   (arrow boolsort (arrow boolsort boolsort))
 @[pattern] def iff     : term → term → term := toBinary $ cstr iff_num
   (arrow boolsort (arrow boolsort boolsort))
+-- term definitions
+-- bv 0 doesn't exist
+-- check int is in range
+@[pattern] def bitOf : ℕ → term → term → term := λ n, toBinary $ cstr bvBitOfNum 
+  (arrow (bv n) (arrow intsort boolsort))
+@[pattern] def bvEq : ℕ → term → term → term := λ n, toBinary $ cstr bvEqNum 
+  (arrow (bv n) (arrow (bv n) (boolsort)))
 
 def nat_to_string : ℕ → string
 | bot_num := "⊥"
@@ -159,6 +171,11 @@ def nat_to_string : ℕ → string
 | f_ite_num := "f_ite"
 | eq_num := "≃"
 | forall_num := "∀"
+| bvBitOfNum := "[ ]"
+| bvEqNum := "≃bv"
+| bvNotNum := "¬bv"
+| bvAndNum := "∧bv"
+| bvOrNum := "∨bv"
 | x := repr x
 
 def term_to_string : term → string
@@ -170,6 +187,7 @@ def term_to_string : term → string
 | ((const xor_num _) • t1 • t2) := term_to_string t1 ++ " ⊕ " ++ term_to_string t2
 | ((const iff_num _) • t1 • t2) := term_to_string t1 ++ " ⇔ " ++ term_to_string t2
 | ((const eq_num _) • t1 • t2) := term_to_string t1 ++ " ≃ " ++ term_to_string t2
+| ((const bvBitOfNum _) • t1 • t2) := term_to_string t1 ++ "[" ++ term_to_string t2 ++ "]"
 | (const name _) := nat_to_string name
 | (app (const not_num _) t) := "¬ " ++ term_to_string t
 | (app f t) := "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
@@ -224,6 +242,7 @@ meta instance: has_repr (option term) := ⟨option_term_to_string⟩
 #eval sorted_term_to_string (qforall 1 bot)
 
 -- sort of terms
+set_option trace.eqn_compiler.elim_match true
 def sortof_aux : term → option sort
 | (val (value.bitvec l) _) := if ((list.length l) = 0) then 
                                 none 
@@ -237,7 +256,21 @@ def sortof_aux : term → option sort
 | (const implies_num _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const xor_num _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const iff_num _)  := (arrow boolsort (arrow boolsort boolsort))
+/-| (const bvBitOfNum s) := (match s with
+                          | arrow (bv n) (arrow intsort boolsort) := s
+                          | _ := none
+                          end)-/
+/-| (const bvEqNum _) := 
+| (const bvNotNum _) := 
+| (const bvAndNum _) := 
+| (const bvOrNum _) :=-/
 | (const _ s)      := s
+| (bitOf n t₁ t₂) := 
+  do s₁ ← sortof_aux t₁, s₂ ← sortof_aux t₂, 
+    if s₁ = (bv n) ∧ s₂ = intsort then 
+      arrow (bv n) (arrow intsort boolsort)
+    else none
+| (bvEq n t1 t2) := boolsort
 | (qforall p₁ t₁)  :=
   do s₁ ← sortof_aux t₁,
     if s₁ = boolsort then boolsort else none
