@@ -2,11 +2,11 @@ import aux
 
 namespace proof
 
-/- dep is the sort for terms that have dependent types such as 
-   equality and forall. We handle these in a special way to 
+/- dep is the sort for terms that have dependent types such as
+   equality and forall. We handle these in a special way to
    avoid dependent types.
-   Additionally, we have atomic sorts, parameterized by a 
-   nat, arrow or functional sorts, and bitvector sorts 
+   Additionally, we have atomic sorts, parameterized by a
+   nat, arrow or functional sorts, and bitvector sorts
    parameterized by their length -/
 @[derive decidable_eq]
 inductive sort : Type
@@ -15,9 +15,9 @@ inductive sort : Type
 | arrow : sort → sort → sort
 | bv : ℕ → sort
 
-/- Each predefined function is also parameterized by a 
-   nat, an application of terms is parametrized 
-   by all the nats involved in the application, 
+/- Each predefined function is also parameterized by a
+   nat, an application of terms is parametrized
+   by all the nats involved in the application,
    thus giving unique sets of nats to unique terms -/
 section
 @[pattern] def bot_num     : ℕ := 0
@@ -26,11 +26,15 @@ section
 @[pattern] def and_num     : ℕ := or_num + 1
 @[pattern] def implies_num : ℕ := and_num + 1
 @[pattern] def xor_num     : ℕ := implies_num + 1
-@[pattern] def iff_num     : ℕ := xor_num + 1
-@[pattern] def b_ite_num   : ℕ := iff_num + 1
+@[pattern] def b_ite_num   : ℕ := xor_num + 1
 @[pattern] def f_ite_num   : ℕ := b_ite_num + 1
 @[pattern] def eq_num      : ℕ := f_ite_num + 1
 @[pattern] def forall_num  : ℕ := eq_num + 1
+@[pattern] def bvBitOfNum : ℕ := forall_num + 1
+@[pattern] def bvEqNum : ℕ := bvBitOfNum + 1
+@[pattern] def bvNotNum : ℕ := bvEqNum + 1
+@[pattern] def bvAndNum : ℕ := bvNotNum + 1
+@[pattern] def bvOrNum : ℕ := bvAndNum + 1
 
 def bool_num  : ℕ := 0
 def int_num : ℕ := bool_num + 1
@@ -40,23 +44,23 @@ namespace sort
 
 def sort_to_string : sort → string
 | dep := "dep"
-| (atom n) := 
+| (atom n) :=
   match n with
   | 1 := "bool"
   | _ := repr n
   end
-| (arrow s1 s2) := 
+| (arrow s1 s2) :=
   "(" ++ (sort_to_string s1) ++ " → " ++ (sort_to_string s2) ++ ")"
 | (bv n) := "bv " ++ (repr n)
 
-def option_sort_to_string : option sort → string 
+def option_sort_to_string : option sort → string
 | (some x) := sort_to_string x
 | none := "none"
 
 meta instance: has_repr sort := ⟨sort_to_string⟩
 
 /- mkArrowN curries multi-argument types
-   f : X₁ × X₂ × ... into 
+   f : X₁ × X₂ × ... into
    f : X₁ → X₂ → ... -/
 def mkArrowN_aux : sort → list sort → sort
 | hd [] := hd
@@ -77,7 +81,7 @@ inductive value : Type
 | bitvec : list bool → value
 | integer : ℤ → value
 
-def bv_to_string : list bool → string 
+def bv_to_string : list bool → string
 | [] := ""
 | (h :: t) := (if h then "1" else "0") ++ bv_to_string t
 
@@ -88,10 +92,10 @@ def value_to_string : value → string
 
 meta instance: has_repr value := ⟨value_to_string⟩
 
-/- terms are values (nullary constants), 
+/- terms are values (nullary constants),
    constants of a sort, applications,
-   or quantified formulas 
-   Quantified variables are also 
+   or quantified formulas
+   Quantified variables are also
    parameterized by a nat -/
 @[derive decidable_eq]
 inductive term : Type
@@ -129,14 +133,14 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
 #check const 19 (some (bv 2))
 
 -- term definitions
-@[pattern] def b_ite : term → term → term → term := toTernary $ cstr b_ite_num 
+@[pattern] def b_ite : term → term → term → term := toTernary $ cstr b_ite_num
   (arrow boolsort (arrow boolsort (arrow boolsort boolsort)))
 @[pattern] def f_ite : term → term → term → term := toTernary $ cstr f_ite_num dep
 @[pattern] def not : term → term := toUnary $ cstr not_num (arrow boolsort boolsort)
 @[pattern] def bot : term := cstr bot_num boolsort
 @[pattern] def top : term := not bot
 @[pattern] def eq      : term → term → term := toBinary $ cstr eq_num dep
-@[pattern] def or      : term → term → term := toBinary $ cstr or_num 
+@[pattern] def or      : term → term → term := toBinary $ cstr or_num
   (arrow boolsort (arrow boolsort boolsort))
 @[pattern] def and     : term → term → term := toBinary $ cstr and_num
   (arrow boolsort (arrow boolsort boolsort))
@@ -144,8 +148,13 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
   (arrow boolsort (arrow boolsort boolsort))
 @[pattern] def xor     : term → term → term := toBinary $ cstr xor_num
   (arrow boolsort (arrow boolsort boolsort))
-@[pattern] def iff     : term → term → term := toBinary $ cstr iff_num
-  (arrow boolsort (arrow boolsort boolsort))
+-- term definitions
+-- bv 0 doesn't exist
+-- check int is in range
+@[pattern] def bitOf : ℕ → term → term → term := λ n, toBinary $ cstr bvBitOfNum
+  (arrow (bv n) (arrow intsort boolsort))
+@[pattern] def bvEq : ℕ → term → term → term := λ n, toBinary $ cstr bvEqNum
+  (arrow (bv n) (arrow (bv n) (boolsort)))
 
 def nat_to_string : ℕ → string
 | bot_num := "⊥"
@@ -154,11 +163,15 @@ def nat_to_string : ℕ → string
 | and_num := "∧"
 | implies_num := "⇒"
 | xor_num := "⊕"
-| iff_num := "⇔"
 | b_ite_num := "b_ite"
 | f_ite_num := "f_ite"
 | eq_num := "≃"
 | forall_num := "∀"
+| bvBitOfNum := "[ ]"
+| bvEqNum := "≃bv"
+| bvNotNum := "¬bv"
+| bvAndNum := "∧bv"
+| bvOrNum := "∨bv"
 | x := repr x
 
 def term_to_string : term → string
@@ -168,19 +181,12 @@ def term_to_string : term → string
 | ((const and_num _) • t1 • t2) := term_to_string t1 ++ " ∧ " ++ term_to_string t2
 | ((const implies_num _) • t1 • t2) := term_to_string t1 ++ " ⇒ " ++ term_to_string t2
 | ((const xor_num _) • t1 • t2) := term_to_string t1 ++ " ⊕ " ++ term_to_string t2
-| ((const iff_num _) • t1 • t2) := term_to_string t1 ++ " ⇔ " ++ term_to_string t2
 | ((const eq_num _) • t1 • t2) := term_to_string t1 ++ " ≃ " ++ term_to_string t2
+| ((const bvBitOfNum _) • t1 • t2) := term_to_string t1 ++ "[" ++ term_to_string t2 ++ "]"
 | (const name _) := nat_to_string name
 | (app (const not_num _) t) := "¬ " ++ term_to_string t
 | (app f t) := "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
 | (qforall p t) := "∀ " ++ repr p ++ " . " ++ term_to_string t
-
-/-
-def term_to_string : term → string
-| (const name _) := nat_to_string name
-| (app f t) := "(" ++ (term_to_string f) ++ " " ++ (term_to_string t) ++ ")"
-| (qforall p t) := nat_to_string p ++ " » " ++ term_to_string t
--/
 
 def sorted_term_to_string : term → string
 | (val (value.bitvec l) none) := (bv_to_string l) ++ ":none"
@@ -224,10 +230,11 @@ meta instance: has_repr (option term) := ⟨option_term_to_string⟩
 #eval sorted_term_to_string (qforall 1 bot)
 
 -- sort of terms
+set_option trace.eqn_compiler.elim_match true
 def sortof_aux : term → option sort
-| (val (value.bitvec l) _) := if ((list.length l) = 0) then 
-                                none 
-                              else 
+| (val (value.bitvec l) _) := if ((list.length l) = 0) then
+                                none
+                              else
                                 bv (list.length l)
 | (val (value.integer i) _) := intsort
 | (const bot_num _) := boolsort
@@ -236,8 +243,13 @@ def sortof_aux : term → option sort
 | (const and_num _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const implies_num _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const xor_num _)  := (arrow boolsort (arrow boolsort boolsort))
-| (const iff_num _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const _ s)      := s
+| (bitOf n t₁ t₂) :=
+  do s₁ ← sortof_aux t₁, s₂ ← sortof_aux t₂,
+    if s₁ = (bv n) ∧ s₂ = intsort then
+      arrow (bv n) (arrow intsort boolsort)
+    else none
+| (bvEq n t1 t2) := boolsort
 | (qforall p₁ t₁)  :=
   do s₁ ← sortof_aux t₁,
     if s₁ = boolsort then boolsort else none
@@ -255,7 +267,7 @@ def sortof_aux : term → option sort
     end
 /- bind : (m : option term) → (f : (term → option sort))
    unpacks the term from m and applies f to it.
-   Here, we have f first and expect sortof to take m as 
+   Here, we have f first and expect sortof to take m as
    the argument so we use flip to reverse the argument
    order -/
 def sortof : option term → option sort :=
@@ -263,7 +275,7 @@ def sortof : option term → option sort :=
 
 #eval sortof_aux (eq bot bot)
 #eval sortof (eq bot bot)
-/- Sorts can only be none for ill-formed 
+/- Sorts can only be none for ill-formed
    `forall`, `eq`, `f_ite` and `app` -/
 #eval sortof_aux (const 1 none)
 #eval sortof (const 1 none)
@@ -283,15 +295,15 @@ def mkApp_aux : term → term → option term :=
       | _ := none
       end
 
-/- bind : (x : m α) → (f : (α → m α)) 
-   unpacks the term from the monad x and applies 
-   f to it. bind2 and bind3 are versions of bind where 
-   f is binary and ternary respectively, with the 
+/- bind : (x : m α) → (f : (α → m α))
+   unpacks the term from the monad x and applies
+   f to it. bind2 and bind3 are versions of bind where
+   f is binary and ternary respectively, with the
    arguments reordered, as in sortof -/
-def bind2 {m : Type → Type} [has_bind m] {α β γ : Type} 
+def bind2 {m : Type → Type} [has_bind m] {α β γ : Type}
   (f : α → β → m γ) (a : m α) (b : m β) : m γ :=
     do a' ← a, b' ← b, f a' b'
-def bind3 {m : Type → Type} [has_bind m] {α β γ δ : Type} 
+def bind3 {m : Type → Type} [has_bind m] {α β γ δ : Type}
   (f : α → β → γ → m δ) (a : m α) (b : m β) (c : m γ) : m δ :=
     do a' ← a, b' ← b, c' ← c, f a' b' c'
 
@@ -317,7 +329,7 @@ def mkIte_aux (c t₀ t₁ : term) : option term :=
       end
   else none
 
-def mkIte : option term → option term → option term → option term := 
+def mkIte : option term → option term → option term → option term :=
   bind3 mkIte_aux
 
 #eval (mkIte (eq bot bot) bot top)
@@ -341,9 +353,9 @@ def mkNotSimp : option term → option term
 #eval mkNotSimp (mkNotSimp (mkNotSimp top))
 
 
-/- term constructors for binary and n-ary terms. `test` is the predicate on the sort of 
+/- term constructors for binary and n-ary terms. `test` is the predicate on the sort of
    the arguments that needs to be satisfied -/
-def constructBinaryTerm (constructor : term → term → term) (test : sort → sort → bool) : 
+def constructBinaryTerm (constructor : term → term → term) (test : sort → sort → bool) :
   option term → option term → option term :=
   bind2 $ λ t₁ t₂,
             do s₁ ← sortof t₁, s₂ ← sortof t₂,
@@ -390,21 +402,6 @@ def mkImplies : option term → option term → option term :=
 def mkXor : option term → option term → option term :=
   constructBinaryTerm xor (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
 
-def mkIff : option term → option term → option term :=
-  constructBinaryTerm iff (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
-def mkIffSimp : option term → option term → option term :=
-  constructBinaryTerm (λ t₁ t₂ : term,
-        match t₁ with
-        | bot := not t₂
-        | top := t₂
-        | _ := match t₂ with
-               | bot := not t₁
-               | top := t₁
-               | _ := iff t₁ t₂
-               end
-        end)
-    (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
-
 def mkDistinct : list (option term) → option term :=
   λ ol, mkAndN $ list.map (function.uncurry mkIneq) (genAllPairs ol)
 
@@ -422,8 +419,6 @@ def mkForall (p : ℕ) (obody : option term) : option term :=
 #eval mkAndN [const 20 boolsort, const 21 boolsort, const 23 boolsort]
 #eval mkImplies bot (const 20 boolsort)
 #eval mkXor top top
-#eval mkIff (mkAndN [top , top , bot]) (mkOr bot bot)
-#eval mkIffSimp bot bot
 
 -- retrieve the identifier of a constant
 def numOf : term → option ℕ
