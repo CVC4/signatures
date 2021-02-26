@@ -1,11 +1,103 @@
-(declare true_holds (holds true))
-(declare not_false_true (holds (= (not false) true)))
-(declare contra (! f term (! p1 (holds f) (! p2 (holds (not f)) (holds false)))))
-(declare eq_resolve (! f term (! g term (! p1 (holds f) (! p2 (holds (= f g)) (holds g))))))
-(declare not_not_elim (! f term (! p (holds (not (not f))) (holds f))))
-; 
-(declare not_and (! c1 term (! c2 term (! p1 (holds (not c1)) (! r (^ (sc_not_and c1) c2) (holds c2))))))
-(declare not_and_rev (! c1 term (! c2 term (! p1 (holds (not c1)) (! r (^ (sc_not_and_rev c1) c2) (holds c2))))))
+
+;- --- SAT layer
+
+
 ; Resolution and reordering
 (declare resolution (! c1 term (! c2 term (! c term (! p1 (holds c1) (! p2 (holds c2) (! pol flag (! l term (! r (^ (sc_resolution c1 c2 pol l) c) (holds c))))))))))
 (declare reordering (! c1 term (! c2 term (! p1 (holds c1) (! r (^ (nary_is_subset c1 c2) tt) (holds c2))))))
+
+
+; --- miscellaneous Boolean
+
+(declare split (! f term (holds (or f (or (not f) false)))))
+
+(declare eq_resolve (! f term (! g term (! p1 (holds f) (! p2 (holds (= f g)) (holds g))))))
+
+(declare modus_ponens (! f term (! g term (! p1 (holds f) (! p2 (holds (=> f g)) (holds g))))))
+
+(declare not_not_elim (! f term (! p (holds (not (not f))) (holds f))))
+
+(declare contra (! f term (! p1 (holds f) (! p2 (holds (not f)) (holds false)))))
+  
+; for AND_ELIM
+; End with left child, (and_elim1 _ _ (and_elim2* _ _))
+(declare and_elim1 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f1)))))
+(declare and_elim2 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f2)))))
+
+; for AND_INTRO
+; Start with null terminator, (and_intro2* _ _ (and_intro1 _))
+(declare and_intro1 (! f term (! p (holds f) (holds (and f true)))))
+(declare and_intro2 (! f1 term (! f2 term (! p1 (holds f1) (! p2 (holds f2) (holds (and f1 f2)))))))
+
+
+
+;  // ======== Not Or elimination
+;  // Children: (P:(not (or F1 ... Fn)))
+;  // Arguments: (i)
+;  // ---------------------
+;  // Conclusion: (not Fi)
+;  NOT_OR_ELIM,
+;  // ======== Implication elimination
+;  // Children: (P:(=> F1 F2))
+;  // Arguments: ()
+;  // ---------------------
+;  // Conclusion: (or (not F1) F2)
+;  IMPLIES_ELIM,
+;  // ======== Not Implication elimination version 1
+;  // Children: (P:(not (=> F1 F2)))
+;  // Arguments: ()
+;  // ---------------------
+;  // Conclusion: (F1)
+;  NOT_IMPLIES_ELIM1,
+;  // ======== Not Implication elimination version 2
+;  // Children: (P:(not (=> F1 F2)))
+;  // Arguments: ()
+;  // ---------------------
+;  // Conclusion: (not F2)
+;  NOT_IMPLIES_ELIM2,
+  
+; note that we require adding the null terminator to the end
+(declare equiv_elim1 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (holds (or (not f1) (or f2 false)))))))
+(declare equiv_elim2 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (holds (or f1 (or (not f2) false)))))))
+(declare not_equiv_elim1 (! f1 term (! f2 term (! p1 (holds (not (= f1 f2))) (holds (or f1 (or f2 false)))))))
+(declare not_equiv_elim2 (! f1 term (! f2 term (! p1 (holds (not (= f1 f2))) (holds (or (not f1) (or (not f2) false)))))))
+
+
+(declare xor_elim1 (! f1 term (! f2 term (! p1 (holds (xor f1 f2)) (holds (or f1 (or f2 false)))))))
+(declare xor_elim2 (! f1 term (! f2 term (! p1 (holds (xor f1 f2)) (holds (or (not f1) (or (not f2) false)))))))
+(declare not_xor_elim1 (! f1 term (! f2 term (! p1 (holds (not (xor f1 f2))) (holds (or f1 (or (not f2) false)))))))
+(declare not_xor_elim2 (! f1 term (! f2 term (! p1 (holds (not (xor f1 f2))) (holds (or (not f1) (or f2 false)))))))
+
+
+;  // ======== ITE elimination version 1
+;  // Children: (P:(ite C F1 F2))
+;  // Arguments: ()
+;  // ---------------------
+;  // Conclusion: (or (not C) F1)
+;  ITE_ELIM1,
+;  // ======== ITE elimination version 2
+;  // Children: (P:(ite C F1 F2))
+;  // Arguments: ()
+;  // ---------------------
+;  // Conclusion: (or C F2)
+;  ITE_ELIM2,
+;  // ======== Not ITE elimination version 1
+;  // Children: (P:(not (ite C F1 F2)))
+;  // Arguments: ()
+;  // ---------------------
+;  // Conclusion: (or (not C) (not F1))
+;  NOT_ITE_ELIM1,
+;  // ======== Not ITE elimination version 1
+;  // Children: (P:(not (ite C F1 F2)))
+;  // Arguments: ()
+;  // ---------------------
+;  // Conclusion: (or C (not F2))
+;  NOT_ITE_ELIM2,
+
+
+
+
+; DeMorgan rule
+(declare not_and (! c1 term (! c2 term (! p1 (holds (not c1)) (! r (^ (sc_not_and c1) c2) (holds c2))))))
+; needed for SCOPE
+(declare not_and_rev (! c1 term (! c2 term (! p1 (holds c1) (! r (^ (sc_not_and_rev c1) c2) (holds (not c2)))))))

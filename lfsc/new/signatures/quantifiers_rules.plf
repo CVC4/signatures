@@ -22,14 +22,22 @@
                      (! bodyi term
                      (! p (holds (forall v u body))
                      (! r (^ (substitute_and_type_check body v s u) bodyi)
-                     (holds bodyi)))))))))
+                       (holds bodyi)))))))))
 
 
-(declare skolemize_exists (! body term
+(declare skolemize (! body term
                      (! v mpz
                      (! s sort
                      (! bodyi term
                      (! p (holds (exists v s body))
                      (! r (^ (substitute_and_type_check body v (skolem (witness v s body)) s) bodyi)
-		     (holds bodyi))))))))
+                       (holds bodyi))))))))
 
+;(declare exists_intro (! body term
+;                      (! v mpz
+;                      (! u sort
+;                      (! s term
+;                      (! bodyi term
+;                      (! p (holds (forall v u body))
+;                      (! r (^ (substitute_and_type_check body v s u) bodyi)
+;                        (holds ((exists  )))))))))

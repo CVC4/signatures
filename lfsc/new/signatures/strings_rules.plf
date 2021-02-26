@@ -1,9 +1,9 @@
 ; f must be an equality
 (declare trust_eval (! f term (holds f)))
 
-(declare STRING_LENGTH_NON_EMPTY (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) int_zero))))))
+(declare string_length_non_empty (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) (int 0)))))))
 
-(declare CONCAT_EQ_rtl_simple (! s term (! t term (! x term (! p (holds (= (str.++ s x) (str.++ t x))) (holds (= s t)))))))
+(declare concat_eq_rtl_simple (! s term (! t term (! x term (! p (holds (= (str.++ s x) (str.++ t x))) (holds (= s t)))))))
 
 (program sc_concat_eq_ltr_simple ((s term) (t term)) term 
   (ifequal (str.head s) (str.head t) (apply (apply f_= (str.tail s)) (str.tail t)) (fail term))   

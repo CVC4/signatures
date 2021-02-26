@@ -79,7 +79,7 @@
 
 ; proof-let
 (declare plet (! f term (! g term (! p (holds g) (! u (! v (holds g) (holds f)) (holds f))))))
-;scope
-(declare scope (! f term (! g term (! u (! v (holds f) (holds g)) (holds (or (not f) g))))))
-;trust
+; scope, where note that this assumes f is in n-ary, null-terminated form
+(declare scope (! f term (! g term (! u (! v (holds g) (holds f)) (holds (or (not g) f))))))
+; trust
 (declare trust (! f term (holds f)))
