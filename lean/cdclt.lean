@@ -10,19 +10,15 @@ notation `clause` := list (option term)
 def mynth : clause → ℕ → option term := comp2 monad.join (@list.nth (option term))
 def get_last : clause → option term := λ c, mynth c (c.length - 1)
 
-#eval monad.join (some (some 1))
-#eval mynth [top, bot, const 20 boolsort, const 21 boolsort] 0
-#eval list.nth [top, bot, const 20 boolsort, const 21 boolsort] 0
-#eval get_last [top, bot, const 20 boolsort, const 21 boolsort]
-
 -- eventually should give Prop
 constant holds : clause → Type
 constant thHolds : option term → Type
+
+-- clause manipulation rules
 def concat_cl : clause → clause → clause := @list.append (option term)
 def remove_duplicates : clause → clause
 | [] := []
 | (h::t) := if h ∈ t then remove_duplicates t else h::(remove_duplicates t)
-#check holds [const 20 boolsort, const 21 boolsort]
 
 -- ground resolution rules
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
@@ -41,19 +37,6 @@ constant R1 : Π {c₁ c₂ : clause}
 
 constant factoring : Π {c : clause} (p : holds c),
   holds (remove_duplicates c)
-
-#check (λ (p₀ : holds [const 20 boolsort])
-          (p₁ : holds [mkNot (const 20 boolsort)]),
-         (R0 p₀ p₁ (const 20 boolsort) : holds []))
-#check (λ (p₀ : holds [const 20 boolsort])
-          (p₁ : holds [mkNot (const 20 boolsort)]),
-         (R0 p₀ p₁ (const 20 boolsort))
-  : holds [const 20 boolsort] → holds [mkNot (const 20 boolsort)] → holds [])
-def l1 := const 20 boolsort
-def l2 := const 21 boolsort
-constant c1 : holds [l1, l2]
-constant c2 : holds [mkNot l1, l2]
-#check R0 c1 c2 l1
 
 /-*************** Simplifications ***************-/
 
