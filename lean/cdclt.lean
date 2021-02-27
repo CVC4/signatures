@@ -20,7 +20,23 @@ def remove_duplicates : clause → clause
 | [] := []
 | (h::t) := if h ∈ t then remove_duplicates t else h::(remove_duplicates t)
 
--- ground resolution rules
+-- collect all terms in OR chain (right-associative)
+
+def reduceOrAux : term → clause
+| ((const or_num _) • t₀ • ((const or_num _) • t₁ • t₂))
+          := t₀::t₁::(reduceOrAux t₂)
+| ((const or_num _) • t₀ • t₁) := [t₀, t₁]
+| t                            := [t]
+
+def reduceOr : clause → clause :=
+ (flip bind) (λ ot,
+               match ot with
+               | (some t) := reduceOrAux t
+               | none := [none]
+               end
+             )
+
+-- clausal reasoning
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
   concat_cl (remove n c₁) (remove (mkNot n) c₂)
 
@@ -37,6 +53,15 @@ constant R1 : Π {c₁ c₂ : clause}
 
 constant factoring : Π {c : clause} (p : holds c),
   holds (remove_duplicates c)
+
+-- connecting theory reasoning and clausal reasoning
+
+constant clAssume : Π {t : option term}, thHolds t → holds [t]
+
+constant clOr : Π {t : option term} (p : thHolds t), holds (reduceOr [t])
+
+constant scope : Π {t₁ t₂ : option term}
+  (p₁ : thHolds t₁) (p₂ : thHolds t₂), thHolds (mkOr (mkNot t₁) t₂)
 
 /-*************** Simplifications ***************-/
 
@@ -85,30 +110,6 @@ def reduce_not_or (n : ℕ) : option term → option term :=
     end
 constant cnf_not_or : Π {t : option term} (p : holds [t]) (n : nat),
   holds [reduce_not_or n t]
-
--- collect all terms in OR / NOT AND chain (right-associative)
-
-def is_or : term → bool
-| (const or_num _) := tt
-| _ := ff
-
-def reduce_or_aux : term → clause
-| t@(c₁ • t₀ • (c₂ • t₁ • t₂)) :=
-    if is_or c₁ ∧ is_or c₂
-    then t₀::t₁::(reduce_or_aux t₂)
-    else [mkNot t]
-| t@(c₁ • t₀ • t₁)             :=
-    if is_or c₁ then [t₀, t₁] else [mkNot t]
-| _                            := [option.none]
-
-def reduce_or : clause → clause :=
- (flip bind) (λ ot,
-    match ot with
-    | (option.some t) := reduce_or_aux t
-    | option.none := [option.none]
-    end)
-
-constant cnf_or : Π {c : clause} (p : holds c), holds (reduce_or c)
 
 def is_and : term → bool
 | (const and_num _) := tt
