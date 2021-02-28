@@ -10,21 +10,33 @@ notation `clause` := list (option term)
 def mynth : clause → ℕ → option term := comp2 monad.join (@list.nth (option term))
 def get_last : clause → option term := λ c, mynth c (c.length - 1)
 
-#eval monad.join (some (some 1))
-#eval mynth [top, bot, const 20 boolsort, const 21 boolsort] 0
-#eval list.nth [top, bot, const 20 boolsort, const 21 boolsort] 0
-#eval get_last [top, bot, const 20 boolsort, const 21 boolsort]
-
 -- eventually should give Prop
 constant holds : clause → Type
 constant thHolds : option term → Type
+
+-- clause manipulation rules
 def concat_cl : clause → clause → clause := @list.append (option term)
 def remove_duplicates : clause → clause
 | [] := []
 | (h::t) := if h ∈ t then remove_duplicates t else h::(remove_duplicates t)
-#check holds [const 20 boolsort, const 21 boolsort]
 
--- ground resolution rules
+-- collect all terms in OR chain (right-associative)
+
+def reduceOrAux : term → clause
+| ((const or_num _) • t₀ • ((const or_num _) • t₁ • t₂))
+          := t₀::t₁::(reduceOrAux t₂)
+| ((const or_num _) • t₀ • t₁) := [t₀, t₁]
+| t                            := [t]
+
+def reduceOr : clause → clause :=
+ (flip bind) (λ ot,
+               match ot with
+               | (some t) := reduceOrAux t
+               | none := [none]
+               end
+             )
+
+-- clausal reasoning
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
   concat_cl (remove n c₁) (remove (mkNot n) c₂)
 
@@ -42,18 +54,14 @@ constant R1 : Π {c₁ c₂ : clause}
 constant factoring : Π {c : clause} (p : holds c),
   holds (remove_duplicates c)
 
-#check (λ (p₀ : holds [const 20 boolsort])
-          (p₁ : holds [mkNot (const 20 boolsort)]),
-         (R0 p₀ p₁ (const 20 boolsort) : holds []))
-#check (λ (p₀ : holds [const 20 boolsort])
-          (p₁ : holds [mkNot (const 20 boolsort)]),
-         (R0 p₀ p₁ (const 20 boolsort))
-  : holds [const 20 boolsort] → holds [mkNot (const 20 boolsort)] → holds [])
-def l1 := const 20 boolsort
-def l2 := const 21 boolsort
-constant c1 : holds [l1, l2]
-constant c2 : holds [mkNot l1, l2]
-#check R0 c1 c2 l1
+-- connecting theory reasoning and clausal reasoning
+
+constant clAssume : Π {t : option term}, thHolds t → holds [t]
+
+constant clOr : Π {t : option term} (p : thHolds t), holds (reduceOr [t])
+
+constant scope : Π {t₁ t₂ : option term}
+  (p₁ : thHolds t₁) (p₂ : thHolds t₂), thHolds (mkOr (mkNot t₁) t₂)
 
 /-*************** Simplifications ***************-/
 
@@ -102,30 +110,6 @@ def reduce_not_or (n : ℕ) : option term → option term :=
     end
 constant cnf_not_or : Π {t : option term} (p : holds [t]) (n : nat),
   holds [reduce_not_or n t]
-
--- collect all terms in OR / NOT AND chain (right-associative)
-
-def is_or : term → bool
-| (const or_num _) := tt
-| _ := ff
-
-def reduce_or_aux : term → clause
-| t@(c₁ • t₀ • (c₂ • t₁ • t₂)) :=
-    if is_or c₁ ∧ is_or c₂
-    then t₀::t₁::(reduce_or_aux t₂)
-    else [mkNot t]
-| t@(c₁ • t₀ • t₁)             :=
-    if is_or c₁ then [t₀, t₁] else [mkNot t]
-| _                            := [option.none]
-
-def reduce_or : clause → clause :=
- (flip bind) (λ ot,
-    match ot with
-    | (option.some t) := reduce_or_aux t
-    | option.none := [option.none]
-    end)
-
-constant cnf_or : Π {c : clause} (p : holds c), holds (reduce_or c)
 
 def is_and : term → bool
 | (const and_num _) := tt
