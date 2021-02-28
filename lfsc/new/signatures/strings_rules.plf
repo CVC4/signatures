@@ -1,5 +1,6 @@
-; f must be an equality
-(declare trust_eval (! f term (holds f)))
+
+
+
 
 (declare string_length_non_empty (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) (int 0)))))))
 
@@ -16,5 +17,9 @@
                               (! r (^ (sc_concat_eq_ltr_simple s t) res) 
                                 (holds res))))))) 
 
-                                
+; -------------------------------------
+
+
+(declare string_length_pos (! t term (holds (or (and (= (str.len t) (int 0)) (and (= t emptystr) true)) (or (int.> (str.len t) (int 0)) false)))))
+
 (declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) (holds (str.in_re x (re.inter s t)))))))))

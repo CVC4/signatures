@@ -1,38 +1,23 @@
 
 
 
-;  //================================================= CNF rules
-;  // ======== CNF And Pos
-;  // Children: ()
-;  // Arguments: ((and f1 ... Fn), i)
-;  // ---------------------
-;  // Conclusion: (or (not (and f1 ... Fn)) Fi)
-;  CNF_AND_POS,
+
 ;  // ======== CNF And Neg
 ;  // Children: ()
 ;  // Arguments: ((and f1 ... Fn))
 ;  // ---------------------
 ;  // Conclusion: (or (and f1 ... Fn) (not f1) ... (not Fn))
 ;  CNF_AND_NEG,
-;  // ======== CNF Or Pos
-;  // Children: ()
-;  // Arguments: ((or f1 ... Fn))
-;  // ---------------------
-;  // Conclusion: (or (not (or f1 ... Fn)) f1 ... Fn)
-;  CNF_OR_POS,
-;  // ======== CNF Or Neg
-;  // Children: ()
-;  // Arguments: ((or f1 ... Fn), i)
-;  // ---------------------
-;  // Conclusion: (or (or f1 ... Fn) (not Fi))
-;  CNF_OR_NEG,
 
 ; Note that all rules below add the null terminator "false" to the conclusion of or
+
+(declare cnf_and_pos (! f1 term (! f2 term (! n mpz (! r (^ (nary_extract f_and f1 n) f2) (holds (or (not f1) (or f2 false))))))))
+(declare cnf_or_pos (! f term (holds (or (not f) (or f false)))))
+(declare cnf_or_neg (! f1 term (! f2 term (! n mpz (! r (^ (nary_extract f_or f1 n) f2) (holds (or f1 (or (not f2) false))))))))
 
 (declare cnf_implies_pos (! f1 term (! f2 term (holds (or (not (=> f1 f2)) (or (not f1) (or f2 false)))))))
 (declare cnf_implies_neg1 (! f1 term (! f2 term (holds (or (=> f1 f2) (or f1 false))))))
 (declare cnf_implies_neg2 (! f1 term (! f2 term (holds (or (=> f1 f2) (or (not f2) false))))))
-
 
 (declare cnf_equiv_pos1 (! f1 term (! f2 term (holds (or (not (= f1 f2)) (or (not f1) (or f2 false)))))))
 (declare cnf_equiv_pos2 (! f1 term (! f2 term (holds (or (not (= f1 f2)) (or f1 (or (not f2) false)))))))

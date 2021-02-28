@@ -64,11 +64,13 @@
     (re.all RegLan)
     (f_re.* (arrow RegLan RegLan))
     (f_re.comp (arrow RegLan RegLan))
+    (f_re.range (arrow String (arrow String RegLan)))
     (f_re.++ (arrow RegLan (arrow RegLan RegLan)))
     (f_str.to_re (arrow String RegLan))
-    (f_str.in_re (arrow String (arrow RegLan Bool)))
     (f_re.inter (arrow RegLan (arrow RegLan RegLan)))
     (f_re.union (arrow RegLan (arrow RegLan RegLan)))
+    ((f_re.loop n1 n2) (arrow RegLan RegLan))
+    (f_str.in_re (arrow String (arrow RegLan Bool)))
     
     ; ...
     ; fail: unknown term
