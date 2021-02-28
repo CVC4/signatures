@@ -75,7 +75,6 @@ do sort_list ← monad.sequence l,
 
 end sort
 
-
 @[derive decidable_eq]
 inductive value : Type
 | bitvec : list bool → value

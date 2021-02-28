@@ -8,7 +8,7 @@ open rules
 
 open eufRules
 
-def U := atom 0
+def U := atom 50
 def a₁ := const 100 U
 def a₂ := const 101 U
 def a₃ := const 102 U
