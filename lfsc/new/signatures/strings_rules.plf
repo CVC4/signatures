@@ -20,6 +20,13 @@
 ; -------------------------------------
 
 
-(declare string_length_pos (! t term (holds (or (and (= (str.len t) (int 0)) (and (= t emptystr) true)) (or (int.> (str.len t) (int 0)) false)))))
+(declare string_length_pos (! t term 
+  (holds (or (and (= (str.len t) (int 0)) (and (= t emptystr) true)) (or (int.> (str.len t) (int 0)) false)))))
 
-(declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) (holds (str.in_re x (re.inter s t)))))))))
+(declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) 
+  (holds (str.in_re x (re.inter s t)))))))))
+
+(declare string_reduction (! r term (! n mpz (! s sort (! t term (! u (^ (sc_string_reduction t (skolem (witness n s (= (bvar n s) t)))) r) 
+  (holds (and r (and (= t (skolem (witness n s (= (bvar n s) t)))) true)))))))))
+
+(declare re_unfold_pos (! t term (! r term (! s term (! f (holds (str.in_re t r)) (! u (^ (sc_re_unfold_pos t r) s) (holds s)))))))
