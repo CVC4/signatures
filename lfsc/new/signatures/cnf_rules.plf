@@ -1,19 +1,11 @@
+; depends: boolean_programs.plf nary_programs.plf
 
+; Note that most rules below add the null terminator "false" to the conclusion of an introduced or
 
-
-
-;  // ======== CNF And Neg
-;  // Children: ()
-;  // Arguments: ((and f1 ... Fn))
-;  // ---------------------
-;  // Conclusion: (or (and f1 ... Fn) (not f1) ... (not Fn))
-;  CNF_AND_NEG,
-
-; Note that all rules below add the null terminator "false" to the conclusion of or
-
-(declare cnf_and_pos (! f1 term (! f2 term (! n mpz (! r (^ (nary_extract f_and f1 n) f2) (holds (or (not f1) (or f2 false))))))))
-(declare cnf_or_pos (! f term (holds (or (not f) (or f false)))))
-(declare cnf_or_neg (! f1 term (! f2 term (! n mpz (! r (^ (nary_extract f_or f1 n) f2) (holds (or f1 (or (not f2) false))))))))
+(declare cnf_and_pos (! f1 term (! f2 term (! n mpz (! r (^ (nary_extract f_and f2 n) f1) (holds (or (not f2) (or f1 false))))))))
+(declare cnf_and_neg (! f1 term (! f2 term (! r (^ (sc_not_and_rec f2) f1) (holds (or f2 f1)))))) ; not null terminated since f1 is null terminated
+(declare cnf_or_pos (! f term (holds (or (not f) f)))) ; not null terminated since f is null terminated
+(declare cnf_or_neg (! f1 term (! f2 term (! n mpz (! r (^ (nary_extract f_or f2 n) f1) (holds (or f2 (or (not f1) false))))))))
 
 (declare cnf_implies_pos (! f1 term (! f2 term (holds (or (not (=> f1 f2)) (or (not f1) (or f2 false)))))))
 (declare cnf_implies_neg1 (! f1 term (! f2 term (holds (or (=> f1 f2) (or f1 false))))))

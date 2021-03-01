@@ -23,22 +23,8 @@
                   sreturn 
                   ; fail: function applied to terms of different sorts
                   (fail sort)))))))
-    
-    ; [4] quantifiers are indexed by their universal variable
-    ((f_forall n s) (arrow Bool Bool))
-    ((f_exists n s) (arrow Bool Bool))
-    ((f_witness n s) (arrow Bool s))
 
-    ; [5] all non-parametric interpreted function symbols
-    ; Arithmetic
-    ((int n) Int)
-    (f_int.+ (arrow Int (arrow Int Int)))
-    (f_int.- (arrow Int (arrow Int Int)))
-    (f_int.* (arrow Int (arrow Int Int)))
-    (f_int.< (arrow Int (arrow Int Bool)))
-    (f_int.<= (arrow Int (arrow Int Bool)))
-    (f_int.> (arrow Int (arrow Int Bool)))
-    (f_int.>= (arrow Int (arrow Int Bool)))
+    ; [4] all non-parametric interpreted function symbols
     ; Booleans
     (true Bool)
     (false Bool)
@@ -48,6 +34,20 @@
     (f_=> (arrow Bool (arrow Bool Bool)))
     (f_xor (arrow Bool (arrow Bool Bool)))
     (f_not (arrow Bool Bool))
+    ; Quantifiers
+    ((f_forall n s) (arrow Bool Bool))
+    ((f_exists n s) (arrow Bool Bool))
+    ((f_witness n s) (arrow Bool s))
+    ((skolem t1) (type_check t1))
+    ; Arithmetic
+    ((int n) Int)
+    (f_int.+ (arrow Int (arrow Int Int)))
+    (f_int.- (arrow Int (arrow Int Int)))
+    (f_int.* (arrow Int (arrow Int Int)))
+    (f_int.< (arrow Int (arrow Int Bool)))
+    (f_int.<= (arrow Int (arrow Int Bool)))
+    (f_int.> (arrow Int (arrow Int Bool)))
+    (f_int.>= (arrow Int (arrow Int Bool)))
     ; Strings
     (emptystr String)
     ((char n) String)

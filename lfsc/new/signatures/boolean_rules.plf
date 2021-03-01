@@ -4,6 +4,7 @@
 ; Resolution and reordering
 (declare resolution (! c1 term (! c2 term (! c term (! p1 (holds c1) (! p2 (holds c2) (! pol flag (! l term (! r (^ (sc_resolution c1 c2 pol l) c) (holds c))))))))))
 (declare reordering (! c1 term (! c2 term (! p1 (holds c1) (! r (^ (nary_is_subset f_or c1 c2) tt) (holds c2))))))
+(declare factoring (! c1 term (! c2 term (! p1 (holds c1) (! r (^ (nary_drop_dups f_or c1 false) c2) (holds c2))))))
 
 ; --- miscellaneous Boolean
 
@@ -34,27 +35,23 @@
 (declare not_implies_elim1 (! f1 term (! f2 term (! p1 (holds (not (=> f1 f2))) (holds f1)))))
 (declare not_implies_elim2 (! f1 term (! f2 term (! p1 (holds (not (=> f1 f2))) (holds (not f2))))))
 
-  
 ; note that we require adding the null terminator to the end
 (declare equiv_elim1 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (holds (or (not f1) (or f2 false)))))))
 (declare equiv_elim2 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (holds (or f1 (or (not f2) false)))))))
 (declare not_equiv_elim1 (! f1 term (! f2 term (! p1 (holds (not (= f1 f2))) (holds (or f1 (or f2 false)))))))
 (declare not_equiv_elim2 (! f1 term (! f2 term (! p1 (holds (not (= f1 f2))) (holds (or (not f1) (or (not f2) false)))))))
 
-
 (declare xor_elim1 (! f1 term (! f2 term (! p1 (holds (xor f1 f2)) (holds (or f1 (or f2 false)))))))
 (declare xor_elim2 (! f1 term (! f2 term (! p1 (holds (xor f1 f2)) (holds (or (not f1) (or (not f2) false)))))))
 (declare not_xor_elim1 (! f1 term (! f2 term (! p1 (holds (not (xor f1 f2))) (holds (or f1 (or (not f2) false)))))))
 (declare not_xor_elim2 (! f1 term (! f2 term (! p1 (holds (not (xor f1 f2))) (holds (or (not f1) (or f2 false)))))))
-
 
 (declare ite_elim1 (! c term (! f1 term (! f2 term (! p1 (holds ((ite Bool) c f1 f2)) (holds (or (not c) (or f1 false))))))))
 (declare ite_elim2 (! c term (! f1 term (! f2 term (! p1 (holds ((ite Bool) c f1 f2)) (holds (or c (or f2 false))))))))
 (declare not_ite_elim1 (! c term (! f1 term (! f2 term (! p1 (holds (not ((ite Bool) c f1 f2))) (holds (or (not c) (or (not f1) false))))))))
 (declare not_ite_elim2 (! c term (! f1 term (! f2 term (! p1 (holds (not ((ite Bool) c f1 f2))) (holds (or c (or (not f2) false))))))))
 
-
 ; DeMorgan rule
 (declare not_and (! c1 term (! c2 term (! p1 (holds (not c1)) (! r (^ (sc_not_and c1) c2) (holds c2))))))
-; needed for SCOPE
+; inverse, needed for SCOPE
 (declare not_and_rev (! c1 term (! c2 term (! p1 (holds c1) (! r (^ (sc_not_and_rev c1) c2) (holds (not c2)))))))

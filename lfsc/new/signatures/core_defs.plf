@@ -71,7 +71,7 @@
 (declare f_witness (! v mpz (! s sort term)))
 (define witness (# v mpz (# s sort (# t term (apply (f_witness v s) t)))))
 
-; w must be a witness (verify in typechecking or whatever)
+; w must be a witness
 (declare skolem (! w term term))
 
 ;;;; To write (forall ((x Int)) (P x)):

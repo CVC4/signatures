@@ -59,3 +59,17 @@
         (nary_extract f t2 (mp_add n (mp_neg 1)))
       )))
 )
+
+(program nary_drop_dups_rec ((f term) (t term)) term
+  (match t
+    ((apply t1 t2)
+      (match t1
+        ((apply f t12) 
+          (let t2d (nary_drop_dups_rec f t2) 
+            (ifequal (nary_ctn f t2d t12) tt t2d (apply t1 t2d))))))
+    (default t))
+)
+
+(program nary_drop_dups ((f term) (t term) (null term)) term
+  (nary_singleton_elim f (nary_drop_dups_rec f t) null)
+)
