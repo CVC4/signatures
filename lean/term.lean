@@ -47,7 +47,8 @@ def sort_to_string : sort → string
 | dep := "dep"
 | (atom n) := 
   match n with
-  | 1 := "bool"
+  | 0 := "bool"
+  | 1 := "int"
   | _ := repr n
   end
 | (arrow s1 s2) := 
@@ -268,9 +269,13 @@ def sortof_aux : term → option sort
 | (bitOf n t₁ t₂) := 
   do s₁ ← sortof_aux t₁, s₂ ← sortof_aux t₂, 
     if s₁ = (bv n) ∧ s₂ = intsort then 
-      arrow (bv n) (arrow intsort boolsort)
+      boolsort
     else none
-| (bvEq n t1 t2) := boolsort
+| (bvEq n t₁ t₂) := 
+  do s₁ ← sortof_aux t₁, s₂ ← sortof_aux t₂,
+    if s₁ = (bv n) ∧ s₂ = (bv n) then
+      boolsort
+    else none
 | (qforall p₁ t₁)  :=
   do s₁ ← sortof_aux t₁,
     if s₁ = boolsort then boolsort else none

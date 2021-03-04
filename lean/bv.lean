@@ -27,8 +27,6 @@ namespace term
 
 /- mkBitOf bv n, returns the nth element
    of bv if it exists; none otherwise -/
--- We don't use this yet, but it should 
--- prove useful
 def mkBitOf : option term → option term → option term :=
 λ ot₁ ot₂, do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,  
 match (s₁, s₂) with
@@ -115,8 +113,12 @@ def bblastBvEq : option term → option term → option term :=
   (val (value.bitvec [true, true, true, true]) (bv 4))
 #eval bblastBvEq (const 21 (bv 4)) 
   (val (value.bitvec [false, false, false, false]) (bv 4))
+
 #eval (bitOfN (val (value.bitvec [false, false, false, false]) (bv 4)) 4)
+#eval (bitOfN (const 21 (bv 4)) 4)
 #eval sortof (bitOf 4 (const 21 (bv 4)) (val (value.integer 0) intsort))
+#eval sortof (bitOf 4 (val (value.bitvec [false, false, false, false]) (bv 4))
+             (val (value.integer 0) intsort))
 #eval zip (bitOfN (const 21 (bv 4)) 4)
           (bitOfN (val (value.bitvec [false, false, false, false]) (bv 4)) 4)
           mkEq
