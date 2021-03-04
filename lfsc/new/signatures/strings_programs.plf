@@ -19,11 +19,12 @@
 
     
     
-(program sc_string_reduction ((t term) (k term)) term
+(program sc_string_reduction ((t term)) term
   (match t 
     ((apply t1 t2)
       (match t1
         ((apply t11 t12)
+          (let k (skolem t)
           (match t11
             ((apply f_str.substr t112)
               ;    // processing term:  substr( s, n, m )
@@ -34,24 +35,24 @@
               ;    //       len( k ) <= m
               ;    // ELSE: k = ""
               (let npm (apply (apply f_int.+ t12) (apply (apply f_int.+ t2) (int 0)))
-              (let k1 (skolem (apply (apply (apply f_str.substr t112) (int 0)) t12)) ; TODO
-              (let k2 (skolem (apply (apply (apply f_str.substr t112) npm) (apply (apply f_int.- (apply f_str.len t112)) npm))) ; TODO
+              (let k1 (skolem (apply (apply (apply f_str.substr t112) (int 0)) t12))
+              (let k2 (skolem (apply (apply (apply f_str.substr t112) npm) (apply (apply f_int.- (str.len t112)) npm)))
               (apply (apply (apply (f_ite Bool) 
                 ; condition
                 (apply (apply f_and (apply (apply f_int.>= t12) (int 0)))
-                  (apply (apply f_and (apply (apply f_int.< t12) (apply f_str.len t112)))
+                  (apply (apply f_and (apply (apply f_int.> (str.len t112)) t12))
                     (apply (apply f_and (apply (apply f_int.> t2) (int 0)))
                       true))))
                 ; if branch
                 (apply (apply f_and (apply (apply f_= t112) (apply (apply f_str.++ k1) (apply (apply f_str.++ k) (apply (apply f_str.++ k2) emptystr)))))
-                  (apply (apply f_and (apply (apply f_= (apply f_str.len k1)) t12))
-                    (apply (apply f_and (apply (apply f_or (apply (apply f_= (apply f_str.len k2)) (apply (apply f_int.- (apply f_str.len t112)) (apply (apply f_int.+ t12) (apply (apply f_int.+ t2) (int 0))))))
-                           (apply (apply f_or (apply (apply f_= (apply f_str.len k2)) (int 0)))
+                  (apply (apply f_and (apply (apply f_= (str.len k1)) t12))
+                    (apply (apply f_and (apply (apply f_or (apply (apply f_= (str.len k2)) (apply (apply f_int.- (str.len t112)) (apply (apply f_int.+ t12) (apply (apply f_int.+ t2) (int 0))))))
+                           (apply (apply f_or (apply (apply f_= (str.len k2)) (int 0)))
                              false)))
-                      (apply (apply f_and (apply (apply f_int.<= (apply f_str.len k)) t2))
+                      (apply (apply f_and (apply (apply f_int.<= (str.len k)) t2))
                         true)))))
                 ; else branch
-                (apply (apply f_= k) emptystr))
+                (= k emptystr))
                 ))))
             (f_str.contains true)  ; TODO
             ((apply f_str.indexof t112) true)
@@ -68,7 +69,7 @@
             ; str.toupper
             ; str.rev
             ; str.leq
-  )))))
+  ))))))
 )
 
 (program sc_re_unfold_pos ((t term) (r term)) term

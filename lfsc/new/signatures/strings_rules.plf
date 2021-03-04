@@ -26,7 +26,7 @@
 (declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) 
   (holds (str.in_re x (re.inter s t)))))))))
 
-(declare string_reduction (! r term (! n mpz (! s sort (! t term (! u (^ (sc_string_reduction t (skolem (witness n s (= (bvar n s) t)))) r) 
-  (holds (and r (and (= t (skolem (witness n s (= (bvar n s) t)))) true)))))))))
+(declare string_reduction (! r term (! t term (! u (^ (sc_string_reduction t) r)
+  (holds (and r (and (= t (skolem t)) true)))))))))
 
 (declare re_unfold_pos (! t term (! r term (! s term (! f (holds (str.in_re t r)) (! u (^ (sc_re_unfold_pos t r) s) (holds s)))))))
