@@ -1,85 +1,40 @@
+; depends: nary_programs.plf
 
-; remove the first occurrence of l from t, where t is an n-ary, null-terminated chain
-(program nary_rm_first ((t term) (l term)) term
-  (match t
-    ((apply t1 t2)
-      (match t1
-        ((apply t11 t12) (ifequal t12 l t2 (apply t1 (nary_rm_first t2 l))))))   ; otherwise not in n-ary form
-    (default (fail term)))        ; at end, l not found
-)
-
-; also checks t == l, return nt if so, where nt is a null terminator
-(program nary_rm_first_or_self ((t term) (l term) (nt term)) term
-  (ifequal t l nt (nary_rm_first t l))
-)
-
-; does t contain l? where t is an n-ary, null-terminated chain
-(program nary_ctn ((t term) (l term)) flag
-  (match t
-    ((apply t1 t2)
-      (match t1
-        ((apply t11 t12) (ifequal t12 l tt (nary_ctn t2 l)))))   ; otherwise not in n-ary form
-    (default ff))
-)
-
-; also checks t == l
-(program nary_ctn_or_self ((t term) (l term)) flag
-  (ifequal t l tt (nary_ctn t l))
-)
-
-; returns true if n-ary null-terminated chain t is a subset of s, interpreted as sets
-(program nary_is_subset ((t term) (s term)) flag
-  (match t
-    ((apply t1 t2) 
-      (match t1
-        ((apply t11 t12) (ifequal (nary_ctn_or_self s t12) tt (nary_is_subset t2 s) ff)))) ; otherwise not in n-ary form
-    (default tt))
-)
-  
-
-(program nary_concat ((t1 term) (t2 term)) term
-  (match t1
-    ((apply t11 t12) (apply t11 (nary_concat t12 t2)))
-    (default t2))    ; any non-application term is interpreted as the end marker
-)
-
-; replaces e.g. (or P false) with P
-(program nary_check_singleton ((t term) (nt term)) term
-  (match t
-    ((apply t1 t2) 
-      (ifequal t2 nt  ; if null terminated at this level
-        (match t1 ((apply t11 t12) t12)) ; otherwise not in n-ary form
-        t))
-    (default t))
-)
- 
- 
 ; currently trusts that c1 and c2 are OR chains, although this is not checked
 (program sc_resolution ((c1 term) (c2 term) (pol flag) (l term)) term
-  (nary_check_singleton
-    (nary_concat 
-      (nary_rm_first_or_self c1 (ifequal pol tt l (apply f_not l)) false) 
-      (nary_rm_first_or_self c2 (ifequal pol tt (apply f_not l) l) false)) 
+  (nary_singleton_elim f_or
+    (nary_concat f_or
+      (nary_rm_first_or_self f_or c1 (ifequal pol tt l (apply f_not l)) false) 
+      (nary_rm_first_or_self f_or c2 (ifequal pol tt (apply f_not l) l) false)) 
     false)
 )
  
  
 ; (and F1 ... Fn) -> (or (not F1) ... (not Fn))
-(program sc_not_and ((t term)) term
+(program sc_not_and_rec ((t term)) term
   (match t
     ((apply t1 t2)
       (match t1
-        ((apply f_and t12) (apply (apply f_or (apply f_not t12)) (sc_not_and t2)))))   ; otherwise not in n-ary form
+        ((apply f_and t12) (apply (apply f_or (apply f_not t12)) (sc_not_and_rec t2)))))   ; otherwise not in n-ary form
     (true false))    ; note we must flip true to false
 )
 
+(program sc_not_and ((t term)) term
+  (nary_singleton_elim f_or (sc_not_and_rec t) false)
+)
+
 ; (or (not F1) ... (not Fn)) -> (and F1 ... Fn)
-(program sc_not_and_rev ((t term)) term
+(program sc_not_and_rev_rec ((t term)) term
   (match t
     ((apply t1 t2)
       (match t1
         ((apply f_or t12) 
           (match t12 
-            ((apply f_not t122) (apply (apply f_and t122) (sc_not_and_rev t2)))))))   ; otherwise not in n-ary form
+            ((apply f_not t122) (apply (apply f_and t122) (sc_not_and_rev_rec t2)))))))   ; otherwise not in n-ary form
     (false true))    ; note we must flip true to false
+)
+
+
+(program sc_not_and_rev ((t term)) term
+  (nary_singleton_elim f_and (sc_not_and_rev_rec t) true)
 )

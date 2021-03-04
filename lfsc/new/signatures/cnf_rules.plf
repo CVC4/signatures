@@ -1,34 +1,29 @@
+; depends: boolean_programs.plf nary_programs.plf
 
+; Note that most rules below add the null terminator "false" to the conclusion of an introduced or
 
-;  FIXME
-;(declare or_pos ???)
-(declare or_neg_1 (! f1 term (! f2 term (! p (holds (not (or f1 f2))) (holds (not f1))))))
-(declare or_neg_2 (! f1 term (! f2 term (! p (holds (not (or f1 f2))) (holds (not f2))))))
-(declare implies_pos (! f1 term (! f2 term (! p1 (holds (=> f1 f2)) (!p2 (holds f1) (holds f2))))))
-(declare implies_neg_1 (! f1 term (! f2 term (! p (holds (not (=> f1 f2))) (holds f1)))))
-(declare implies_neg_2 (! f1 term (! f2 term (! p (holds (not (=> f1 f2))) (holds (not f2))))))
-(declare equiv_pos_1 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (! p2 (holds f1) (holds f2))))))
-(declare equiv_pos_2 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (! p2 (holds f2) (holds f1))))))
-(declare equiv_neg_1 (! f1 term (! f2 term (! p (holds (not (= f1 f2))) (holds (or f1 f2))))))
-(declare equiv_neg_2 (! f1 term (! f2 term (! p (holds (not (= f1 f2))) (holds (or (not f1) (not f2)))))))
-(declare xor_pos_1 (! f1 term (! f2 term (! p (holds (xor f1 f2)) (holds (or f1 f2))))))
-(declare xor_pos_2 (! f1 term (! f2 term (! p (holds (not (xor f1 f2))) (holds (or (not f1) (not f2)))))))
-(declare xor_neg_1 (! f1 term (! f2 term (! p1 (holds (xor f1 f2)) (! p2 (holds f1) (holds f2))))))
-(declare xor_neg_2 (! f1 term (! f2 term (! p1 (holds (xor f1 f2)) (! p2 (holds f2) (holds f1))))))
-(declare ite_pos_1 (! c term (! f1 term (! f2 term (! p1 (holds (ite Bool c f1 f2)) (! p2 (holds c) (holds f1)))))))
-(declare ite_pos_2 (! c term (! f1 term (! f2 term (! p1 (holds (ite Bool c f1 f2)) (! p2 (holds (not c)) (holds f2)))))))
-(declare ite_pos_3 (! c term (! f1 term (! f2 term (! p1 (holds (ite Bool c f1 f2)) (! p2 (holds (not f1)) (holds f2)))))))
-(declare ite_neg_1 (! c term (! f1 term (! f2 term (! p1 (holds (not (ite Bool c f1 f2))) (! p2 (holds c) (holds (not f1))))))))
-(declare ite_neg_2 (! c term (! f1 term (! f2 term (! p1 (holds (not (ite Bool c f1 f2))) (! p2 (holds (not c)) (holds (not f2))))))))
-;(declare ite_neg_3 ???)
+(declare cnf_and_pos (! f1 term (! f2 term (! n mpz (! r (^ (nary_extract f_and f2 n) f1) (holds (or (not f2) (or f1 false))))))))
+(declare cnf_and_neg (! f1 term (! f2 term (! r (^ (sc_not_and_rec f2) f1) (holds (or f2 f1)))))) ; not null terminated since f1 is null terminated
+(declare cnf_or_pos (! f term (holds (or (not f) f)))) ; not null terminated since f is null terminated
+(declare cnf_or_neg (! f1 term (! f2 term (! n mpz (! r (^ (nary_extract f_or f2 n) f1) (holds (or f2 (or (not f1) false))))))))
 
+(declare cnf_implies_pos (! f1 term (! f2 term (holds (or (not (=> f1 f2)) (or (not f1) (or f2 false)))))))
+(declare cnf_implies_neg1 (! f1 term (! f2 term (holds (or (=> f1 f2) (or f1 false))))))
+(declare cnf_implies_neg2 (! f1 term (! f2 term (holds (or (=> f1 f2) (or (not f2) false))))))
 
-; -------------------------
+(declare cnf_equiv_pos1 (! f1 term (! f2 term (holds (or (not (= f1 f2)) (or (not f1) (or f2 false)))))))
+(declare cnf_equiv_pos2 (! f1 term (! f2 term (holds (or (not (= f1 f2)) (or f1 (or (not f2) false)))))))
+(declare cnf_equiv_neg1 (! f1 term (! f2 term (holds (or (= f1 f2) (or f1 (or f2 false)))))))
+(declare cnf_equiv_neg2 (! f1 term (! f2 term (holds (or (= f1 f2) (or (not f1) (or (not f2) false)))))))
 
+(declare cnf_xor_pos1 (! f1 term (! f2 term (holds (or (not (xor f1 f2)) (or f1 (or f2 false)))))))
+(declare cnf_xor_pos2 (! f1 term (! f2 term (holds (or (not (xor f1 f2)) (or (not f1) (or (not f2) false)))))))
+(declare cnf_xor_neg1 (! f1 term (! f2 term (holds (or (xor f1 f2) (or (not f1) (or f2 false)))))))
+(declare cnf_xor_neg2 (! f1 term (! f2 term (holds (or (xor f1 f2) (or f1 (or (not f2) false)))))))
 
-(declare and_elim1 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f1)))))
-(declare and_elim2 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f2)))))
-
-; note that we require adding the null terminator to the end
-(declare equiv_elim1 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (holds (or (not f1) (or f2 false)))))))
-(declare equiv_elim2 (! f1 term (! f2 term (! p1 (holds (= f1 f2)) (holds (or f1 (or (not f2) false)))))))
+(declare cnf_ite_pos1 (! c term (! f1 term (! f2 term (holds (or (not ((ite Bool) c f1 f2)) (or (not c) (or f1 false)))))))
+(declare cnf_ite_pos2 (! c term (! f1 term (! f2 term (holds (or (not ((ite Bool) c f1 f2)) (or c (or f2 false)))))))
+(declare cnf_ite_pos3 (! c term (! f1 term (! f2 term (holds (or (not ((ite Bool) c f1 f2)) (or f1 (or f2 false)))))))
+(declare cnf_ite_neg1 (! c term (! f1 term (! f2 term (holds (or ((ite Bool) c f1 f2) (or (not c) (or (not f1) false)))))))
+(declare cnf_ite_neg2 (! c term (! f1 term (! f2 term (holds (or ((ite Bool) c f1 f2) (or c (or (not f2) false)))))))
+(declare cnf_ite_neg3 (! c term (! f1 term (! f2 term (holds (or ((ite Bool) c f1 f2) (or (not f1) (or (not f2) false)))))))

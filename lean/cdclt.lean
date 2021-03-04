@@ -10,20 +10,33 @@ notation `clause` := list (option term)
 def mynth : clause → ℕ → option term := comp2 monad.join (@list.nth (option term))
 def get_last : clause → option term := λ c, mynth c (c.length - 1)
 
-#eval monad.join (some (some 1))
-#eval mynth [top, bot, const 20 boolsort, const 21 boolsort] 0
-#eval list.nth [top, bot, const 20 boolsort, const 21 boolsort] 0
-#eval get_last [top, bot, const 20 boolsort, const 21 boolsort]
-
 -- eventually should give Prop
 constant holds : clause → Type
+constant thHolds : option term → Type
+
+-- clause manipulation rules
 def concat_cl : clause → clause → clause := @list.append (option term)
 def remove_duplicates : clause → clause
 | [] := []
 | (h::t) := if h ∈ t then remove_duplicates t else h::(remove_duplicates t)
-#check holds [const 20 boolsort, const 21 boolsort]
 
--- ground resolution rules
+-- collect all terms in OR chain (right-associative)
+
+def reduceOrAux : term → clause
+| ((const or_num _) • t₀ • ((const or_num _) • t₁ • t₂))
+          := t₀::t₁::(reduceOrAux t₂)
+| ((const or_num _) • t₀ • t₁) := [t₀, t₁]
+| t                            := [t]
+
+def reduceOr : clause → clause :=
+ (flip bind) (λ ot,
+               match ot with
+               | (some t) := reduceOrAux t
+               | none := [none]
+               end
+             )
+
+-- clausal reasoning
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
   concat_cl (remove n c₁) (remove (mkNot n) c₂)
 
@@ -41,24 +54,22 @@ constant R1 : Π {c₁ c₂ : clause}
 constant factoring : Π {c : clause} (p : holds c),
   holds (remove_duplicates c)
 
-#check (λ (p₀ : holds [const 20 boolsort]) 
-          (p₁ : holds [mkNot (const 20 boolsort)]), 
-         (R0 p₀ p₁ (const 20 boolsort) : holds []))
-#check (λ (p₀ : holds [const 20 boolsort]) 
-          (p₁ : holds [mkNot (const 20 boolsort)]), 
-         (R0 p₀ p₁ (const 20 boolsort)) 
-  : holds [const 20 boolsort] → holds [mkNot (const 20 boolsort)] → holds [])
-def l1 := const 20 boolsort
-def l2 := const 21 boolsort
-constant c1 : holds [l1, l2]
-constant c2 : holds [mkNot l1, l2]
-#check R0 c1 c2 l1
+-- connecting theory reasoning and clausal reasoning
+
+constant clAssume : Π {t : option term}, thHolds t → holds [t]
+
+constant clOr : Π {t : option term} (p : thHolds t), holds (reduceOr [t])
+
+constant scope : Π {t₁ t₂ : option term}
+  (p₁ : thHolds t₁) (p₂ : thHolds t₂), thHolds (mkOr (mkNot t₁) t₂)
 
 /-*************** Simplifications ***************-/
 
 -- holes
 constant trust : Π {c₁ : clause} (p : holds c₁) {c₂ : clause},
   holds c₂
+
+constant thTrust : Π {t₁ t₂ : option term}, thHolds t₁ → thHolds t₂
 
 def reduce_not_not : clause → clause :=
   list.map $ λ c : option term, do t ← c,
@@ -69,17 +80,6 @@ def reduce_not_not : clause → clause :=
 
 constant not_not : Π {c : clause} (p : holds c),
   holds (reduce_not_not c)
-
-def simp_iff_clause : clause → clause :=
-  list.map $ (flip bind) $ λ t : term,
-    match t with
-    | (iff t₀ t₁) := mkIffSimp t₀ t₁
-    | (not (iff t₀ t₁)) := mkNot (mkIffSimp t₀ t₁)
-    | _ := t
-    end
-
-constant simp_iff : Π {c : clause} (p : holds c),
-  holds (simp_iff_clause c)
 
 /-------------------- with premises ---------------/
 
@@ -110,30 +110,6 @@ def reduce_not_or (n : ℕ) : option term → option term :=
     end
 constant cnf_not_or : Π {t : option term} (p : holds [t]) (n : nat),
   holds [reduce_not_or n t]
-
--- collect all terms in OR / NOT AND chain (right-associative)
-
-def is_or : term → bool
-| (const or_num _) := tt
-| _ := ff
-
-def reduce_or_aux : term → clause
-| t@(c₁ • t₀ • (c₂ • t₁ • t₂)) :=
-    if is_or c₁ ∧ is_or c₂
-    then t₀::t₁::(reduce_or_aux t₂)
-    else [mkNot t]
-| t@(c₁ • t₀ • t₁)             :=
-    if is_or c₁ then [t₀, t₁] else [mkNot t]
-| _                            := [option.none]
-
-def reduce_or : clause → clause :=
- (flip bind) (λ ot,
-    match ot with
-    | (option.some t) := reduce_or_aux t
-    | option.none := [option.none]
-    end)
-
-constant cnf_or : Π {c : clause} (p : holds c), holds (reduce_or c)
 
 def is_and : term → bool
 | (const and_num _) := tt
@@ -206,32 +182,6 @@ constant cnf_not_implies :
     Π {ot : option term} (p : holds [ot]) (n : nat),
         holds [reduce_not_implies n ot]
 
--- iff
-
-def reduce_iff_aux : term → nat → clause
-| (iff t₀ t₁) 0 := [mkNot t₀, t₁]
-| (iff t₀ t₁) 1 := [t₀, mkNot t₁]
-| _           _ := [option.none]
-
-def reduce_iff : option term → nat → clause
-| (option.some t) n := reduce_iff_aux t n
-| option.none     _ := [option.none]
-
-constant cnf_iff : Π {ot : option term} (p : holds [ot]) (n : nat),
-  holds (reduce_iff ot n)
-
-def reduce_not_iff_aux : term → nat → clause
-| (not $ iff t₀ t₁) 0 := [t₀, t₁]
-| (not $ iff t₀ t₁) 1 := [mkNot t₀, mkNot t₁]
-| _ _ := [option.none]
-
-def reduce_not_iff : option term → nat → clause
-| (option.some t) n := reduce_not_iff_aux t n
-| option.none     _ := [option.none]
-
-constant cnf_not_iff : Π {ot : option term} (p : holds [ot]) (n : nat),
-  holds (reduce_not_iff ot n)
-
 -- ite
 
 def reduce_ite_aux : term → nat → clause
@@ -303,15 +253,6 @@ constant cnf_implies_neg_0 {t₀ t₁ : option term} : holds [mkImplies t₀ t�
 constant cnf_implies_neg_1 {t₀ t₁ : option term} :
   holds [mkImplies t₀ t₁, mkNot t₁]
 
-constant cnf_iff_pos_0 {t₀ t₁ : option term} :
-  holds [mkNot $ mkIff t₀ t₁, t₀, mkNot t₁]
-constant cnf_iff_pos_1 {t₀ t₁ : option term} :
-  holds [mkNot $ mkIff t₀ t₁, mkNot t₀, t₁]
-
-constant cnf_iff_neg_0 {t₀ t₁ : option term} :
-  holds [mkIff t₀ t₁, mkNot t₀, mkNot t₁]
-constant cnf_iff_neg_1 {t₀ t₁ : option term} : holds [mkIff t₀ t₁, t₀, t₁]
-
 constant cnf_ite_pos_0 {c t₀ t₁ : option term} :
   holds [mkNot $ mkIte c t₀ t₁, mkNot c, t₀]
 constant cnf_ite_pos_1 {c t₀ t₁ : option term} :
@@ -354,45 +295,5 @@ def reduce_smtcongn : clause → clause → clause
 constant smtcongn : Π {f : option term} {c₁ c₂ : clause},
         holds (list.append (reduce_smtcongn c₁ c₂)
                    [mkEq (mkAppN f c₁) (mkAppN f c₂)])
-
--- for predicates
-
-constant smtrefl_p {t : option term} : holds [mkIff t t]
-
-constant smtsymm_p {t₁ t₂ : option term} : holds [mkNot $ mkIff t₁ t₂, mkIff t₂ t₁]
-
-constant smttrans_p : Π {t₁ t₂ t₃ : option term},
-        holds ([mkNot (mkIff t₁ t₂), mkNot (mkIff t₂ t₃), mkIff t₁ t₃])
-
-constant smtcong_p : Π {a₁ b₁ : option term} {a₂ b₂ : option term},
-        holds ([mkNot (mkIff a₁ b₁), mkNot (mkIff a₂ b₂),
-                   mkIff (mkApp a₁ a₂) (mkApp b₁ b₂)])
-
-constant smtcongn_p : Π {f : term} {c₁ c₂ : clause} ,
-         holds (list.append (reduce_smtcongn c₁ c₂)
-                   [mkIff (mkAppN f c₁) (mkAppN f c₂)])
-
-
-/-*************** instantiation ***************-/
-
-def substitute : ℕ → term → term → option term
--- Constant case
-| n (val _ s) t := t
-
--- if finds shadowing, break
-| n₁ (qforall n₂ body) t :=
-   if n₁ = n₂ then option.none else
-                               do res ← (substitute n₁ body t), (qforall n₂ res)
--- if found variable, replace by instantiation term *if types match*,
--- otherwise fail
-| n₁ (const n₂ os) t :=
-  do s ← os, st ← sortof t,
-    if n₁ ≠ n₂ then (const n₂ s) else if s = st then t else option.none
--- replace each term in application
-| n (f • t₁) t :=
-  do fs ← (substitute n f t), t₁s ← (substitute n t₁ t), fs • t₁s
-
-constant inst_forall : Π {v : ℕ} {body : term} (term : term),
-  holds [mkNot $ mkForall v body, substitute v body term]
 
 end rules

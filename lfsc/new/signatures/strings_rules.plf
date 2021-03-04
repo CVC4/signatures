@@ -1,9 +1,10 @@
-; f must be an equality
-(declare trust_eval (! f term (holds f)))
 
-(declare STRING_LENGTH_NON_EMPTY (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) int_zero))))))
 
-(declare CONCAT_EQ_rtl_simple (! s term (! t term (! x term (! p (holds (= (str.++ s x) (str.++ t x))) (holds (= s t)))))))
+
+
+(declare string_length_non_empty (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) (int 0)))))))
+
+(declare concat_eq_rtl_simple (! s term (! t term (! x term (! p (holds (= (str.++ s x) (str.++ t x))) (holds (= s t)))))))
 
 (program sc_concat_eq_ltr_simple ((s term) (t term)) term 
   (ifequal (str.head s) (str.head t) (apply (apply f_= (str.tail s)) (str.tail t)) (fail term))   
@@ -16,5 +17,16 @@
                               (! r (^ (sc_concat_eq_ltr_simple s t) res) 
                                 (holds res))))))) 
 
-                                
-(declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) (holds (str.in_re x (re.inter s t)))))))))
+; -------------------------------------
+
+
+(declare string_length_pos (! t term 
+  (holds (or (and (= (str.len t) (int 0)) (and (= t emptystr) true)) (or (int.> (str.len t) (int 0)) false)))))
+
+(declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) 
+  (holds (str.in_re x (re.inter s t)))))))))
+
+(declare string_reduction (! r term (! t term (! u (^ (sc_string_reduction t) r)
+  (holds (and r (and (= t (skolem t)) true)))))))))
+
+(declare re_unfold_pos (! t term (! r term (! s term (! f (holds (str.in_re t r)) (! u (^ (sc_re_unfold_pos t r) s) (holds s)))))))
