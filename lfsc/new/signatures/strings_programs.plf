@@ -34,30 +34,29 @@
               ;    //       ( len( k2 ) = len( s )-(n+m) OR len( k2 ) = 0 ) AND
               ;    //       len( k ) <= m
               ;    // ELSE: k = ""
-              (let npm (apply (apply f_int.+ t12) (apply (apply f_int.+ t2) (int 0)))
-              (let k1 (skolem (apply (apply (apply f_str.substr t112) (int 0)) t12))
-              (let k2 (skolem (apply (apply (apply f_str.substr t112) npm) (apply (apply f_int.- (str.len t112)) npm)))
-              (apply (apply (apply (f_ite Bool) 
+              (let npm (int.+ t12 (int.+ t2 (int 0)))
+              (let k1 (skolem (str.substr t112 (int 0) t12))
+              (let k2 (skolem (str.substr t112 npm (int.- (str.len t112) npm)))
+              (ite Bool
                 ; condition
-                (apply (apply f_and (apply (apply f_int.>= t12) (int 0)))
-                  (apply (apply f_and (apply (apply f_int.> (str.len t112)) t12))
-                    (apply (apply f_and (apply (apply f_int.> t2) (int 0)))
-                      true))))
+                (and (int.>= t12 (int 0))
+                  (and (int.> (str.len t112) t12)
+                    (and (int.> t2 (int 0))
+                      true)))
                 ; if branch
-                (apply (apply f_and (apply (apply f_= t112) (apply (apply f_str.++ k1) (apply (apply f_str.++ k) (apply (apply f_str.++ k2) emptystr)))))
-                  (apply (apply f_and (apply (apply f_= (str.len k1)) t12))
-                    (apply (apply f_and (apply (apply f_or (apply (apply f_= (str.len k2)) (apply (apply f_int.- (str.len t112)) (apply (apply f_int.+ t12) (apply (apply f_int.+ t2) (int 0))))))
-                           (apply (apply f_or (apply (apply f_= (str.len k2)) (int 0)))
-                             false)))
-                      (apply (apply f_and (apply (apply f_int.<= (str.len k)) t2))
-                        true)))))
+                (and (= t112 (str.++ k1 (str.++ k (str.++ k2 emptystr))))
+                  (and (= (str.len k1) t12)
+                    (and (or (= (str.len k2) (int.- (str.len t112) (int.+ t12 (int.+ t2 (int 0)))))
+                           (or (= (str.len k2) (int 0))
+                             false))
+                      (and (int.<= (str.len k) t2)
+                        true))))
                 ; else branch
-                (= k emptystr))
-                ))))
+                (= k emptystr)
+                )))))
             (f_str.contains true)  ; TODO
             ((apply f_str.indexof t112) true)
             ((apply f_str.replace t112) true)
-            
             ; str.update
             ; str.from_int
             ; str.to_int
