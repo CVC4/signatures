@@ -19,7 +19,7 @@ namespace term
 -- Check that both terms have the same BV type
 @[simp] def mkBvEq : option term → option term → option term :=
   λ ot₁ ot₂, 
-  do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,
+  do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
   match (s₁, s₂) with
   | (bv m, bv n) := if (m = n) then (bvEq m t₁ t₂) else none
   | (_, _) := none
@@ -28,7 +28,7 @@ namespace term
 /- mkBitOf bv n, returns the nth element
    of bv if it exists; none otherwise -/
 def mkBitOf : option term → option term → option term :=
-λ ot₁ ot₂, do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,  
+λ ot₁ ot₂, do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,  
 match (s₁, s₂) with
 | (bv n, intsort) := 
   match t₂ with
@@ -51,7 +51,7 @@ end
 
 /-
 def mkBitOf : term → ℕ → option term :=
-λ t m, do s ← sortof t, 
+λ t m, do s ← sortOf t, 
 match s with
 | bv n := if (m < n) then
   (match t with
@@ -77,11 +77,11 @@ end-/
    bitOfN t n returns a list of length n 
    with option terms representing each bit.
 -/
-def bitOfN_aux : term → ℕ → ℕ → list (option term)
+def bitOfNAux : term → ℕ → ℕ → list (option term)
 | t 0 _ := []
-| t (n₁+1) n₂ := (mkBitOf t (val (value.integer (n₂ - n₁ - 1)) intsort)) :: (bitOfN_aux t n₁ n₂)
+| t (n₁+1) n₂ := (mkBitOf t (val (value.integer (n₂ - n₁ - 1)) intsort)) :: (bitOfNAux t n₁ n₂)
 def bitOfN : term → ℕ → list (option term) :=
-  λ t n, bitOfN_aux t n n
+  λ t n, bitOfNAux t n n
 
 #eval bitOfN (const 21 (bv 4)) 4
 #eval bitOfN (val (value.bitvec [true, true, true, false]) (bv 4)) 4
@@ -99,7 +99,7 @@ conjunction of the equality of their corresponding bits.
 -/
 def bblastBvEq : option term → option term → option term :=
   λ ot₁ ot₂,
-    do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,
+    do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
     match (s₁, s₂) with
     |  (bv m, bv n) := 
       if (m = n) then (
@@ -116,8 +116,8 @@ def bblastBvEq : option term → option term → option term :=
 
 #eval (bitOfN (val (value.bitvec [false, false, false, false]) (bv 4)) 4)
 #eval (bitOfN (const 21 (bv 4)) 4)
-#eval sortof (bitOf 4 (const 21 (bv 4)) (val (value.integer 0) intsort))
-#eval sortof (bitOf 4 (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval sortOf (bitOf 4 (const 21 (bv 4)) (val (value.integer 0) intsort))
+#eval sortOf (bitOf 4 (val (value.bitvec [false, false, false, false]) (bv 4))
              (val (value.integer 0) intsort))
 #eval zip (bitOfN (const 21 (bv 4)) 4)
           (bitOfN (val (value.bitvec [false, false, false, false]) (bv 4)) 4)
@@ -140,7 +140,7 @@ def bvOr : list bool → list bool → list bool :=
   
 def mkBvNot2 : option term → option term :=
   flip option.bind $
-    λ t, do s ← sortof t, 
+    λ t, do s ← sortOf t, 
     match s with
     | bv n := 
       match t with
@@ -226,7 +226,7 @@ def mkBitsVal : term → list (option term)
 bitOfN n t
 t is a BV term of type (bv n). We have to explicitly 
 provide n to bitOfN because its not able to infer it from t, 
-using sortof. See the commented version above for the issue.
+using sortOf. See the commented version above for the issue.
 
 If t is a BV const, bitOfN returns a list of Boolean option 
 terms representing its bits.

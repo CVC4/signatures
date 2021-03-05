@@ -23,7 +23,7 @@ def remove_duplicates : clause → clause
 -- collect all terms in OR chain (right-associative)
 
 def reduceOrAux : term → clause
-| ((const or_num _) • t₀ • ((const or_num _) • t₁ • t₂))
+| ((const or_num _) • t₀ • ((const orNum _) • t₁ • t₂))
           := t₀::t₁::(reduceOrAux t₂)
 | ((const or_num _) • t₀ • t₁) := [t₀, t₁]
 | t                            := [t]
@@ -185,8 +185,8 @@ constant cnf_not_implies :
 -- ite
 
 def reduce_ite_aux : term → nat → clause
-| (b_ite c t₀ t₁) 0 := [mkNot c, t₀]
-| (b_ite c t₀ t₁) 1 := [c, t₁]
+| (bIte c t₀ t₁) 0 := [mkNot c, t₀]
+| (bIte c t₀ t₁) 1 := [c, t₁]
 | _             _ := [option.none]
 
 def reduce_ite : option term → nat → clause
@@ -197,8 +197,8 @@ constant cnf_ite : Π {ot : option term} (p : holds [ot]) (n : nat),
   holds (reduce_ite ot n)
 
 def reduce_not_ite_aux : term → nat → clause
-| (not $ b_ite c t₀ t₁) 0 := [c, mkNot t₁]
-| (not $ b_ite c t₀ t₁) 1 := [mkNot c, mkNot t₀]
+| (not $ bIte c t₀ t₁) 0 := [c, mkNot t₁]
+| (not $ bIte c t₀ t₁) 1 := [mkNot c, mkNot t₀]
 | _                   _ := [option.none]
 
 def reduce_not_ite : option term → nat → clause
