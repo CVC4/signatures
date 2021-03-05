@@ -23,6 +23,7 @@
 ; TODO: use nary_extract
 (declare and_elim1 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f1)))))
 (declare and_elim2 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f2)))))
+;(declare and_elim (! f1 term (! f2 term (! n mpz (! p (holds f1) (! r (^ (nary_extract f_and f1 n) f2)  (holds f2)))))))
 
 ; for AND_INTRO
 ; Start with null terminator, (and_intro2* _ _ (and_intro1 _))
@@ -53,5 +54,8 @@
 
 ; DeMorgan rule
 (declare not_and (! c1 term (! c2 term (! p1 (holds (not c1)) (! r (^ (sc_not_and c1) c2) (holds c2))))))
+
+
 ; inverse, needed for SCOPE
 (declare not_and_rev (! c1 term (! c2 term (! p1 (holds c1) (! r (^ (sc_not_and_rev c1) c2) (holds (not c2)))))))
+(declare process_scope (! f term (! g term (! c term (! p1 (holds f) (! r (^ (sc_process_scope f c) g) (holds g))))))

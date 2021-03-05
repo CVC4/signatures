@@ -38,3 +38,11 @@
 (program sc_not_and_rev ((t term)) term
   (nary_singleton_elim f_and (sc_not_and_rev_rec t) true)
 )
+
+
+(program sc_process_scope ((t term) (c term)) term
+  (let premise (sc_not_and_rev (nary_truncate f_or t c false))
+  (match c
+    (false (not premise))
+    (default (=> premise c)))))
+    

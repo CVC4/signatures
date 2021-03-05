@@ -73,3 +73,13 @@
 (program nary_drop_dups ((f term) (t term) (null term)) term
   (nary_singleton_elim f (nary_drop_dups_rec f t) null)
 )
+
+
+; (or t1 ... tn c) ---> (or t1 ... tn false)
+(program nary_truncate ((f term) (t term) (c term) (null term)) term
+  (ifequal t c null
+    (match t
+      ((apply t1 t2)
+        (match t1 ((apply f t12) (apply t1 (nary_truncate f t2 c null)))))))
+)
+              
