@@ -6,9 +6,9 @@ open proof
 open proof.sort proof.term
 
 #eval monad.join (some (some 1))
-#eval mynth [top, bot, const 20 boolsort, const 21 boolsort] 0
+#eval nTh [top, bot, const 20 boolsort, const 21 boolsort] 0
 #eval list.nth [top, bot, const 20 boolsort, const 21 boolsort] 0
-#eval get_last [top, bot, const 20 boolsort, const 21 boolsort]
+#eval getLast [top, bot, const 20 boolsort, const 21 boolsort]
 
 #check (λ (p₀ : holds [const 20 boolsort])
           (p₁ : holds [mkNot (const 20 boolsort)]),

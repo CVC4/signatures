@@ -7,25 +7,25 @@ namespace rules
 -- define calculus
 notation `clause` := list (option term)
 
-def mynth : clause → ℕ → option term := comp2 monad.join (@list.nth (option term))
-def get_last : clause → option term := λ c, mynth c (c.length - 1)
+-- clause manipulation rules
+def nTh : clause → ℕ → option term := comp2 monad.join (@list.nth (option term))
+def getLast : clause → option term := λ c, nTh c (c.length - 1)
+def concatCl : clause → clause → clause := @list.append (option term)
+def removeDuplicates : clause → clause
+| [] := []
+| (h::t) := if h ∈ t then removeDuplicates t else h::(removeDuplicates t)
+
 
 -- eventually should give Prop
 constant holds : clause → Type
 constant thHolds : option term → Type
 
--- clause manipulation rules
-def concat_cl : clause → clause → clause := @list.append (option term)
-def remove_duplicates : clause → clause
-| [] := []
-| (h::t) := if h ∈ t then remove_duplicates t else h::(remove_duplicates t)
 
 -- collect all terms in OR chain (right-associative)
-
 def reduceOrAux : term → clause
-| ((const or_num _) • t₀ • ((const orNum _) • t₁ • t₂))
+| ((const orNum _) • t₀ • ((const orNum _) • t₁ • t₂))
           := t₀::t₁::(reduceOrAux t₂)
-| ((const or_num _) • t₀ • t₁) := [t₀, t₁]
+| ((const orNum _) • t₀ • t₁) := [t₀, t₁]
 | t                            := [t]
 
 def reduceOr : clause → clause :=
@@ -35,13 +35,14 @@ def reduceOr : clause → clause :=
                | none := [none]
                end
              )
+#eval reduceOr [or top bot, and top bot, bot]
 
 -- clausal reasoning
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
-  concat_cl (remove n c₁) (remove (mkNot n) c₂)
+  concatCl (remove n c₁) (remove (mkNot n) c₂)
 
 def resolveR₁ (n : option term) (c₁ c₂: clause) : clause :=
-  concat_cl (remove (mkNot n) c₁) (remove n c₂)
+  concatCl (remove (mkNot n) c₁) (remove n c₂)
 
 constant R0 : Π {c₁ c₂ : clause}
   (p₁ : holds c₁) (p₂ : holds c₂) (n : option term),
@@ -52,7 +53,7 @@ constant R1 : Π {c₁ c₂ : clause}
   holds (resolveR₁ n c₁ c₂)
 
 constant factoring : Π {c : clause} (p : holds c),
-  holds (remove_duplicates c)
+  holds (removeDuplicates c)
 
 -- connecting theory reasoning and clausal reasoning
 
@@ -71,76 +72,100 @@ constant trust : Π {c₁ : clause} (p : holds c₁) {c₂ : clause},
 
 constant thTrust : Π {t₁ t₂ : option term}, thHolds t₁ → thHolds t₂
 
-def reduce_not_not : clause → clause :=
+
+-- remove all double negations of terms within a clause
+def reduceNotNot : clause → clause :=
   list.map $ λ c : option term, do t ← c,
     match t with
     | not $ not t' := t'
     | _ := t
     end
 
-constant not_not : Π {c : clause} (p : holds c),
-  holds (reduce_not_not c)
+constant notNot : Π {c : clause} (p : holds c),
+  holds (reduceNotNot c)
+
 
 /-------------------- with premises ---------------/
 
 
+/- reduceAndNth and reduceOrNth were broken when 
+   we started using ℕ instead of pos_num in term.lean -/
 -- get n-th element in AND chain (right-associative)
-def reduce_and_nth : ℕ → term → option term
+def reduceAndNth : ℕ → term → option term
 | 0            (and t _)           := t
 | 1            (and _ t)           := t
 | (n+1) (and  _ (and t₀ t₁)) :=
-    reduce_and_nth n (and t₀ t₁)
+    reduceAndNth n (and t₀ t₁)
 | _            _                   := option.none
-def reduce_and (n : ℕ) : option term → option term :=
-  flip bind (reduce_and_nth n)
-constant cnf_and : Π {t : option term} (p : holds [t]) (n : nat),
-  holds [reduce_and n t]
+def reduceAnd (n : ℕ) : option term → option term :=
+  flip bind (reduceAndNth n)
+constant cnfAnd : Π {t : option term} (p : holds [t]) (n : nat),
+  holds [reduceAnd n t]
 
 -- get n-th in NOT-OR chain (right-associative)
-def reduce_or_nth : ℕ → term → option term
+def reduceOrNth : ℕ → term → option term
 | 0            (or t _)          := t
 | 1            (or _ t)          := t
-| (n+1) (or _ (or t₀ t₁)) := reduce_or_nth n (or t₀ t₁)
+| (n+1) (or _ (or t₀ t₁)) := reduceOrNth n (or t₀ t₁)
 | _            _                 := option.none
-def reduce_not_or (n : ℕ) : option term → option term :=
+def reduceNotOr (n : ℕ) : option term → option term :=
   (flip bind) $ λ t,
     match t with
-    | not t' := mkNot $ reduce_or_nth n t'
+    | not t' := mkNot $ reduceOrNth n t'
     | _ := option.none
     end
-constant cnf_not_or : Π {t : option term} (p : holds [t]) (n : nat),
-  holds [reduce_not_or n t]
+constant cnfNotOr : Π {t : option term} (p : holds [t]) (n : nat),
+  holds [reduceNotOr n t]
 
-def is_and : term → bool
-| (const and_num _) := tt
+def isAnd : term → bool
+| (const andNum _) := tt
+| _ := ff
+def isNot : term → bool
+| (const notNum _) := tt
 | _ := ff
 
-def reduce_not_and_aux : term → clause
-| t@(c₁ • t₀ • (c₂ • t₁ • t₂)) :=
-    if is_and c₁ ∧ is_and c₂
-    then mkNot t₀ :: mkNot t₁ :: reduce_not_and_aux t₂
+/-
+-- Need to prove termination
+def reduceNotAndAux : option term → clause
+| t@(some (c₀ • (c₁ • t₁ • t₂))) := 
+    if isNot c₀ ∧ isAnd c₁ then
+      (mkNot t₁) :: (reduceNotAndAux (mkNot t₂))
+    else [t]
+| t@(some t₁) := [t₁]
+| none := []
+-/
+/-
+def reduceNotAndAux : term → clause
+| t@(c₀ • (c₁ • t₀ • (c₂ • t₁ • t₂))) :=
+    if isNot c₀ ∧ isAnd c₁ ∧ isAnd c₂
+    then mkNot t₀ :: mkNot t₁ :: reduceNotAndAux t₂
     else [mkNot t]
 | (c₁ • t₀ • t₁) := [mkNot t₀, mkNot t₁]
 | t := [mkNot t]
-
-def reduce_not_and : option term → clause
-| (option.some t) := reduce_not_and_aux t
+-/
+def reduceNotAndAux : term → clause
+| t@(c₁ • t₀ • (c₂ • t₁ • t₂)) :=
+    if isAnd c₁ ∧ isAnd c₂
+    then mkNot t₀ :: mkNot t₁ :: reduceNotAndAux t₂
+    else [mkNot t]
+| (c₁ • t₀ • t₁) := [mkNot t₀, mkNot t₁]
+| t := [mkNot t]
+def reduceNotAnd : option term → clause
+| (option.some t) := reduceNotAndAux t
 | option.none     := [option.none]
+constant cnfNotAnd : Π {t : option term} (p : holds [t]),
+  holds (reduceNotAnd t)
 
-constant cnf_not_and : Π {t : option term} (p : holds [t]),
-  holds (reduce_not_and t)
 
 -- xor
 
-def reduce_xor_aux : term → nat → clause
+def reduceXorAux : term → nat → clause
 | (xor t₀ t₁) 0 := [t₀, t₁]
 | (xor t₀ t₁) 1 := [mkNot t₀, mkNot t₁]
 | _           _ := [option.none]
-
 def reduce_xor : option term → nat → clause
-| (option.some t) n := reduce_xor_aux t n
+| (option.some t) n := reduceXorAux t n
 | option.none     _ := [option.none]
-
 constant cnf_xor : Π {t : option term} (p : holds [t]) (n : nat),
   holds (reduce_xor t n)
 
@@ -148,11 +173,9 @@ def reduce_not_xor_aux : term → nat → clause
 | (not $ xor t₀ t₁) 0 := [t₀, mkNot t₁]
 | (not $ xor t₀ t₁) 1 := [mkNot t₀, t₁]
 | _                 _ := [option.none]
-
 def reduce_not_xor : option term → nat → clause
 | (option.some t) n := reduce_not_xor_aux t n
 | _               _ := [option.none]
-
 constant cnf_not_xor : Π {t : option term} (p : holds [t]) (n : nat),
   holds (reduce_not_xor t n)
 
@@ -210,25 +233,25 @@ constant cnf_not_ite : Π {ot : option term} (p : holds [ot]) (n : nat),
 
 /-------------------- n-ary ---------------/
 
-constant cnf_and_pos {l : clause} {n : nat} :
-  holds [mkNot $ mkAndN l, mynth l n]
+constant cnfAnd_pos {l : clause} {n : nat} :
+  holds [mkNot $ mkAndN l, nTh l n]
 constant cnf_or_neg {l : clause} {n : nat} :
-  holds [mkOrN l, mkNot $ mynth l n]
+  holds [mkOrN l, mkNot $ nTh l n]
 
 def mkNotList : clause → clause
 | [] := []
 | (h::t) := mkNotSimp h :: mkNotList t
 
 -- implicitly doing double negation elimination
-constant cnf_and_neg_n {l : clause} : holds $ mkAndN l :: mkNotList l
+constant cnfAnd_neg_n {l : clause} : holds $ mkAndN l :: mkNotList l
 constant cnf_or_pos_n {l : clause} : holds $ (mkNot $ mkOrN l) :: l
 
 /-------------------- binary ---------------/
 
-constant cnf_and_pos_0 {t₁ t₂ : option term} : holds [mkNot $ mkAnd t₁ t₂, t₁]
-constant cnf_and_pos_1 {t₁ t₂ : option term} : holds [mkNot $ mkAnd t₁ t₂, t₂]
+constant cnfAnd_pos_0 {t₁ t₂ : option term} : holds [mkNot $ mkAnd t₁ t₂, t₁]
+constant cnfAnd_pos_1 {t₁ t₂ : option term} : holds [mkNot $ mkAnd t₁ t₂, t₂]
 
-constant cnf_and_neg {t₁ t₂ : option term} :
+constant cnfAnd_neg {t₁ t₂ : option term} :
   holds [mkAnd t₁ t₂, mkNot t₁, mkNot t₂]
 
 constant cnf_or_pos {t₀ t₁ : option term} :
@@ -286,7 +309,7 @@ def reduce_smttransn : clause → clause
 
 constant smttransn : Π {c : clause},
         holds (list.append (reduce_smttransn c)
-                   [mkEq (mynth c 0) (get_last c)])
+                   [mkEq (nTh c 0) (getLast c)])
 
 def reduce_smtcongn : clause → clause → clause
 | (h₁::t₁) (h₂::t₂) := (mkIneq h₁ h₂) :: reduce_smtcongn t₁ t₂

@@ -31,8 +31,8 @@ section
 @[pattern] def eqNum      : ℕ := fIteNum + 1
 @[pattern] def forallNum  : ℕ := eqNum + 1
 @[pattern] def bvBitOfNum : ℕ := forallNum + 1
-@[pattern] def bveqNum : ℕ := bvBitOfNum + 1
-@[pattern] def bvNotNum : ℕ := bveqNum + 1
+@[pattern] def bvEqNum : ℕ := bvBitOfNum + 1
+@[pattern] def bvNotNum : ℕ := bvEqNum + 1
 @[pattern] def bvAndNum : ℕ := bvNotNum + 1
 @[pattern] def bvOrNum : ℕ := bvAndNum + 1
 
@@ -153,7 +153,7 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
 -- check int is in range
 @[pattern] def bitOf : ℕ → term → term → term := λ n, toBinary $ cstr bvBitOfNum
   (arrow (bv n) (arrow intsort boolsort))
-@[pattern] def bvEq : ℕ → term → term → term := λ n, toBinary $ cstr bveqNum
+@[pattern] def bvEq : ℕ → term → term → term := λ n, toBinary $ cstr bvEqNum
   (arrow (bv n) (arrow (bv n) (boolsort)))
 
 def natToString : ℕ → string
@@ -168,7 +168,7 @@ def natToString : ℕ → string
 | eqNum := "≃"
 | forallNum := "∀"
 | bvBitOfNum := "[ ]"
-| bveqNum := "≃bv"
+| bvEqNum := "≃bv"
 | bvNotNum := "¬bv"
 | bvAndNum := "∧bv"
 | bvOrNum := "∨bv"
@@ -183,8 +183,12 @@ def termToString : term → string
 | ((const xorNum _) • t1 • t2) := termToString t1 ++ " ⊕ " ++ termToString t2
 | ((const eqNum _) • t1 • t2) := termToString t1 ++ " ≃ " ++ termToString t2
 | ((const bvBitOfNum _) • t1 • t2) := termToString t1 ++ "[" ++ termToString t2 ++ "]"
+| ((const bvEqNum _) • t1 • t2) := termToString t1 ++ " ≃bv " ++ termToString t2
+| ((const bvOrNum _) • t1 • t2) := termToString t1 ++ " ∨bv " ++ termToString t2
+| ((const bvAndNum _) • t1 • t2) := termToString t1 ++ " ∧bv " ++ termToString t2
 | (const name _) := natToString name
 | (app (const notNum _) t) := "¬ " ++ termToString t
+| (app (const bvNotNum _) t) := "¬bv " ++ termToString t
 | (app f t) := "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | (qforall p t) := "∀ " ++ repr p ++ " . " ++ termToString t
 
@@ -348,7 +352,7 @@ def mkNotSimp : option term → option term
 | (some t)        := mkNot (some t)
 | _                      := none
 
--- Notice mkNotSimp gives double negation elimination
+-- Notice mkNotSimp performs double negation elimination
 #eval mkNot bot
 #eval mkNot top
 #eval mkNotSimp bot
@@ -364,7 +368,8 @@ def constructBinaryTerm (constructor : term → term → term) (test : sort → 
             do s₁ ← sortOf t₁, s₂ ← sortOf t₂,
                 if test s₁ s₂ then constructor t₁ t₂ else none
 
-def constructNaryTerm (constructor : term → term → term) (test : sort → sort → bool) : option term → list (option term) → option term :=
+def constructNaryTerm (constructor : term → term → term) (test : sort → sort → bool) : 
+  option term → list (option term) → option term :=
   λ ot₁ ots₂,
   let auxfxn : term → term → option term := (λ t₁ t₂,
             do s₁ ← sortOf t₁, s₂ ← sortOf t₂,
