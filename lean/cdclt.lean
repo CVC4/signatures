@@ -290,33 +290,4 @@ constant cnf_ite_neg_1 {c t₀ t₁ : option term} :
 constant cnf_ite_neg_2 {c t₀ t₁ : option term} :
   holds [mkIte c t₀ t₁, mkNot t₀, mkNot t₁]
 
-/-*************** congruence ***************-/
-
-constant smtrefl {t : option term} : holds [mkEq t t]
-
-constant smtsymm {t₁ t₂ : option term} : holds [mkIneq t₁ t₂, mkEq t₂ t₁]
-
-constant smttrans : Π {t₁ t₂ t₃ : option term},
-        holds ([mkIneq t₁ t₂, mkIneq t₂ t₃, mkEq t₁ t₃])
-
-constant smtcong : Π {f₁ x₁ : option term} {f₂ x₂ : option term},
-        holds ([mkIneq f₁ f₂, mkIneq x₁ x₂,
-                   mkEq (mkApp f₁ x₁) (mkApp f₂ x₂)])
-
-def reduce_smttransn : clause → clause
-| (h₁::h₂::t) := (mkIneq h₁ h₂) :: reduce_smttransn (h₂::t)
-| _ := []
-
-constant smttransn : Π {c : clause},
-        holds (list.append (reduce_smttransn c)
-                   [mkEq (nTh c 0) (getLast c)])
-
-def reduce_smtcongn : clause → clause → clause
-| (h₁::t₁) (h₂::t₂) := (mkIneq h₁ h₂) :: reduce_smtcongn t₁ t₂
-| _ _ := []
-
-constant smtcongn : Π {f : option term} {c₁ c₂ : clause},
-        holds (list.append (reduce_smtcongn c₁ c₂)
-                   [mkEq (mkAppN f c₁) (mkAppN f c₂)])
-
 end rules
