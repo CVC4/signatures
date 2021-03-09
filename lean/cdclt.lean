@@ -27,11 +27,9 @@ def reduceOrAux : term → clause
           := t₀::t₁::(reduceOrAux t₂)
 | ((const orNum _) • t₀ • t₁) := [t₀, t₁]
 | t                            := [t]
-
 def reduceOr : option term → clause
 | (some t) := reduceOrAux t
 | none     := [none]
-
 #eval reduceOr (mkOrN [top, bot, and top bot, bot])
 
 -- clausal reasoning
@@ -52,6 +50,7 @@ constant R1 : Π {c₁ c₂ : clause}
 constant factoring : Π {c : clause} (p : holds c),
   holds (removeDuplicates c)
 
+
 -- connecting theory reasoning and clausal reasoning
 
 constant clAssume : Π {t : option term}, thHolds t → holds [t]
@@ -61,13 +60,14 @@ constant clOr : Π {t : option term} (p : thHolds t), holds (reduceOr t)
 constant scope : Π {t₁ t₂ : option term}
   (p₁ : thHolds t₁) (p₂ : thHolds t₂), thHolds (mkOr (mkNot t₁) t₂)
 
+
 /-------------------- Holes ----------------------------------/
 
--- holes
 constant trust : Π {c₁ : clause} (p : holds c₁) {c₂ : clause},
   holds c₂
 
 constant thTrust : Π {t₁ t₂ : option term}, thHolds t₁ → thHolds t₂
+
 
 /-------------------- Boolean rules ---------------/
 
@@ -159,11 +159,9 @@ def reduceNotAndAux : term → clause
           := mkNot t₀::mkNot t₁::(reduceNotAndAux t₂)
 | ((const andNum _) • t₀ • t₁) := [mkNot t₀, mkNot t₁]
 | t                            := [t]
-
 def reduceNotAnd : option term → clause
 | (some t) := reduceNotAndAux t
 | none     := [none]
-
 constant notAnd : Π {t : option term} (p : thHolds t), holds (reduceNotAnd t)
 
 /-------------------- CNF rules (introduce valid clauses) ---------------/
@@ -172,34 +170,79 @@ def mkNotList : clause → clause
 | [] := []
 | (h::t) := mkNot h :: mkNotList t
 
+/-
+l₁ ∧ ... ∧ lₖ     1 ≤ n ≤ k             ¬(x₁ ∧ ... ∧ xₙ)
+----------------------------cnfAndPos   ----------------cnfAndNeg
+             lᵢ                          ¬x₁ ∨ ... ∨ ¬xₙ 
+-/
 constant cnfAndPos {l : clause} {n : ℕ} : holds [mkNot $ mkAndN l, nTh l n]
 constant cnfAndNeg {l : clause} : holds $ mkAndN l :: mkNotList l
 
+/-
+x₁ ∨ ... ∨ xₙ           ¬(l₁ ∨ ... ∨ lₖ)     1 ≤ n ≤ k 
+-------------cnfOrPos   ------------------------------cnfOrNeg
+x₁ ∨ ... ∨ xₙ                         ¬lᵢ
+-/
 constant cnfOrPos {l : clause} : holds $ (mkNot $ mkOrN l) :: l
 constant cnfOrNeg {l : clause} {n : ℕ} : holds [mkOrN l, mkNot $ nTh l n]
 
+/-
+t₁ → t₂  t₁                 ¬(t₁ → t₂)                ¬(t₁ → t₂)
+-----------cnfImpliesPos    ----------cnfImpliesNeg1  ----------cnfImpliesNeg2
+     t₂                         t₁                        ¬t₂
+-/
 constant cnfImpliesPos {t₁ t₂ : option term} :
   holds [mkNot $ mkImplies t₁ t₂, mkNot t₁, t₂]
-constant cnfImpliesNeg1 {t₁ t₂ : option term} : holds [mkImplies t₁ t₂, t₁]
+constant cnfImpliesNeg1 {t₁ t₂ : option term} : 
+holds [mkImplies t₁ t₂, t₁]
 constant cnfImpliesNeg2 {t₁ t₂ : option term} :
   holds [mkImplies t₁ t₂, mkNot t₂]
 
+/-
+t₁ = t₂  ¬t₁              t₁ = t₂  t₁
+------------cnfEquivPos1  ------------cnfEquivPos2
+    ¬t₂                        t₂
+-/
 constant cnfEquivPos1 {t₁ t₂ : option term} :
   holds [mkNot $ mkEq t₁ t₂, t₁, mkNot t₂]
 constant cnEquivPos2 {t₁ t₂ : option term} :
   holds [mkNot $ mkEq t₁ t₂, mkNot t₁, t₂]
 
+/-
+¬(t₁ = t₂)  t₁              ¬(t₁ = t₂)  ¬t₁
+--------------cnfEquivNeg1  --------------cnfEquivPos2
+      ¬t₂                         t₂
+-/
 constant cnfEquivNeg1 {t₁ t₂ : option term} :
   holds [mkEq t₁ t₂, mkNot t₁, mkNot t₂]
-constant cnfEquivNeg2 {t₁ t₂ : option term} : holds [mkEq t₁ t₂, t₁, t₂]
+constant cnfEquivNeg2 {t₁ t₂ : option term} : 
+  holds [mkEq t₁ t₂, t₁, t₂]
 
-constant cnfXorPos1 {t₁ t₂ : option term} : holds [mkNot $ mkXor t₁ t₂, t₁, t₂]
+/-
+t₁ ⊕ t₂  ¬t₁              t₁ ⊕ t₂  t₁
+------------cnfXorPos1    -----------cnfXorPos2
+     t₂                        ¬t₂
+-/
+constant cnfXorPos1 {t₁ t₂ : option term} : 
+  holds [mkNot $ mkXor t₁ t₂, t₁, t₂]
 constant cnfXorPos2 {t₁ t₂ : option term} :
   holds [mkNot $ mkXor t₁ t₂, mkNot t₁, mkNot t₂]
 
-constant cnfXorNeg1 {t₁ t₂ : option term} : holds [mkXor t₁ t₂, t₁, mkNot t₂]
-constant cnfXorNeg2 {t₁ t₂ : option term} : holds [mkXor t₁ t₂, mkNot t₁, t₂]
+/-
+¬(t₀ ⊕ t₁)  ¬t₁            ¬(t₀ ⊕ t₁)  t₁
+---------------cnfXorNeg1  --------------cnfXorNeg2
+      ¬t₂                        ¬t₂
+-/
+constant cnfXorNeg1 {t₁ t₂ : option term} : 
+  holds [mkXor t₁ t₂, t₁, mkNot t₂]
+constant cnfXorNeg2 {t₁ t₂ : option term} : 
+  holds [mkXor t₁ t₂, mkNot t₁, t₂]
 
+/-
+ite c t₁ t₂  c             ite c t₁ t₂  ¬c             ite c t₁ t₂  ¬t₁
+---------------cnfItePos1  ---------------cnfItePos2   ----------------cnfItePos3
+       t₁                         t₂                           t₂
+-/
 constant cnfItePos1 {c t₁ t₂ : option term} :
   holds [mkNot $ mkIte c t₁ t₂, mkNot c, t₁]
 constant cnfItePos2 {c t₁ t₂ : option term} :
@@ -207,7 +250,13 @@ constant cnfItePos2 {c t₁ t₂ : option term} :
 constant cnfItePos3 {c t₁ t₂ : option term} :
   holds [mkNot $ mkIte c t₁ t₂, t₁, t₂]
 
-constant cnfIteNeg1 {c t₁ t₂ : option term} : holds [mkIte c t₁ t₂, c, mkNot t₁]
+/-
+¬(ite c t₁ t₂)  ¬c            ¬(ite c t₁ t₂)  c             ¬(ite c t₁ t₂)  t₁
+------------------cnfIteNeg1  ------------------cnfIteNeg2  ------------------cnfIteNeg3
+       ¬t₁                            ¬t₁                           ¬t₂
+-/
+constant cnfIteNeg1 {c t₁ t₂ : option term} : 
+  holds [mkIte c t₁ t₂, c, mkNot t₁]
 constant cnfIteNeg2 {c t₁ t₂ : option term} :
   holds [mkIte c t₁ t₂, mkNot c, mkNot t₂]
 constant cnfIteNeg3 {c t₁ t₂ : option term} :

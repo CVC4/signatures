@@ -8,6 +8,19 @@ namespace eufRules
 
 /-*************** congruence ***************-/
 
+/-
+            t₁ = t₂      t₁ ≠ t₂   
+-----refl   -------symm  -------negSymm
+t = t       t₂ = t₁      t₂ ≠ t₁
+
+t₁ = t₂  t₂ = t₃          t₁ = t₂
+----------------trans   -----------cong
+       t₁ = t₃          f t₁ = f t₂
+
+f₁ = f₂  t₁ = t₂
+-----------------congHO
+  f₁ t₁ = f₂ t₂ 
+-/
 constant refl {t : option term} : thHolds $ mkEq t t
 
 constant symm : Π {t₁ t₂ : option term},
