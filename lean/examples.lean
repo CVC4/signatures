@@ -29,16 +29,6 @@ def f := const 50 (arrow s s)
 def x₁ := const 51 s
 def x₂ := const 52 s
 
-
-noncomputable lemma lem : holds [mkIneq x₁ x₂, mkEq (mkApp f x₁) (mkApp f x₂)] :=
-  let s₀ := @smtCong f x₁ f x₂ in
-  let s₁ := @smtRefl f in
-   R0 s₁ s₀ (mkEq f f)
-
-noncomputable theorem test_theorem (s₀ : holds [mkEq x₁ x₂]) (s₁ : holds [mkIneq (mkApp f x₁) (mkApp f x₂)]) : holds [] :=
- have s₂ : holds [mkEq (mkApp f x₁) (mkApp f x₂)], from R0 s₀ lem (mkEq x₁ x₂),
-   R0 s₂ s₁ (mkEq (mkApp f x₁) (mkApp f x₂))
-
 -- does not go through
 --noncomputable lemma wrong :
 --  holds ([mkIneq x₁ x₂, mkIneq f x₂, mkEq (mkApp f x₂) (mkApp f x₂)]) :=
