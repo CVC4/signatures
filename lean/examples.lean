@@ -31,8 +31,8 @@ def x₂ := const 52 s
 
 
 noncomputable lemma lem : holds [mkIneq x₁ x₂, mkEq (mkApp f x₁) (mkApp f x₂)] :=
-  let s₀ := @smtcong f x₁ f x₂ in
-  let s₁ := @smtrefl f in
+  let s₀ := @smtCong f x₁ f x₂ in
+  let s₁ := @smtRefl f in
    R0 s₁ s₀ (mkEq f f)
 
 noncomputable theorem test_theorem (s₀ : holds [mkEq x₁ x₂]) (s₁ : holds [mkIneq (mkApp f x₁) (mkApp f x₂)]) : holds [] :=
