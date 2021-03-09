@@ -57,9 +57,7 @@ def mkArrowN : List (Option sort) → (Option sort)
 | (some s)::t =>
   match t with
   | [] => s
-  | _ => match mkArrowN t with
-         | some s' => arrow s s'
-         | _ => none
+  | _ => mkArrowN t >>= fun x => arrow s x
 | _ => none
 
 end sort

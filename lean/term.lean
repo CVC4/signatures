@@ -111,8 +111,6 @@ open sort
 infixl ` • ` :20  := app
 infixl ` » ` :21  := qforall
 
-#check (λ (p : ℕ) (t : term), p » t)
-
 -- unary, binary and ternary applications
 def toUnary (t : term) : term → term := λ t₁: term, t • t₁
 def toBinary (t : term) : term → term → term := λ t₁ t₂ : term, t • t₁ • t₂
@@ -124,13 +122,6 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
 -- Sort definitions
 @[pattern] def boolsort := sort.atom boolNum
 @[pattern] def intsort := sort.atom intNum
-
-#eval sortToString dep
-#eval sortToString boolsort
-#eval sortToString (arrow boolsort boolsort)
-#eval sortToString (arrow boolsort (arrow boolsort boolsort))
-#eval optionSortToString (mkArrowN [some boolsort, some boolsort, some boolsort])
-#check const 19 (some (bv 2))
 
 -- term definitions
 @[pattern] def bIte : term → term → term → term := toTernary $ cstr bIteNum
@@ -205,34 +196,6 @@ def sortedTermToString : term → string
 
 meta instance: has_repr term := ⟨termToString⟩
 
-/-
-def option_termToString : option term → string
-| (some x) := termToString x
-| none := "none"
-
-meta instance: has_repr (option term) := ⟨option_termToString⟩
--/
-
-#eval bot
-#eval top
-#eval (not bot)
-#eval (not top)
-#eval (and bot bot)
-#eval (bIte top bot top)
-#eval (eq bot bot)
-#eval (const botNum none)
-#eval (qforall 1 bot)
-
-#eval sortedTermToString bot
-#eval sortedTermToString top
-#eval sortedTermToString (not bot)
-#eval sortedTermToString (not top)
-#eval sortedTermToString (and bot bot)
-#eval sortedTermToString (bIte top bot top)
-#eval sortedTermToString (eq bot bot)
-#eval sortedTermToString (const botNum none)
-#eval sortedTermToString (qforall 1 bot)
-
 -- sort of terms
 def sortOfAux : term → option sort
 | (val (value.bitvec l) _) := if ((list.length l) = 0) then
@@ -247,12 +210,12 @@ def sortOfAux : term → option sort
 | (const impliesNum _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const xorNum _)  := (arrow boolsort (arrow boolsort boolsort))
 | (const _ s)      := s
-| (bitOf n t₁ t₂) := 
-  do s₁ ← sortOfAux t₁, s₂ ← sortOfAux t₂, 
-    if s₁ = (bv n) ∧ s₂ = intsort then 
+| (bitOf n t₁ t₂) :=
+  do s₁ ← sortOfAux t₁, s₂ ← sortOfAux t₂,
+    if s₁ = (bv n) ∧ s₂ = intsort then
       boolsort
     else none
-| (bvEq n t₁ t₂) := 
+| (bvEq n t₁ t₂) :=
   do s₁ ← sortOfAux t₁, s₂ ← sortOfAux t₂,
     if s₁ = (bv n) ∧ s₂ = (bv n) then
       boolsort
@@ -280,19 +243,6 @@ def sortOfAux : term → option sort
 def sortOf : option term → option sort :=
  (flip option.bind) sortOfAux
 
-#eval sortOfAux (eq bot bot)
-#eval sortOf (eq bot bot)
-/- Sorts can only be none for ill-formed
-   `forall`, `eq`, `fIte` and `app` -/
-#eval sortOfAux (const 1 none)
-#eval sortOf (const 1 none)
-#eval sortOf (app (const (20 : ℕ) (arrow boolsort boolsort)) bot)
-#eval optionSortToString (sortOfAux (eq bot bot))
-#eval optionSortToString (sortOf (eq bot bot))
-#eval optionSortToString (sortOfAux (const 1 none))
-#eval optionSortToString (sortOf (const 1 none))
-#eval optionSortToString (sortOf (app (const (20 : ℕ) (arrow boolsort boolsort)) bot))
-
 -- application of term to term
 def mkAppAux : term → term → option term :=
   λ t₁ t₂,
@@ -319,12 +269,6 @@ def mkApp : option term → option term → option term := bind2 mkAppAux
 def mkAppN (t : option term) (l : list (option term)) : option term :=
   do s ← t, l' ← monad.sequence l, mfoldl mkAppAux s l'
 
-#check (λ (n:term), bot)
---#check mkApp (λ (n:term), bot) bot
-#eval mkApp (const (20 : ℕ) (arrow boolsort boolsort)) bot
-#eval mkAppN (const (21 : ℕ) (arrow boolsort (arrow boolsort boolsort))) [bot, bot]
-
-
 -- if-then-else
 def mkIteAux (c t₀ t₁ : term) : option term :=
   if (sortOf c) = some boolsort
@@ -339,9 +283,6 @@ def mkIteAux (c t₀ t₁ : term) : option term :=
 def mkIte : option term → option term → option term → option term :=
   bind3 mkIteAux
 
-#eval (mkIte (eq bot bot) bot top)
-
-
 -- negation
 def mkNot : option term → option term :=
   flip option.bind $
@@ -352,14 +293,6 @@ def mkNotSimp : option term → option term
 | (some t)        := mkNot (some t)
 | _                      := none
 
--- Notice mkNotSimp performs double negation elimination
-#eval mkNot bot
-#eval mkNot top
-#eval mkNotSimp bot
-#eval mkNotSimp top
-#eval mkNotSimp (mkNotSimp (mkNotSimp top))
-
-
 /- term constructors for binary and n-ary terms. `test` is the predicate on the sort of
    the arguments that needs to be satisfied -/
 def constructBinaryTerm (constructor : term → term → term) (test : sort → sort → bool) :
@@ -368,7 +301,7 @@ def constructBinaryTerm (constructor : term → term → term) (test : sort → 
             do s₁ ← sortOf t₁, s₂ ← sortOf t₂,
                 if test s₁ s₂ then constructor t₁ t₂ else none
 
-def constructNaryTerm (constructor : term → term → term) (test : sort → sort → bool) : 
+def constructNaryTerm (constructor : term → term → term) (test : sort → sort → bool) :
   option term → list (option term) → option term :=
   λ ot₁ ots₂,
   let auxfxn : term → term → option term := (λ t₁ t₂,
@@ -415,18 +348,6 @@ def mkDistinct : list (option term) → option term :=
 
 def mkForall (p : ℕ) (obody : option term) : option term :=
   do body ← obody, (qforall p body)
-
-#eval mkEq top bot
-#eval mkIneq top bot
-#eval mkOr top (const 22 boolsort)
-#eval mkOrSimp top (const 22 boolsort)
-#eval mkOrSimp bot (const 22 boolsort)
-#eval mkOrN [const 20 boolsort, const 21 boolsort, const 23 boolsort]
-#eval mkAnd top bot
-#eval mkAndSimp top bot
-#eval mkAndN [const 20 boolsort, const 21 boolsort, const 23 boolsort]
-#eval mkImplies bot (const 20 boolsort)
-#eval mkXor top top
 
 -- retrieve the identifier of a constant
 def numOf : term → option ℕ
