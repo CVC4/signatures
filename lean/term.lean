@@ -338,7 +338,7 @@ def comp2 {α β γ δ : Type} (f : γ → δ) (g : α → β → γ) : α → �
 @[simp] def mkEq : option term → option term → option term :=
   constructBinaryTerm eq (λ s₁ s₂, s₁ = s₂)
 
-def mkIneq : option term → option term → option term :=
+def mkUneq : option term → option term → option term :=
   comp2 mkNot mkEq
 
 def mkOr : option term → option term → option term :=
@@ -364,7 +364,7 @@ def mkXor : option term → option term → option term :=
   constructBinaryTerm xor (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
 
 def mkDistinct : list (option term) → option term :=
-  λ ol, mkAndN $ list.map (function.uncurry mkIneq) (genAllPairs ol)
+  λ ol, mkAndN $ list.map (function.uncurry mkUneq) (genAllPairs ol)
 
 def mkForall (p : ℕ) (obody : option term) : option term :=
   do body ← obody, (qforall p body)

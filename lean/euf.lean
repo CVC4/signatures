@@ -23,7 +23,7 @@ constant symm : Π {t₁ t₂ : option term},
   thHolds (mkEq t₁ t₂) → thHolds (mkEq t₂ t₁)
 
 constant negSymm : Π {t₁ t₂ : option term},
-  thHolds (mkIneq t₁ t₂) → thHolds (mkIneq t₂ t₁)
+  thHolds (mkUneq t₁ t₂) → thHolds (mkUneq t₂ t₁)
 
 constant trans : Π {t₁ t₂ t₃ : option term},
   thHolds (mkEq t₁ t₂) → thHolds (mkEq t₂ t₃) → thHolds (mkEq t₁ t₃)

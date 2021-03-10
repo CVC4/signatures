@@ -31,5 +31,5 @@ def x₂ := const 52 s
 
 -- does not go through
 --noncomputable lemma wrong :
---  holds ([mkIneq x₁ x₂, mkIneq f x₂, mkEq (mkApp f x₂) (mkApp f x₂)]) :=
+--  holds ([mkUneq x₁ x₂, mkUneq f x₂, mkEq (mkApp f x₂) (mkApp f x₂)]) :=
 --    @smtcong f f a b

@@ -35,6 +35,7 @@ def reduceOr : option term → clause
 constant reorder (c₁ : clause) (perm : list ℕ) :
   holds c₁ → holds (list.map (monad.join ∘ c₁.nth) perm)
 
+
 -- clausal reasoning
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
   concatCl (remove n c₁) (remove (mkNot n) c₂)
