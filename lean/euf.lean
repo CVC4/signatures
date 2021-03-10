@@ -6,7 +6,7 @@ open rules
 
 namespace eufRules
 
-/-*************** congruence ***************-/
+/------------------ congruence ------------------/
 
 /-
             t₁ = t₂      t₁ ≠ t₂   

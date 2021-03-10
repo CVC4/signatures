@@ -144,8 +144,14 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
 -- check int is in range
 @[pattern] def bitOf : ℕ → term → term → term := λ n, toBinary $ cstr bvBitOfNum
   (arrow (bv n) (arrow intsort boolsort))
+@[pattern] def bvNot : ℕ → term → term := λ n, toUnary $ cstr bvNotNum
+  (arrow (bv n) (bv n))
 @[pattern] def bvEq : ℕ → term → term → term := λ n, toBinary $ cstr bvEqNum
   (arrow (bv n) (arrow (bv n) (boolsort)))
+@[pattern] def bvAnd : ℕ → term → term → term := λ n, toBinary $ cstr bvAndNum
+  (arrow (bv n) (arrow (bv n) (bv n)))
+@[pattern] def bvOr : ℕ → term → term → term := λ n, toBinary $ cstr bvOrNum
+  (arrow (bv n) (arrow (bv n) (bv n)))
 
 def natToString : ℕ → string
 | botNum := "⊥"
@@ -216,6 +222,16 @@ def sortOfAux : term → option sort
       boolsort
     else none
 | (bvEq n t₁ t₂) :=
+  do s₁ ← sortOfAux t₁, s₂ ← sortOfAux t₂,
+    if s₁ = (bv n) ∧ s₂ = (bv n) then
+      boolsort
+    else none
+| (bvAnd n t₁ t₂) :=
+  do s₁ ← sortOfAux t₁, s₂ ← sortOfAux t₂,
+    if s₁ = (bv n) ∧ s₂ = (bv n) then
+      boolsort
+    else none
+| (bvOr n t₁ t₂) :=
   do s₁ ← sortOfAux t₁, s₂ ← sortOfAux t₂,
     if s₁ = (bv n) ∧ s₂ = (bv n) then
       boolsort
