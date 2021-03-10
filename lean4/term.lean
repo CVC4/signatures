@@ -11,7 +11,7 @@ namespace proof
    Additionally, we have atomic sorts, parameterized by a nat, arrow
    for functional sorts, and bitvector sorts parameterized by their
    length -/
-inductive sort : Type where
+inductive sort  : Type where
 | dep : sort
 | atom : Nat → sort
 | arrow : sort → sort → sort
@@ -45,16 +45,16 @@ def intNum : Nat := boolNum + 1
 def sortToString : sort → String
 | dep => "blah"
 | atom n => toString n
-| arrow s1 s2 => "(" ++ (sortToString s1) ++ " → " ++ (sortToString s2) ++ ")"
-| (bv n) => "bv " ++ (toString n)
+| arrow s1 s2 => "(" ++ sortToString s1 ++ " → " ++ sortToString s2 ++ ")"
+| bv n => "bv " ++ toString n
 
 instance : ToString sort where toString := sortToString
 
 /- mkArrowN curries multi-argument types
    f : X₁ × X₂ × ... into
    f : X₁ → X₂ → ... -/
-def mkArrowN : List (Option sort) → (Option sort)
-| (some s)::t =>
+def mkArrowN : List (Option sort) → Option sort
+| some s::t =>
   match t with
   | [] => s
   | _ => mkArrowN t >>= fun x => arrow s x
@@ -63,17 +63,17 @@ def mkArrowN : List (Option sort) → (Option sort)
 end sort
 
 inductive value : Type where
-| bitvec : (List Bool) → value
+| bitvec : List Bool → value
 | integer : Int → value
 
 def bvToString : List Bool → String
 | [] => ""
-| (h :: t) => (if h then "1" else "0") ++ bvToString t
+| h :: t => (if h then "1" else "0") ++ bvToString t
 
 --set_option trace.eqn_compiler.elim_match true
 def valueToString : value → String
-| (value.bitvec l) => bvToString l
-| (value.integer i) => toString i
+| value.bitvec l => bvToString l
+| value.integer i => toString i
 
 instance: ToString value where toString := valueToString
 
@@ -90,16 +90,53 @@ inductive term : Type where
 
 namespace term
 
+infixl:20  " • " => app
+
 open sort
+open value
 
 -- Sort definitions
 def boolSort := sort.atom boolNum
 def intSort := sort.atom intNum
 
+-- Interpreted constants
 def botConst := const botNum boolSort
 def notConst := const notNum (arrow boolSort boolSort)
+def orConst := const orNum (arrow boolSort (arrow boolSort boolSort))
+def andConst := const andNum (arrow boolSort (arrow boolSort boolSort))
+def impliesConst := const impliesNum (arrow boolSort (arrow boolSort boolSort))
+def xorConst := const xorNum (arrow boolSort (arrow boolSort boolSort))
 
-def not : term → term := fun t => app (const notNum (arrow boolSort boolSort)) t
+def eqConst := const eqNum dep
+def fIteConst := const fIteNum dep
+
+def bitOfConst (n : Nat) :=
+  const bvBitOfNum (arrow (bv n) (arrow intSort boolSort))
+def bvEqConst (n : Nat) :=
+  const bvEqNum (arrow (bv n) (arrow (bv n) boolSort))
+
+-- macros for creating terms with interpreted constants
+def not : term → term := fun t => notConst • t
+def top : term := not botConst
+def or : term → term → term := fun t₁ t₂ => orConst • t₁ • t₂
+def and : term → term → term := fun t₁ t₂ => andConst • t₁ • t₂
+def implies : term → term → term := fun t₁ t₂ => impliesConst • t₁ • t₂
+def xor : term → term → term := fun t₁ t₂ => xorConst • t₁ • t₂
+
+def fIte : term → term → term → term := fun t₁ t₂ t₃ => fIteConst • t₁ • t₂ • t₃
+def eq : term → term → term := fun t₁ t₂ => eqConst • t₁ • t₂
+
+def bitOf : Nat → term → term → term := fun n t₁ t₂ => bitOfConst n • t₁ • t₂
+def bvEq : Nat → term → term → term := fun n t₁ t₂ => bvEqConst n • t₁ • t₂
+
+-- computing the sort of terms
+def sortOfAux : term → Option sort
+| val (integer i) _ => intSort
+| val (bitvec l) _ =>
+  do
+  let len ← List.length l
+  if len = 0 then none else bv len
+| _ => boolSort
 
 end term
 
