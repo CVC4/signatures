@@ -30,7 +30,10 @@ def reduceOrAux : term → clause
 def reduceOr : option term → clause
 | (some t) := reduceOrAux t
 | none     := [none]
-#eval reduceOr (mkOrN [top, bot, and top bot, bot])
+-- #eval reduceOr (mkOrN [top, bot, and top bot, bot])
+
+constant reorder (c₁ : clause) (perm : list ℕ) :
+  holds c₁ → holds (list.map (monad.join ∘ c₁.nth) perm)
 
 -- clausal reasoning
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
@@ -173,13 +176,13 @@ def mkNotList : clause → clause
 /-
 l₁ ∧ ... ∧ lₖ     1 ≤ n ≤ k             ¬(x₁ ∧ ... ∧ xₙ)
 ----------------------------cnfAndPos   ----------------cnfAndNeg
-             lᵢ                          ¬x₁ ∨ ... ∨ ¬xₙ 
+             lᵢ                          ¬x₁ ∨ ... ∨ ¬xₙ
 -/
 constant cnfAndPos {l : clause} {n : ℕ} : holds [mkNot $ mkAndN l, nTh l n]
 constant cnfAndNeg {l : clause} : holds $ mkAndN l :: mkNotList l
 
 /-
-x₁ ∨ ... ∨ xₙ           ¬(l₁ ∨ ... ∨ lₖ)     1 ≤ n ≤ k 
+x₁ ∨ ... ∨ xₙ           ¬(l₁ ∨ ... ∨ lₖ)     1 ≤ n ≤ k
 -------------cnfOrPos   ------------------------------cnfOrNeg
 x₁ ∨ ... ∨ xₙ                         ¬lᵢ
 -/
@@ -193,7 +196,7 @@ t₁ → t₂  t₁                 ¬(t₁ → t₂)                ¬(t₁ →
 -/
 constant cnfImpliesPos {t₁ t₂ : option term} :
   holds [mkNot $ mkImplies t₁ t₂, mkNot t₁, t₂]
-constant cnfImpliesNeg1 {t₁ t₂ : option term} : 
+constant cnfImpliesNeg1 {t₁ t₂ : option term} :
 holds [mkImplies t₁ t₂, t₁]
 constant cnfImpliesNeg2 {t₁ t₂ : option term} :
   holds [mkImplies t₁ t₂, mkNot t₂]
@@ -215,7 +218,7 @@ constant cnEquivPos2 {t₁ t₂ : option term} :
 -/
 constant cnfEquivNeg1 {t₁ t₂ : option term} :
   holds [mkEq t₁ t₂, mkNot t₁, mkNot t₂]
-constant cnfEquivNeg2 {t₁ t₂ : option term} : 
+constant cnfEquivNeg2 {t₁ t₂ : option term} :
   holds [mkEq t₁ t₂, t₁, t₂]
 
 /-
@@ -223,7 +226,7 @@ t₁ ⊕ t₂  ¬t₁              t₁ ⊕ t₂  t₁
 ------------cnfXorPos1    -----------cnfXorPos2
      t₂                        ¬t₂
 -/
-constant cnfXorPos1 {t₁ t₂ : option term} : 
+constant cnfXorPos1 {t₁ t₂ : option term} :
   holds [mkNot $ mkXor t₁ t₂, t₁, t₂]
 constant cnfXorPos2 {t₁ t₂ : option term} :
   holds [mkNot $ mkXor t₁ t₂, mkNot t₁, mkNot t₂]
@@ -233,9 +236,9 @@ constant cnfXorPos2 {t₁ t₂ : option term} :
 ---------------cnfXorNeg1  --------------cnfXorNeg2
       ¬t₂                        ¬t₂
 -/
-constant cnfXorNeg1 {t₁ t₂ : option term} : 
+constant cnfXorNeg1 {t₁ t₂ : option term} :
   holds [mkXor t₁ t₂, t₁, mkNot t₂]
-constant cnfXorNeg2 {t₁ t₂ : option term} : 
+constant cnfXorNeg2 {t₁ t₂ : option term} :
   holds [mkXor t₁ t₂, mkNot t₁, t₂]
 
 /-
@@ -255,7 +258,7 @@ constant cnfItePos3 {c t₁ t₂ : option term} :
 ------------------cnfIteNeg1  ------------------cnfIteNeg2  ------------------cnfIteNeg3
        ¬t₁                            ¬t₁                           ¬t₂
 -/
-constant cnfIteNeg1 {c t₁ t₂ : option term} : 
+constant cnfIteNeg1 {c t₁ t₂ : option term} :
   holds [mkIte c t₁ t₂, c, mkNot t₁]
 constant cnfIteNeg2 {c t₁ t₂ : option term} :
   holds [mkIte c t₁ t₂, mkNot c, mkNot t₂]
