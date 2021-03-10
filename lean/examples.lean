@@ -23,6 +23,9 @@ constant c₁ : holds [l1, l2]
 constant c₂ : holds [mkNot l1, l2]
 
 #check rules.R0 c₁ c₂ l1
+#check ((reorder [1,0] c₁) : holds [l2,l1])
+#check ((reorder [1,2] c₁) : holds [l2, none])
+#check ((reorder [1,1,1] c₁) : holds [l2,l2,l2])
 
 def s := boolsort
 def f := const 50 (arrow s s)

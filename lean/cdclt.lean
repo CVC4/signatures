@@ -32,9 +32,8 @@ def reduceOr : option term → clause
 | none     := [none]
 -- #eval reduceOr (mkOrN [top, bot, and top bot, bot])
 
-constant reorder (c₁ : clause) (perm : list ℕ) :
+constant reorder {c₁ : clause} (perm : list ℕ) :
   holds c₁ → holds (list.map (monad.join ∘ c₁.nth) perm)
-
 
 -- clausal reasoning
 def resolveR₀ (n : option term) (c₁ c₂: clause) : clause :=
