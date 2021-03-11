@@ -77,6 +77,13 @@ checkBinaryBV ot₁ ot₂ const
 If ot₁ and ot₂ are BVs of the same length, then 
 construct a bitwise op of (const ot₁ ot₂)
 -/
+
+@[pattern] def mkBbT (n : ℕ) (l : option (list (option term))) : option term := 
+  match l with
+  | some l :=  mkAppN (bbT n) l
+  | none := none
+  end
+
 def checkBinaryBV : option term → option term → 
   (ℕ → term → term → term) → option term :=
   λ ot₁ ot₂ const, 
@@ -182,10 +189,9 @@ end proof
 
 constant cnfBvEq {t₁ t₂ : option term} : 
   holds [mkNot (proof.term.mkBvEq t₁ t₂), (proof.term.bblastBvEq t₁ t₂)]
-/-
-constant cnfBvAnd {t₁ t₂ : option term} : 
-  holds [mkNot (proof.term.mkBvAnd t₁ t₂), (proof.term.bblastBvAnd t₁ t₂)]
 
-constant cnfBvOr {t₁ t₂ : option term} : 
-  holds [mkNot (proof.term.mkBvOr t₁ t₂), (proof.term.bblastBvOr t₁ t₂)]
--/
+constant cnfBvOr {t₁ t₂ : option term} (n : ℕ): 
+  holds [mkNot (proof.term.mkBvOr t₁ t₂), (proof.term.mkBbT n (proof.term.bblastBvOr t₁ t₂))]
+
+constant cnfBvAnd {t₁ t₂ : option term} (n : ℕ): 
+  holds [mkNot (proof.term.mkBvOr t₁ t₂), (proof.term.mkBbT n (proof.term.bblastBvAnd t₁ t₂))]

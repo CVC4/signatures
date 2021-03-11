@@ -35,6 +35,7 @@ section
 @[pattern] def bvNotNum : ℕ := bvEqNum + 1
 @[pattern] def bvAndNum : ℕ := bvNotNum + 1
 @[pattern] def bvOrNum : ℕ := bvAndNum + 1
+@[pattern] def bbTNum : ℕ := bvOrNum + 1
 
 def boolNum  : ℕ := 0
 def intNum : ℕ := boolNum + 1
@@ -152,8 +153,8 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
   (arrow (bv n) (arrow (bv n) (bv n)))
 @[pattern] def bvOr : ℕ → term → term → term := λ n, toBinary $ cstr bvOrNum
   (arrow (bv n) (arrow (bv n) (bv n)))
-
-def bbTConst (n : ℕ) := const (bvOrNum + 1) (mkArrowN (list.append (list.repeat (some boolsort) n) [bv n]))
+@[pattern] def bbT (n : ℕ) := const bbTNum
+  (mkArrowN (list.append (list.repeat (some boolsort) n) [bv n]))
 
 def natToString : ℕ → string
 | botNum := "⊥"
@@ -287,7 +288,6 @@ def mkApp : option term → option term → option term := bind2 mkAppAux
 def mkAppN (t : option term) (l : list (option term)) : option term :=
   do s ← t, l' ← monad.sequence l, mfoldl mkAppAux s l'
 
-@[pattern] def bbT (n : ℕ) (l : list (option term)) : option term := mkAppN (bbTConst n) l
 
 -- if-then-else
 def mkIteAux (c t₀ t₁ : term) : option term :=
