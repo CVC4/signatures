@@ -78,8 +78,8 @@ mkBbT n l
 Construct a (bv n) term that is a bbT of the bools 
 in l
 -/
-@[pattern] def mkBbT (l : list (option term)) : option term := --mkAppN (bbT n) l
-let n := list.length l in mkAppN (bbT n) l
+@[pattern] def mkBbT (l : list (option term)) : option term :=
+  mkAppN (bbT (list.length l)) l
 #eval mkBbT ([some top, some top, some top, some top])
 
 /-
