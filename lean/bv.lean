@@ -87,9 +87,8 @@ def checkBinaryBV : option term → option term →
   end
 
 --For bv and and bv or
-/-
 def bblastBVBitwise : option term → option term → 
-  (option term → option term → option term ) → option term :=
+  (option term → option term → option term ) → option (list (option term)) :=
   λ ot₁ ot₂ const,
     do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
     match (s₁, s₂) with
@@ -97,11 +96,11 @@ def bblastBVBitwise : option term → option term →
       if (m = n) then (
         let l₁ := bitOfN t₁ m,
             l₂ := bitOfN t₂ m in
-             val (value.bitvec (zip l₁ l₂ const)) (bv m)
-      ) else some top
-    | (_, _) := some bot
+             some (zip l₁ l₂ const)
+      ) else none
+    | (_, _) := none
     end
--/
+
 -- BV equality
 
 -- If terms are well-typed, construct a BV Eq application
@@ -148,8 +147,8 @@ def mkBvAnd : option term → option term → option term :=
 
 -- If terms are well-typed, construct a bit-blasted BV and
 -- of them
-/-
-def bblastBvAnd : option term → option term → option term :=
+
+def bblastBvAnd : option term → option term → option (list (option term)) :=
   λ ot₁ ot₂, bblastBVBitwise ot₁ ot₂ mkAnd
 
 #eval bblastBvAnd (val (value.bitvec [false, false, false, false]) (bv 4))
@@ -157,7 +156,7 @@ def bblastBvAnd : option term → option term → option term :=
 #eval bblastBvAnd (const 21 (bv 4)) 
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvAnd (const 21 (bv 4)) (const 22 (bv 4))
--/
+
 
 -- BV Or
 
@@ -165,10 +164,10 @@ def bblastBvAnd : option term → option term → option term :=
 -- of them
 def mkBvOr : option term → option term → option term :=
   λ ot₁ ot₂, checkBinaryBV ot₁ ot₂ bvOr
-/-
+
 -- If terms are well-typed, construct a bit-blasted BV and
 -- of them
-def bblastBvOr : option term → option term → option term :=
+def bblastBvOr : option term → option term → option (list (option term)) :=
   λ ot₁ ot₂, bblastBVBitwise ot₁ ot₂ mkOr
 
 #eval bblastBvOr (val (value.bitvec [false, false, false, false]) (bv 4))
@@ -176,7 +175,7 @@ def bblastBvOr : option term → option term → option term :=
 #eval bblastBvOr (const 21 (bv 4)) 
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvOr (const 21 (bv 4)) (const 22 (bv 4))
--/
+
 end term
 
 end proof
