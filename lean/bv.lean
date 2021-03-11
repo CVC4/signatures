@@ -78,12 +78,9 @@ If ot₁ and ot₂ are BVs of the same length, then
 construct a bitwise op of (const ot₁ ot₂)
 -/
 
-@[pattern] def mkBbT (n : ℕ) (l : option (list (option term))) : option term := 
-  match l with
-  | some l :=  mkAppN (bbT n) l
-  | none := none
-  end
-#eval mkBbT 4 (some [some top, some top, some top, some top])
+@[pattern] def mkBbT (n : ℕ) (l : list (option term)) : option term := mkAppN (bbT n) l
+
+-- #eval mkBbT 4 (some [some top, some top, some top, some top])
 
 def checkBinaryBV : option term → option term → 
   (ℕ → term → term → term) → option term :=
@@ -102,20 +99,18 @@ and returns an option list of option terms that
 has the bitwise application of const to the 
 respective elements of ot₁ and ot₂
 -/
-def bblastBvBitwise : option term → option term → 
-  (option term → option term → option term ) → option (list (option term)) :=
-  λ ot₁ ot₂ const,
-    do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
+def bblastBvBitwise (ot₁ ot₂ : option term)
+ (constructor : option term → option term → option term) : option term :=
+    do t₁ : term ← ot₁, t₂ : term ← ot₂, s₁ : sort ← sortOf ot₁, s₂ : sort ← sortOf ot₂,
     match (s₁, s₂) with
     |  (bv m, bv n) := 
-      if (m = n) then (
+          if (m = n) then
         let l₁ := bitOfN t₁ m,
             l₂ := bitOfN t₂ m in
-             some (zip l₁ l₂ const)
-      ) else none
+                  mkBbT n (zip l₁ l₂ constructor)
+          else none
     | (_, _) := none
     end
-
 
 -- BV equality
 
@@ -165,17 +160,15 @@ def mkBvNot : option term → option term :=
   end
 
 -- If term is a BV, construct a bit-blasted BV Not
-def bblastBvNot : option term → option (list (option term)) :=
-  λ ot, do t ← ot, s ← sortOf t,
+def bblastBvNot (ot : option term) : option term :=
+  do t ← ot, s ← sortOf t,
     match s with
-    |  bv n := let l := bitOfN t n in
-             some (list.map mkNot l)
+    | bv n := let l := bitOfN t n in mkBbT n (list.map mkNot l)
     | _ := none
     end
 
 #eval bblastBvNot (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvNot (const 21 (bv 4)) 
-
 
 -- BV And
 
@@ -186,7 +179,7 @@ def mkBvAnd : option term → option term → option term :=
 
 -- If terms are well-typed, construct a bit-blasted BV and
 -- of them
-def bblastBvAnd : option term → option term → option (list (option term)) :=
+def bblastBvAnd : option term → option term → option term :=
   λ ot₁ ot₂, bblastBvBitwise ot₁ ot₂ mkAnd
 
 #eval bblastBvAnd (val (value.bitvec [false, false, false, false]) (bv 4))
@@ -205,7 +198,7 @@ def mkBvOr : option term → option term → option term :=
 
 -- If terms are well-typed, construct a bit-blasted BV and
 -- of them
-def bblastBvOr : option term → option term → option (list (option term)) :=
+def bblastBvOr : option term → option term → option term :=
   λ ot₁ ot₂, bblastBvBitwise ot₁ ot₂ mkOr
 
 #eval bblastBvOr (val (value.bitvec [false, false, false, false]) (bv 4))
@@ -214,18 +207,19 @@ def bblastBvOr : option term → option term → option (list (option term)) :=
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvOr (const 21 (bv 4)) (const 22 (bv 4))
 
+constant bbBvEq {t₁ t₂ : option term} :
+  thHolds (mkEq (mkBvEq t₁ t₂) (bblastBvEq t₁ t₂))
+
+constant bbBvNot {t : option term} :
+  thHolds (mkEq (mkBvNot t) (bblastBvNot t))
+
+
+constant bbBvOr {t₁ t₂ : option term}:
+  thHolds (mkEq (mkBvOr t₁ t₂) (bblastBvOr t₁ t₂))
+
+constant bbBvAnd {t₁ t₂ : option term}:
+  thHolds (mkEq (mkBvOr t₁ t₂) (bblastBvAnd t₁ t₂))
+
 end term
 
 end proof
-
-constant cnfBvEq {t₁ t₂ : option term} : 
-  holds [mkNot (proof.term.mkBvEq t₁ t₂), (proof.term.bblastBvEq t₁ t₂)]
-
-constant cnfBvNot {t : option term} (n : ℕ) :
-  holds [mkNot (proof.term.mkBvNot t), (proof.term.mkBbT n (proof.term.bblastBvNot t))]
-
-constant cnfBvOr {t₁ t₂ : option term} (n : ℕ): 
-  holds [mkNot (proof.term.mkBvOr t₁ t₂), (proof.term.mkBbT n (proof.term.bblastBvOr t₁ t₂))]
-
-constant cnfBvAnd {t₁ t₂ : option term} (n : ℕ): 
-  holds [mkNot (proof.term.mkBvOr t₁ t₂), (proof.term.mkBbT n (proof.term.bblastBvAnd t₁ t₂))]
