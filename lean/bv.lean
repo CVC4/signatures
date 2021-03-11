@@ -78,8 +78,9 @@ mkBbT n l
 Construct a (bv n) term that is a bbT of the bools 
 in l
 -/
-@[pattern] def mkBbT (n : ℕ) (l : list (option term)) : option term := mkAppN (bbT n) l
-#eval mkBbT 4 ([some top, some top, some top, some top])
+@[pattern] def mkBbT (l : list (option term)) : option term := --mkAppN (bbT n) l
+let n := list.length l in mkAppN (bbT n) l
+#eval mkBbT ([some top, some top, some top, some top])
 
 /-
 checkBinaryBV ot₁ ot₂ constr
@@ -111,7 +112,7 @@ def bblastBvBitwise (ot₁ ot₂ : option term)
           if (m = n) then
             let l₁ := bitOfN t₁ m,
                 l₂ := bitOfN t₂ m in
-                  mkBbT n (zip l₁ l₂ constructor)
+                  mkBbT (zip l₁ l₂ constructor)
           else none
       | (_, _) := none
       end
@@ -181,7 +182,7 @@ If term is a BV, construct a bit-blasted BV Not
 def bblastBvNot (ot : option term) : option term :=
   do t ← ot, s ← sortOf t,
     match s with
-    | bv n := let l := bitOfN t n in mkBbT n (list.map mkNot l)
+    | bv n := let l := bitOfN t n in mkBbT (list.map mkNot l)
     | _ := none
     end
 
@@ -247,16 +248,15 @@ def bblastBvOr : option term → option term → option term :=
 #eval bblastBvOr (const 21 (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvOr (const 21 (bv 4)) (const 22 (bv 4))
-#eval mkBbT 4 (bitOfN (val (value.bitvec [true, true, true, true]) (bv 4)) 4)
+#eval mkBbT (bitOfN (val (value.bitvec [true, true, true, true]) (bv 4)) 4)
 
 -- Bit-blasting BvOr rule
 constant bbBvOr {t₁ t₂ : option term} :
   thHolds (mkEq (mkBvOr t₁ t₂) (bblastBvOr t₁ t₂))
 
-
 /--------------------------------------- Comparison Operators ---------------------------------------/
 
-/---------------------
+/- -------------------
  BV unsigned less than
 ----------------------/
 
