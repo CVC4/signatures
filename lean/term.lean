@@ -31,11 +31,12 @@ section
 @[pattern] def eqNum      : ℕ := fIteNum + 1
 @[pattern] def forallNum  : ℕ := eqNum + 1
 @[pattern] def bvBitOfNum : ℕ := forallNum + 1
-@[pattern] def bvEqNum : ℕ := bvBitOfNum + 1
+@[pattern] def bvBbTNum : ℕ := bvBitOfNum + 1
+@[pattern] def bvEqNum : ℕ := bvBbTNum + 1
 @[pattern] def bvNotNum : ℕ := bvEqNum + 1
 @[pattern] def bvAndNum : ℕ := bvNotNum + 1
 @[pattern] def bvOrNum : ℕ := bvAndNum + 1
-@[pattern] def bbTNum : ℕ := bvOrNum + 1
+@[pattern] def bvUltNum : ℕ := bvOrNum + 1
 
 def boolNum  : ℕ := 0
 def intNum : ℕ := boolNum + 1
@@ -145,6 +146,8 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
 -- check int is in range
 @[pattern] def bitOf : ℕ → term → term → term := λ n, toBinary $ cstr bvBitOfNum
   (arrow (bv n) (arrow intsort boolsort))
+@[pattern] def bbT (n : ℕ) := const bvBbTNum
+  (mkArrowN (list.append (list.repeat (some boolsort) n) [bv n]))
 @[pattern] def bvNot : ℕ → term → term := λ n, toUnary $ cstr bvNotNum
   (arrow (bv n) (bv n))
 @[pattern] def bvEq : ℕ → term → term → term := λ n, toBinary $ cstr bvEqNum
@@ -153,8 +156,8 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
   (arrow (bv n) (arrow (bv n) (bv n)))
 @[pattern] def bvOr : ℕ → term → term → term := λ n, toBinary $ cstr bvOrNum
   (arrow (bv n) (arrow (bv n) (bv n)))
-@[pattern] def bbT (n : ℕ) := const bbTNum
-  (mkArrowN (list.append (list.repeat (some boolsort) n) [bv n]))
+@[pattern] def bvUlt : ℕ → term → term → term := λ n, toBinary $ cstr bvUltNum
+  (arrow (bv n) (arrow (bv n) (boolsort)))
 
 def natToString : ℕ → string
 | botNum := "⊥"
@@ -168,11 +171,12 @@ def natToString : ℕ → string
 | eqNum := "≃"
 | forallNum := "∀"
 | bvBitOfNum := "[ ]"
+| bvBbTNum := "bbT"
 | bvEqNum := "≃bv"
 | bvNotNum := "¬bv"
 | bvAndNum := "∧bv"
 | bvOrNum := "∨bv"
-| bbTNum := "bbT"
+| bvUltNum := "<ᵤ"
 | x := repr x
 
 def termToString : term → string
@@ -187,6 +191,7 @@ def termToString : term → string
 | ((const bvEqNum _) • t1 • t2) := termToString t1 ++ " ≃bv " ++ termToString t2
 | ((const bvOrNum _) • t1 • t2) := termToString t1 ++ " ∨bv " ++ termToString t2
 | ((const bvAndNum _) • t1 • t2) := termToString t1 ++ " ∧bv " ++ termToString t2
+| ((const bvUltNum _) • t1 • t2) := termToString t1 ++ " <ᵤ " ++ termToString t2
 | (const name _) := natToString name
 | (app (const notNum _) t) := "¬ " ++ termToString t
 | (app (const bvNotNum _) t) := "¬bv " ++ termToString t

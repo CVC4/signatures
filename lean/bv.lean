@@ -213,6 +213,49 @@ def bblastBvOr : option term → option term → option (list (option term)) :=
 #eval bblastBvOr (const 21 (bv 4)) 
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvOr (const 21 (bv 4)) (const 22 (bv 4))
+#eval mkBbT 4 (bblastBvOr (const 21 (bv 4)) (const 22 (bv 4)))
+
+
+-- BV unsigned less than
+
+-- If terms are well-typed, construct a BV Eq application
+-- of them
+def mkBvUlt : option term → option term → option term :=
+  λ ot₁ ot₂, checkBinaryBV ot₁ ot₂ bvUlt
+
+/-
+bblastBvEq ot₁ ot₂
+If ot₁ and ot₂ are BVs of the same length, 
+then return a boolean term that represents 
+the bit-blasted equality of ot₁ and ot₂
+
+[x₀ x₁ ... xₙ] = [y₀ y₁ ... yₙ]
+-------------------------------
+    x₀ = y₀ ∧ ... ∧ xₙ = yₙ
+-/
+def boolListUlt : list (option term) → list (option term) → option term
+| [h₁] [h₂] := mkAnd (mkNot h₁) h₂
+| (h₁ :: t₁) (h₂ :: t₂) := (mkOr (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)) (mkAnd (mkNot h₁) h₂))
+| _ _ := none
+
+def bblastBvUlt : option term → option term → option term :=
+  λ ot₁ ot₂,
+    do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
+    match (s₁, s₂) with
+    |  (bv m, bv n) := 
+      if (m = n) then (
+        let l₁ := list.reverse (bitOfN t₁ m),
+            l₂ := list.reverse (bitOfN t₂ m) in
+            boolListUlt l₁ l₂
+      ) else some top
+    | (_, _) := some bot
+    end
+
+#eval bblastBvUlt (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastBvUlt (const 21 (bv 4)) 
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvUlt (const 21 (bv 4)) (const 22 (bv 4))
 
 end term
 
@@ -220,6 +263,9 @@ end proof
 
 constant cnfBvEq {t₁ t₂ : option term} : 
   holds [mkNot (proof.term.mkBvEq t₁ t₂), (proof.term.bblastBvEq t₁ t₂)]
+
+constant cnfBvUlt {t₁ t₂ : option term} : 
+  holds [mkNot (proof.term.mkBvEq t₁ t₂), (proof.term.bblastBvUlt t₁ t₂)]
 
 constant cnfBvNot {t : option term} (n : ℕ) :
   holds [mkNot (proof.term.mkBvNot t), (proof.term.mkBbT n (proof.term.bblastBvNot t))]
