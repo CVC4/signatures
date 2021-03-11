@@ -173,6 +173,9 @@ def bblastBvNot : option term → option (list (option term)) :=
     | _ := none
     end
 
+#eval bblastBvNot (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvNot (const 21 (bv 4)) 
+
 
 -- BV And
 
@@ -220,7 +223,7 @@ constant cnfBvEq {t₁ t₂ : option term} :
 
 constant cnfBvNot {t : option term} (n : ℕ) :
   holds [mkNot (proof.term.mkBvNot t), (proof.term.mkBbT n (proof.term.bblastBvNot t))]
-  
+
 constant cnfBvOr {t₁ t₂ : option term} (n : ℕ): 
   holds [mkNot (proof.term.mkBvOr t₁ t₂), (proof.term.mkBbT n (proof.term.bblastBvOr t₁ t₂))]
 
