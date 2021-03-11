@@ -172,6 +172,7 @@ def natToString : ℕ → string
 | bvNotNum := "¬bv"
 | bvAndNum := "∧bv"
 | bvOrNum := "∨bv"
+| bbTNum := "bbT"
 | x := repr x
 
 def termToString : term → string

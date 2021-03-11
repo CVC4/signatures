@@ -83,6 +83,7 @@ construct a bitwise op of (const ot₁ ot₂)
   | some l :=  mkAppN (bbT n) l
   | none := none
   end
+#eval mkBbT 4 (some [some top, some top, some top, some top])
 
 def checkBinaryBV : option term → option term → 
   (ℕ → term → term → term) → option term :=
@@ -93,8 +94,15 @@ def checkBinaryBV : option term → option term →
   | (_, _) := none
   end
 
---For bv and and bv or
-def bblastBVBitwise : option term → option term → 
+-- For BVAnd and BVOR
+/- 
+bblastBvBitwise ot₁ ot₂ const
+checks that ot₁ and ot₂ are BVs of the same length
+and returns an option list of option terms that 
+has the bitwise application of const to the 
+respective elements of ot₁ and ot₂
+-/
+def bblastBvBitwise : option term → option term → 
   (option term → option term → option term ) → option (list (option term)) :=
   λ ot₁ ot₂ const,
     do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
@@ -107,6 +115,7 @@ def bblastBVBitwise : option term → option term →
       ) else none
     | (_, _) := none
     end
+
 
 -- BV equality
 
@@ -145,6 +154,26 @@ def bblastBvEq : option term → option term → option term :=
 #eval bblastBvEq (const 21 (bv 4)) (const 22 (bv 4))
 
 
+-- BV Not
+
+-- If term is a BV, construct a BV Not application
+def mkBvNot : option term → option term :=
+  λ ot, do t ← ot, s ← sortOf t,
+  match s with
+  | bv n := bvNot n t
+  | _ := none
+  end
+
+-- If term is a BV, construct a bit-blasted BV Not
+def bblastBvNot : option term → option (list (option term)) :=
+  λ ot, do t ← ot, s ← sortOf t,
+    match s with
+    |  bv n := let l := bitOfN t n in
+             some (list.map mkNot l)
+    | _ := none
+    end
+
+
 -- BV And
 
 -- If terms are well-typed, construct a BV And application
@@ -154,9 +183,8 @@ def mkBvAnd : option term → option term → option term :=
 
 -- If terms are well-typed, construct a bit-blasted BV and
 -- of them
-
 def bblastBvAnd : option term → option term → option (list (option term)) :=
-  λ ot₁ ot₂, bblastBVBitwise ot₁ ot₂ mkAnd
+  λ ot₁ ot₂, bblastBvBitwise ot₁ ot₂ mkAnd
 
 #eval bblastBvAnd (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
@@ -175,7 +203,7 @@ def mkBvOr : option term → option term → option term :=
 -- If terms are well-typed, construct a bit-blasted BV and
 -- of them
 def bblastBvOr : option term → option term → option (list (option term)) :=
-  λ ot₁ ot₂, bblastBVBitwise ot₁ ot₂ mkOr
+  λ ot₁ ot₂, bblastBvBitwise ot₁ ot₂ mkOr
 
 #eval bblastBvOr (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
@@ -190,6 +218,9 @@ end proof
 constant cnfBvEq {t₁ t₂ : option term} : 
   holds [mkNot (proof.term.mkBvEq t₁ t₂), (proof.term.bblastBvEq t₁ t₂)]
 
+constant cnfBvNot {t : option term} (n : ℕ) :
+  holds [mkNot (proof.term.mkBvNot t), (proof.term.mkBbT n (proof.term.bblastBvNot t))]
+  
 constant cnfBvOr {t₁ t₂ : option term} (n : ℕ): 
   holds [mkNot (proof.term.mkBvOr t₁ t₂), (proof.term.mkBbT n (proof.term.bblastBvOr t₁ t₂))]
 
