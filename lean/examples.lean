@@ -23,6 +23,9 @@ constant c₁ : holds [l1, l2]
 constant c₂ : holds [mkNot l1, l2]
 
 #check rules.R0 c₁ c₂ l1
+#check ((reorder [1,0] c₁) : holds [l2,l1])
+#check ((reorder [1,2] c₁) : holds [l2, none])
+#check ((reorder [1,1,1] c₁) : holds [l2,l2,l2])
 
 def s := boolsort
 def f := const 50 (arrow s s)
@@ -31,5 +34,5 @@ def x₂ := const 52 s
 
 -- does not go through
 --noncomputable lemma wrong :
---  holds ([mkIneq x₁ x₂, mkIneq f x₂, mkEq (mkApp f x₂) (mkApp f x₂)]) :=
+--  holds ([mkUneq x₁ x₂, mkUneq f x₂, mkEq (mkApp f x₂) (mkApp f x₂)]) :=
 --    @smtcong f f a b

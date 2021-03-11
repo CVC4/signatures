@@ -153,6 +153,8 @@ def cstr (p : ℕ) (s : sort): term := const p (some s)
 @[pattern] def bvOr : ℕ → term → term → term := λ n, toBinary $ cstr bvOrNum
   (arrow (bv n) (arrow (bv n) (bv n)))
 
+def bbTConst (n : ℕ) := const (bvOrNum + 1) (mkArrowN (list.append (list.repeat (some boolsort) n) [bv n]))
+
 def natToString : ℕ → string
 | botNum := "⊥"
 | notNum := "¬"
@@ -285,6 +287,8 @@ def mkApp : option term → option term → option term := bind2 mkAppAux
 def mkAppN (t : option term) (l : list (option term)) : option term :=
   do s ← t, l' ← monad.sequence l, mfoldl mkAppAux s l'
 
+@[pattern] def bbT (n : ℕ) (l : list (option term)) : option term := mkAppN (bbTConst n) l
+
 -- if-then-else
 def mkIteAux (c t₀ t₁ : term) : option term :=
   if (sortOf c) = some boolsort
@@ -334,7 +338,7 @@ def comp2 {α β γ δ : Type} (f : γ → δ) (g : α → β → γ) : α → �
 @[simp] def mkEq : option term → option term → option term :=
   constructBinaryTerm eq (λ s₁ s₂, s₁ = s₂)
 
-def mkIneq : option term → option term → option term :=
+def mkUneq : option term → option term → option term :=
   comp2 mkNot mkEq
 
 def mkOr : option term → option term → option term :=
@@ -360,7 +364,7 @@ def mkXor : option term → option term → option term :=
   constructBinaryTerm xor (λ s₁ s₂, s₁ = boolsort ∧ s₂ = boolsort)
 
 def mkDistinct : list (option term) → option term :=
-  λ ol, mkAndN $ list.map (function.uncurry mkIneq) (genAllPairs ol)
+  λ ol, mkAndN $ list.map (function.uncurry mkUneq) (genAllPairs ol)
 
 def mkForall (p : ℕ) (obody : option term) : option term :=
   do body ← obody, (qforall p body)
