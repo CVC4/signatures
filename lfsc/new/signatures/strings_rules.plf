@@ -55,5 +55,7 @@
 
 (declare string_reduction (! r term (! t term (! u (^ (sc_string_reduction t) r)
   (holds (and r (and (= t (skolem t)) true)))))))))
+(declare string_eager_reduction (! r term (! t term (! u (^ (sc_string_eager_reduction t) r)
+  (holds r)))))
 
 (declare re_unfold_pos (! t term (! r term (! s term (! f (holds (str.in_re t r)) (! u (^ (sc_re_unfold_pos t r) s) (holds s)))))))
