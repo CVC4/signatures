@@ -1,6 +1,6 @@
 import term
 import aux
-import cdclt 
+import cdclt
 
 open proof
 open proof.sort proof.term
@@ -13,30 +13,25 @@ namespace term
 -- For equation compiler related debugging:
 --set_option trace.eqn_compiler.elim_match true
 
--- sort definition
+
+-- bit-vector sort definition
 @[pattern] def bvsort := sort.bv
 
--- Check that both terms have the same BV type
-@[simp] def mkBvEq : option term → option term → option term :=
-  λ ot₁ ot₂, 
-  do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,
-  match (s₁, s₂) with
-  | (bv m, bv n) := if (m = n) then (bvEq m t₁ t₂) else none
-  | (_, _) := none
-  end
+
+/--------------------------------------- Bit Of ---------------------------------------/
 
 /- mkBitOf bv n, returns the nth element
    of bv if it exists; none otherwise -/
 def mkBitOf : option term → option term → option term :=
-λ ot₁ ot₂, do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,  
+λ ot₁ ot₂, do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
 match (s₁, s₂) with
-| (bv n, intsort) := 
+| (bv n, intsort) :=
   match t₂ with
-  -- integer index has to be an in-range value 
+  -- integer index has to be an in-range value
   | val (value.integer i) _ := if (i >= 0 ∧ i < n) then
     (match t₁ with
     -- BV can be a constant
-    | val (value.bitvec l) _ := 
+    | val (value.bitvec l) _ :=
         match (list.nth l (int.to_nat i)) with
         | some b := if b then top else bot
         | none := none
@@ -48,22 +43,6 @@ match (s₁, s₂) with
   end
 | (_, _) := none
 end
-
-/-
-def mkBitOf : term → ℕ → option term :=
-λ t m, do s ← sortof t, 
-match s with
-| bv n := if (m < n) then
-  (match t with
-  | val (value.bitvec l) s := 
-    (match (list.nth l m) with
-    | some b := if b then top else bot
-    | none := none
-    end)
-  | _ := bitOf n t (val (value.integer m) (bv n))
-  end) else none
-| _ := none
-end-/
 #eval mkBitOf (val (value.bitvec [true, false, true, false]) (bv 4)) (val (value.integer 0) intsort)
 #eval mkBitOf (val (value.bitvec [true, false, true, false]) (bv 4)) (val (value.integer 1) intsort)
 #eval mkBitOf (val (value.bitvec [true, false, true, false]) (bv 4)) (val (value.integer 4) intsort)
@@ -74,34 +53,95 @@ end-/
 /- bitOfN t n
    bit-blasts a BV constant or variable.
    t is the BV term and n is its length.
-   bitOfN t n returns a list of length n 
+   bitOfN t n returns a list of length n
    with option terms representing each bit.
 -/
-def bitOfN_aux : term → ℕ → ℕ → list (option term)
+def bitOfNAux : term → ℕ → ℕ → list (option term)
 | t 0 _ := []
-| t (n₁+1) n₂ := (mkBitOf t (val (value.integer (n₂ - n₁ - 1)) intsort)) :: (bitOfN_aux t n₁ n₂)
+| t (n₁+1) n₂ := (mkBitOf t (val (value.integer (n₂ - n₁ - 1)) intsort)) :: (bitOfNAux t n₁ n₂)
 def bitOfN : term → ℕ → list (option term) :=
-  λ t n, bitOfN_aux t n n
+  λ t n, bitOfNAux t n n
 
 #eval bitOfN (const 21 (bv 4)) 4
 #eval bitOfN (val (value.bitvec [true, true, true, false]) (bv 4)) 4
 /- The following bad calls create bad bit-blasted terms
-   because the nat argument to bitOfN and the length 
+   because the nat argument to bitOfN and the length
    of the BV term don't match.-/
 #eval bitOfN (const 21 (bv 3)) 4
 #eval bitOfN (val (value.bitvec [true, true, true, false]) (bv 4)) 3
 
+
+/--------------------------------------- Bitwise Operators ---------------------------------------/
+
 /-
-Given option terms t₁ and t₂ of type (bv n), 
-bblastBvEq t₁ t₂ returns an option term representing 
-the bit-blasted version of their equality, which is a 
-conjunction of the equality of their corresponding bits.
+mkBbT n l
+Construct a (bv n) term that is a bbT of the bools 
+in l
+-/
+@[pattern] def mkBbT (l : list (option term)) : option term :=
+  mkAppN (bbT (list.length l)) l
+#eval mkBbT ([some top, some top, some top, some top])
+
+/-
+checkBinaryBV ot₁ ot₂ constr
+If ot₁ and ot₂ are BVs of the same length, then
+construct a bitwise op of (constr ot₁ ot₂)
+-/
+def checkBinaryBV : option term → option term →
+  (ℕ → term → term → term) → option term :=
+  λ ot₁ ot₂ constr,
+  do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
+  match (s₁, s₂) with
+  | (bv m, bv n) := if (m = n) then (constr m t₁ t₂) else none
+  | (_, _) := none
+  end
+
+-- For BVAnd and BVOr
+/-
+bblastBvBitwise ot₁ ot₂ const
+checks that ot₁ and ot₂ are BVs of the same length
+and returns an option list of option terms that
+has the bitwise application of const to the
+respective elements of ot₁ and ot₂
+-/
+def bblastBvBitwise (ot₁ ot₂ : option term)
+ (constructor : option term → option term → option term) : option term :=
+    do t₁ : term ← ot₁, t₂ : term ← ot₂, s₁ : sort ← sortOf ot₁, s₂ : sort ← sortOf ot₂,
+      match (s₁, s₂) with
+      |  (bv m, bv n) :=
+          if (m = n) then
+            let l₁ := bitOfN t₁ m,
+                l₂ := bitOfN t₂ m in
+                  mkBbT (zip l₁ l₂ constructor)
+          else none
+      | (_, _) := none
+      end
+
+
+/------------
+ BV equality
+------------/
+
+-- If terms are well-typed, construct a BV Eq application
+-- of them
+def mkBvEq : option term → option term → option term :=
+  λ ot₁ ot₂, checkBinaryBV ot₁ ot₂ bvEq
+
+/-
+bblastBvEq ot₁ ot₂
+If ot₁ and ot₂ are BVs of the same length,
+then return a boolean term that represents
+the bit-blasted equality of ot₁ and ot₂
+
+[x₀, x₁, ... , xₙ] = [y₀, y₁, ... , yₙ]
+---------------------------------------
+       x₀ = y₀ ∧ ... ∧ xₙ = yₙ
 -/
 def bblastBvEq : option term → option term → option term :=
   λ ot₁ ot₂,
-    do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortof t₁, s₂ ← sortof t₂,
+    do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
     match (s₁, s₂) with
-    |  (bv m, bv n) := 
+    |  (bv m, bv n) :=
       if (m = n) then (
         let l₁ := bitOfN t₁ m,
             l₂ := bitOfN t₂ m in
@@ -109,155 +149,172 @@ def bblastBvEq : option term → option term → option term :=
       ) else some top
     | (_, _) := some bot
     end
+
 #eval bblastBvEq (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval bblastBvEq (const 21 (bv 4)) 
+#eval bblastBvEq (const 21 (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
-
-#eval (bitOfN (val (value.bitvec [false, false, false, false]) (bv 4)) 4)
-#eval (bitOfN (const 21 (bv 4)) 4)
-#eval sortof (bitOf 4 (const 21 (bv 4)) (val (value.integer 0) intsort))
-#eval sortof (bitOf 4 (val (value.bitvec [false, false, false, false]) (bv 4))
-             (val (value.integer 0) intsort))
-#eval zip (bitOfN (const 21 (bv 4)) 4)
-          (bitOfN (val (value.bitvec [false, false, false, false]) (bv 4)) 4)
-          mkEq
 #eval bblastBvEq (const 21 (bv 4)) (const 22 (bv 4))
 
+-- Bit-blasting BvEq rule
+constant bbBvEq {t₁ t₂ : option term} :
+  thHolds (mkEq (mkBvEq t₁ t₂) (bblastBvEq t₁ t₂))
+
+
+/------------
+ BV not
+------------/
+
+-- If term is a BV, construct a BV Not application
+def mkBvNot : option term → option term :=
+  λ ot, do t ← ot, s ← sortOf t,
+  match s with
+  | bv n := bvNot n t
+  | _ := none
+  end
+
 /-
-@[pattern] def mkBvNot : ℕ → term → term := 
-  λ (n : ℕ), 
-  toUnary $ cstr bvNotNum (arrow (bvsort n) (bvsort n))
-
-def bvNot : list bool → list bool := 
-  λ b, list.map bnot b
-
-def bvAnd : list bool → list bool → list bool := 
-  λ b1 b2, if (list.length b1 = list.length b2) then (list.map₂ band b1 b2) else []
-
-def bvOr : list bool → list bool → list bool :=
-  λ b1 b2, if (list.length b1 = list.length b2) then (list.map₂ bor b1 b2) else []
-  
-def mkBvNot2 : option term → option term :=
-  flip option.bind $
-    λ t, do s ← sortof t, 
+If term is a BV, construct a bit-blasted BV Not
+¬bv [x₀, x₁, ... , xₙ]
+----------------------
+ [¬x₀, ¬x₁, ... , ¬x]
+-/
+def bblastBvNot (ot : option term) : option term :=
+  do t ← ot, s ← sortOf t,
     match s with
-    | bv n := 
-      match t with
-      | val (value.bitvec b) s := some (val (value.bitvec (bvNot b)) s)
-      | _ := none
-      end
+    | bv n := let l := bitOfN t n in mkBbT (list.map mkNot l)
     | _ := none
     end
 
-inductive bblast_term : Type
-| bvconst : ℕ → list term → term → bblast_term 
-| ill_formed : bblast_term
+#eval bblastBvNot (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvNot (const 21 (bv 4))
 
-def check_bv_const : list term → list bool → bool
-  | (bot :: t1) (false :: t2) := check_bv_const t1 t2
-  | (top :: t1) (true :: t2) := check_bv_const t1 t2
-  | _ _ := false
+-- Bit-blasting BvNot rule
+constant bbBvNot {t : option term} :
+  thHolds (mkEq (mkBvNot t) (bblastBvNot t))
 
-@[pattern] def mk_bvconst : ℕ → list term → term → bblast_term :=
-  λ (n : ℕ) (f : list term) (b : term), 
-  match (f,b) with 
-    | (fl,  val (value.bitvec bl) s) := 
-      if check_bv_const fl bl then 
-        bblast_term.bvconst n f b
-      else 
-        bblast_term.ill_formed
-  | _ := bblast_term.ill_formed
-  end
 
-constant bvconst {n : ℕ} {l : list term} {t : term} {b : bblast_term}
+/------------
+ BV and
+------------/
+
+-- If terms are well-typed, construct a BV And application
+-- of them
+def mkBvAnd : option term → option term → option term :=
+  λ ot₁ ot₂, checkBinaryBV ot₁ ot₂ bvAnd
+
+/-
+If terms are well-typed, construct a bit-blasted BV and
+of them
+[x₀ x₁ ... xₙ] ∧bv [y₀ y₁ ... yₙ]
+---------------------------------
+ [x₀ ∧ y₀, x₁ ∧ x₂, ... xₙ ∧ yₙ]
+-/
+def bblastBvAnd : option term → option term → option term :=
+  λ ot₁ ot₂, bblastBvBitwise ot₁ ot₂ mkAnd
+
+#eval bblastBvAnd (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastBvAnd (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvAnd (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvAnd rule
+constant bbBvAnd {t₁ t₂ : option term}:
+  thHolds (mkEq (mkBvAnd t₁ t₂) (bblastBvAnd t₁ t₂))
+
+
+/------------
+ BV or
+------------/
+
+-- If terms are well-typed, construct a BV Or application
+-- of them
+def mkBvOr : option term → option term → option term :=
+  λ ot₁ ot₂, checkBinaryBV ot₁ ot₂ bvOr
+
+/-
+If terms are well-typed, construct a bit-blasted BV and
+of them
+[x₀ x₁ ... xₙ] ∨bv [y₀ y₁ ... yₙ]
+---------------------------------
+ [x₀ ∨ y₀, x₁ ∨ x₂, ... xₙ ∨ yₙ]
+-/
+def bblastBvOr : option term → option term → option term :=
+  λ ot₁ ot₂, bblastBvBitwise ot₁ ot₂ mkOr
+
+#eval bblastBvOr (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastBvOr (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvOr (const 21 (bv 4)) (const 22 (bv 4))
+#eval mkBbT (bitOfN (val (value.bitvec [true, true, true, true]) (bv 4)) 4)
+
+-- Bit-blasting BvOr rule
+constant bbBvOr {t₁ t₂ : option term} :
+  thHolds (mkEq (mkBvOr t₁ t₂) (bblastBvOr t₁ t₂))
+
+/--------------------------------------- Comparison Operators ---------------------------------------/
+
+/- -------------------
+ BV unsigned less than
+----------------------/
+
+-- If terms are well-typed, construct a BV Ult application
+-- of them
+def mkBvUlt : option term → option term → option term :=
+  λ ot₁ ot₂, checkBinaryBV ot₁ ot₂ bvUlt
+
+/-
+If we reverse l₁ and l₂ in bblastBvUlt
+[x₀, x₁, ... , xₙ] <ᵤ [y₀, y₁, ... , yₙ] iff resₙ
+where res₀ = ¬x₀ ∧ y₀
+      resᵢ = ((xᵢ ↔ yᵢ) ∧ res_{i-1}) ∨ (¬xᵢ ∧ yᵢ)
+def boolListUlt : list (option term) → list (option term) → option term
+| [h₁] [h₂] := mkAnd (mkNot h₁) h₂
+| (h₁ :: t₁) (h₂ :: t₂) := (mkOr (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)) (mkAnd (mkNot h₁) h₂))
+| _ _ := none
 -/
 
 /-
-/-
-mkRevBitsConst n t m
-
-Precondition: t is a BV variable (const p (bv n), for some p).
-
-t is a BV variable of length n, m is the number of bits we want to 
-represent - this is usually the length of the BV. 
-Function outputs (in reverse) a list of option terms that represent 
-each bit of t (bit-blasting). 
-We need n because bitOf requires the length of the BV as input.
-A call to mkRevBitsConst has n = m = length of BV. This isn't 
-redundant, because recursive calls reduce m.
+[x₀, x₁, ... , xₙ] <ᵤ [y₀, y₁, ... , yₙ] = 
+  (¬x₀ ∧ y₀) ∨ ((x₀ ↔ y₀) ∧ ([x₁, ... , xₙ] <ᵤ [y₁, ... , yₙ]))
 -/
-def mkRevBitsConst : ℕ → term → ℕ → list (option term)
-| n t 0 := []
-| n t (m + 1) := (bitOf n t (val (value.integer m) intsort)) :: mkRevBitsConst n t m
--- by default, the order is reversed
-#eval (mkRevBitsConst 4 (const 21 (bv 4)) 4)
--- this is the right order of bits
-#eval list.reverse (mkRevBitsConst 4 (const 21 (bv 4)) 4)
--- This isn't intended to be used with constants. mkBitsVal is more appropriate for those
-#eval (mkRevBitsConst 4 (val (value.bitvec [true, true, true, true]) (bv 4)) 4)
--- Since the last argument is 3, we only get 3 bits from the BV. This 
--- function isn't intended to be used like this
-#eval (mkRevBitsConst 4 (const 21 (bv 4)) 3)
--- This will type bitOf as (bv 3 → intsort → boolsort), an ill-typed term
-#eval (mkRevBitsConst 3 (const 21 (bv 4)) 4)
+def boolListUlt : list (option term) → list (option term) → option term
+| [h₁] [h₂] := mkAnd (mkNot h₁) h₂
+| (h₁ :: t₁) (h₂ :: t₂) := (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)) )
+| _ _ := none
 
 /-
-mkBitsVal t
-
-Precondition: t is a BV constant (val (value.bitvector l) (bv n), for some n).
-
-Function outputs a list of Boolean terms representing the bits of t if 
-t is a BV constant, and an empty list otherwise.
+bblastBvUlt ot₁ ot₂
+If ot₁ and ot₂ are BVs of the same length, 
+then return a boolean term that represents 
+ot₁ <ᵤ ot₂
 -/
-def mkBitsVal : term → list (option term)
-| (val (value.bitvec (h :: t)) s) := 
-  if h then 
-    (some top) :: mkBitsVal (val (value.bitvec t) s)
-  else
-    (some bot) :: mkBitsVal (val (value.bitvec t) s)
-| (val (value.bitvec []) s) := []
-| _ := []
-#eval mkBitsVal (val (value.bitvec [true, true, false, false]) (bv 4))
--- Precondition isn't met, so it returns an empty list
-#eval mkBitsVal (const 21 (bv 4))
+def bblastBvUlt : option term → option term → option term :=
+  λ ot₁ ot₂,
+    do t₁ ← ot₁, t₂ ← ot₂, s₁ ← sortOf t₁, s₂ ← sortOf t₂,
+    match (s₁, s₂) with
+    |  (bv m, bv n) := 
+      if (m = n) then (
+        let l₁ := bitOfN t₁ m,
+            l₂ := bitOfN t₂ m in
+            boolListUlt l₁ l₂
+      ) else some top
+    | (_, _) := some bot
+    end
 
-/-
-bitOfN n t
-t is a BV term of type (bv n). We have to explicitly 
-provide n to bitOfN because its not able to infer it from t, 
-using sortof. See the commented version above for the issue.
+#eval bblastBvUlt (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastBvUlt (const 21 (bv 4)) 
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvUlt (const 21 (bv 4)) (const 22 (bv 4))
 
-If t is a BV const, bitOfN returns a list of Boolean option 
-terms representing its bits.
-If t is a BV var, bitOfN returns a list of variables 
-representing each bit of t.
-Otherwise, it retursn an empty list.
--/
-def bitOfN : ℕ → term → list (option term) :=
-λ n t, 
-match t with 
-| (val (value.bitvec l) s) := 
-  if (s = bv n) then 
-    mkBitsVal (val (value.bitvec l) s)
-  else
-    []
-| const p s := 
-  if (s = bv n) then 
-    let l := (mkRevBitsConst n t n) in list.reverse l
-  else
-    []
-| _ := []
-end
-#eval bitOfN 4 (const 21 (bv 4))
-#eval bitOfN 4 (val (value.bitvec [true, true, true, false]) (bv 4))
--- The following bad calls create empty lists
-#eval bitOfN 4 (const 21 (bv 3))
-#eval bitOfN 3 (val (value.bitvec [true, true, true, false]) (bv 4))
--/
+-- Bit-blasting BvUlt rule
+constant bbBvUlt {t₁ t₂ : option term} : 
+  thHolds (mkEq (mkBvUlt t₁ t₂) (bblastBvUlt t₁ t₂))
+
+
 end term
 
 end proof
-
-constant bblastBvEq {t₁ t₂ : option term} : 
-  holds [mkNot (proof.term.mkBvEq t₁ t₂), (proof.term.bblastBvEq t₁ t₂)]

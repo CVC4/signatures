@@ -23,7 +23,8 @@ noncomputable theorem binCong :
   thHolds (mkEq a₁ a₂) → thHolds (mkEq b₁ b₂) → (thHolds (mkEq (mkApp (mkApp f₁ a₁) b₁) (mkApp (mkApp f₁ a₂) b₂))) :=
 assume s0 : thHolds (mkEq a₁ a₂),
 assume s1 : thHolds (mkEq b₁ b₂),
-show (thHolds (mkEq (mkApp (mkApp f₁ a₁) b₁) (mkApp (mkApp f₁ a₂) b₂))), from congHO (cong f₁ s0) s1
+have s2 : thHolds (mkEq f₁ f₁), from refl,
+show (thHolds (mkEq (mkApp (mkApp f₁ a₁) b₁) (mkApp (mkApp f₁ a₂) b₂))), from cong (cong s2 s0) s1
 
 -- constant c0 : thHolds (mkEq (mkApp f₃ a₁) (mkApp f₃ a₂))
 -- #check c0
@@ -58,9 +59,10 @@ noncomputable theorem test1 :
   thHolds a1a2 → thHolds nf3a1f3a2 → holds [] :=
 assume s0 : thHolds a1a2,
 assume s1 : thHolds nf3a1f3a2,
-have s2 : thHolds f3a1f3a2, from cong f₃ s0,
-have s3 : holds [mkNot a1a2, f3a1f3a2], from clOr (scope s0 s2),
-show holds [], from R0 (R0 (clAssume s0) s3 a1a2) (clAssume s1) f3a1f3a2
+have s2 : thHolds (mkEq f₃ f₃), from refl,
+have s3 : thHolds f3a1f3a2, from cong s2 s0,
+have s4 : holds [mkNot a1a2, f3a1f3a2], from clOr (scope s0 s3),
+show holds [], from R0 (R0 (clAssume s0) s4 a1a2) (clAssume s1) f3a1f3a2
 
 def p := const 109 boolsort
 def np := mkNot p
@@ -70,10 +72,11 @@ noncomputable theorem test2 :
 assume s0 : thHolds a1a2,
 assume s1 : thHolds (mkOr np nf3a1f3a2),
 assume s2 : thHolds p,
-have s3 : holds [np, nf3a1f3a2], from clOr s1,
-have s4 : thHolds f3a1f3a2, from cong f₃ s0,
-have s5 : holds [mkNot a1a2, f3a1f3a2], from clOr (scope s0 s4),
-show holds [], from R0 (R0 (clAssume s0) s5 a1a2) (R0 (clAssume s2) s3 p) f3a1f3a2
+have s3 : thHolds (mkEq f₃ f₃), from refl,
+have s4 : holds [np, nf3a1f3a2], from clOr s1,
+have s5 : thHolds f3a1f3a2, from cong s3 s0,
+have s6 : holds [mkNot a1a2, f3a1f3a2], from clOr (scope s0 s5),
+show holds [], from R0 (R0 (clAssume s0) s6 a1a2) (R0 (clAssume s2) s4 p) f3a1f3a2
 
 def b1b2 := mkEq b₁ b₂
 def f1a1 := mkApp f₁ a₁
@@ -88,6 +91,7 @@ noncomputable theorem test3 :
 assume s0 : thHolds a1a2,
 assume s1 : thHolds b1b2,
 assume s2 : thHolds neqf1ab,
-have s3 : thHolds eqf1ab, from congHO (cong f₁ s0) s1,
-have s4 : holds [mkNot a1a2, mkNot b1b2, eqf1ab], from clOr (scope s0 (scope s1 s3)),
-show holds [], from R0 (R0 (clAssume s1) (R0 (clAssume s0) s4 a1a2) b1b2) (clAssume s2) eqf1ab
+have s3 : thHolds (mkEq f₁ f₁), from refl,
+have s4 : thHolds eqf1ab, from cong (cong s3 s0) s1,
+have s5 : holds [mkNot a1a2, mkNot b1b2, eqf1ab], from clOr (scope s0 (scope s1 s4)),
+show holds [], from R0 (R0 (clAssume s1) (R0 (clAssume s0) s5 a1a2) b1b2) (clAssume s2) eqf1ab
