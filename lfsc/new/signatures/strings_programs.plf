@@ -1,16 +1,21 @@
 
-(program sc_skolem_prefix ((s term) (n term)) term (str.substr s (int 0) n))
-(program sc_skolem_suffix_rem ((s term) (n term)) term (str.substr s n (int.- (str.len s) n)))
+; note we must convert to original form recursively
+(program sc_skolem_prefix ((s term) (n term)) term 
+  (sc_to_original (str.substr s (int 0) n))
+)
+(program sc_skolem_suffix_rem ((s term) (n term)) term
+  (sc_to_original (str.substr s n (int.- (str.len s) n)))
+)
 (program sc_skolem_first_ctn_pre ((s term) (t term)) term (sc_skolem_prefix s (str.indexof s t (int 0))))
 (program sc_skolem_first_ctn_post ((s term) (t term)) term (sc_skolem_suffix_rem s (int.+ (str.len (sc_skolem_first_ctn_pre s t)) (int.+ (str.len t) (int 0)))))
 
 ; head and tail for n-ary operators with null terminators
 (program sc_string_head ((t term)) term (nary_head f_str.++ t))
 (program sc_string_tail ((t term)) term (nary_tail f_str.++ t))
-(program sc_string_singleton_elim ((t term)) term (nary_singleton_elim f_str.++ t emptystr))
-(program sc_string_singleton_intro ((t term)) term (nary_singleton_intro f_str.++ t emptystr))
 ; return reverse of t if rev = tt, return t unchanged otherwise
 (program sc_string_rev ((t term) (rev flag)) term (ifequal rev tt (nary_reverse f_str.++ t emptystr) t))
+(program sc_string_singleton_elim ((t term) (rev flag)) term (nary_singleton_elim f_str.++ (sc_string_rev t rev) emptystr))
+(program sc_string_singleton_intro ((t term) (rev flag)) term (sc_string_rev (nary_singleton_intro f_str.++ t emptystr) rev))
 
 ; ========= Reduction for substring
 ; processing term:  substr( s, n, m )

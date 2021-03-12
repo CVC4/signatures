@@ -15,13 +15,6 @@
 (program sc_substitute_and_type_check ((t term) (v mpz) (s term) (u sort)) term
   (ifequal (type_check s) u (sc_substitute t v s) (fail term)))
 
-(program sc_witness_form ((t term)) term
-  (match t
-    ((apply t1 t2) (apply (sc_witness_form t1) (sc_witness_form t2)))
-    ((skolem w) w)
-    (default t)
-  ))
-
 ;  // ======== Instantiate
 ;  // Children: (P:(forall ((x1 T1) ... (xn Tn)) F))
 ;  // Arguments: (t1 ... tn)

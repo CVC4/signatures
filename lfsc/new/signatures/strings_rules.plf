@@ -1,10 +1,9 @@
 
 
 
-
 (declare string_length_non_empty (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) (int 0)))))))
 
-(declare concat_eq_rtl_simple (! s term (! t term (! x term (! p (holds (= (str.++ s x) (str.++ t x))) (holds (= s t)))))))
+; -------------------------------------
 
 ; strip equal prefix of s and t
 (program sc_strip_prefix ((s term) (t term)) termPair
@@ -23,18 +22,16 @@
     (emptystr (pair s t)))
 )
 
+; must ensure s, t are in n-ary form when necessary, reversed when necessary. We revert this after stripping a prefix.
 (program sc_concat_eq ((s term) (t term) (rev flag)) term
   (match 
     (sc_strip_prefix 
-      (sc_string_rev (sc_string_singleton_intro s) rev) 
-      (sc_string_rev (sc_string_singleton_intro t) rev))
+      (sc_string_singleton_intro s rev)
+      (sc_string_singleton_intro t rev))
     ((pair ss ts) 
-       (= (sc_string_singleton_elim (sc_string_rev ss rev)) 
-          (sc_string_singleton_elim (sc_string_rev ts rev)))
-          
-          ))
+       (= (sc_string_singleton_elim ss rev) 
+          (sc_string_singleton_elim ts rev))))
 )
-
 
 (declare concat_eq (! s term 
                    (! t term 
@@ -44,9 +41,55 @@
                    (! r (^ (sc_concat_eq s t rev) res) 
                       (holds res))))))))
 
-; -------------------------------------
+;  // ======== Concat constant split
+;  // Children: (P1:(= (str.++ t1 t2) (str.++ c s2)),
+;  //            P2:(not (= (str.len t1) 0)))
+;  // Arguments: (false)
+;  // ---------------------
+;  // Conclusion: (= t1 (str.++ c r))
+;  // where
+;  //   r = (witness ((z String)) (= z (suf t1 1))).
+;  //
+;  // or the reverse form of the above:
+;  //
+;  // Children: (P1:(= (str.++ t1 t2) (str.++ s1 c)),
+;  //            P2:(not (= (str.len t2) 0)))
+;  // Arguments: (true)
+;  // ---------------------
+;  // Conclusion: (= t2 (str.++ r c))
+;  // where
+;  //   r = (witness ((z String)) (= z (pre t2 (- (str.len t2) 1)))).
 
 
+(program sc_concat_csplit ((thead term) (t term) (s term) (rev flag)) term
+  (match (sc_string_singleton_intro t rev)
+    ((apply t1 t2) 
+      (match t1
+        ((apply f_str.++ thead)
+          (match s
+            ((apply s1 s2)
+              (match s1
+                ((apply f_str.++ s12)
+                  (match s12
+                    ((char n) 
+                     (= thead
+                      (ifequal rev ff
+                          (str.++ s12 (str.++ (skolem (sc_skolem_suffix_rem thead (int 1))) emptystr))
+                          (str.++ (skolem (sc_skolem_prefix thead (int.- (str.len thead) (int 1)))) (str.++ s12 emptystr))))))))))))))
+)
+  
+(declare concat_csplit 
+  (! t1 term
+  (! t term
+  (! s term
+  (! res term
+  (! rev flag
+  (! p1 (holds (= t s))
+  (! p2 (holds (not (= (str.len t1) (int 0))))
+  (! r (^ (sc_concat_csplit t1 t s rev) res)
+    (holds res))))))))))
+
+  
 (declare string_length_pos (! t term 
   (holds (or (and (= (str.len t) (int 0)) (and (= t emptystr) true)) (or (int.> (str.len t) (int 0)) false)))))
 

@@ -83,3 +83,11 @@
 (declare scope (! f term (! g term (! u (! v (holds g) (holds f)) (holds (or (not g) f))))))
 ; trust
 (declare trust (! f term (holds f)))
+
+; replaces all skolems in t with their original form
+(program sc_to_original ((t term)) term
+  (match t
+    ((apply t1 t2) (apply (sc_to_original t1) (sc_to_original t2)))
+    ((skolem w) w)
+    (default t)
+  ))
