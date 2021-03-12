@@ -1,27 +1,30 @@
 
+(program sc_skolem_prefix ((s term) (n term)) term (skolem (str.substr s (int 0) n)))
+(program sc_skolem_suffix_rem ((s term) (n term)) term (skolem (str.substr s n (int.- (str.len s) n))))
+(program sc_skolem_first_ctn_pre ((s term) (t term)) term (sc_skolem_prefix s (str.indexof s t (int 0))))
+(program sc_skolem_first_ctn_post ((s term) (t term)) term (sc_skolem_suffix_rem s (int.+ (str.len (sc_skolem_first_ctn_pre s t)) (str.len t))))
+
 ; head and tail for n-ary operators with null terminators
 (program sc_string_head ((t term)) term (nary_head f_str.++ t))
 (program sc_string_tail ((t term)) term (nary_tail f_str.++ t))
-
 (program sc_string_singleton_elim ((t term)) term (nary_singleton_elim f_str.++ t emptystr))
 (program sc_string_singleton_intro ((t term)) term (nary_singleton_intro f_str.++ t emptystr))
-
 ; return reverse of t if rev = tt, return t unchanged otherwise
 (program sc_string_rev ((t term) (rev flag)) term (ifequal rev tt (nary_reverse f_str.++ t emptystr) t))
 
 ; ========= Reduction for substring
-;    // processing term:  substr( s, n, m )
-;    // IF    n >=0 AND n < len( s ) AND m > 0
-;    // THEN: s = k1 ++ k ++ k2 AND
-;    //       len( k1 ) = n AND
-;    //       ( len( k2 ) = len( s )-(n+m) OR len( k2 ) = 0 ) AND
-;    //       len( k ) <= m
-;    // ELSE: k = ""
+; processing term:  substr( s, n, m )
+; IF    n >=0 AND n < len( s ) AND m > 0
+; THEN: s = k1 ++ k ++ k2 AND
+;       len( k1 ) = n AND
+;       ( len( k2 ) = len( s )-(n+m) OR len( k2 ) = 0 ) AND
+;       len( k ) <= m
+; ELSE: k = ""
 (program sc_string_reduction_substr ((s term) (n term) (m term)) term
   (let k (skolem (str.substr s n m))
   (let npm (int.+ n (int.+ m (int 0)))
-  (let k1 (skolem (str.substr s (int 0) n))
-  (let k2 (skolem (str.substr s npm (int.- (str.len s) npm)))
+  (let k1 (sc_skolem_prefix s n)
+  (let k2 (sc_skolem_suffix_rem s npm)
   (ite Bool
     ; condition
     (and (int.>= n (int 0))
@@ -31,7 +34,7 @@
     ; if branch
     (and (= s (str.++ k1 (str.++ k (str.++ k2 emptystr))))
       (and (= (str.len k1) n)
-        (and (or (= (str.len k2) (int.- (str.len s) (int.+ n (int.+ m (int 0)))))
+        (and (or (= (str.len k2) (int.- (str.len s) npm))
                 (or (= (str.len k2) (int 0))
                   false))
           (and (int.<= (str.len k) m)
@@ -47,8 +50,7 @@
       (match t1
         ((apply t11 t12)
           (match t11
-            ((apply f_str.substr t112)
-              (sc_string_reduction_substr t112 t12 t2))
+            ((apply f_str.substr t112) (sc_string_reduction_substr t112 t12 t2))
             (f_str.contains true)  ; TODO
             ((apply f_str.indexof t112) true)
             ((apply f_str.replace t112) true)
@@ -66,9 +68,27 @@
   )))))
 )
 
+
+; ite( (str.contains s r), (= s (str.++ sk1 t sk2)), (not (= s t)))
+(program sc_string_eager_reduction_contains ((s term) (t term)) term
+  (let k1 (sc_skolem_first_ctn_pre s t)
+  (let k2 (sc_skolem_first_ctn_post s t)
+  (ite Bool 
+    (str.contains s t)
+    (= s (str.++ k1 (str.++ t (str.++ k2 emptystr))))
+    (not (= s t)))
+  ))
+)
+
+
 (program sc_string_eager_reduction ((t term)) term
-  ; TODO
-  (fail term)
+  (match t 
+    ((apply t1 t2)
+      (match t1
+        ((apply t11 t12)
+          (match t11
+            (f_str.contains (sc_string_eager_reduction_contains t12 t2))
+  )))))
 )
 
 (program sc_re_unfold_pos ((t term) (r term)) term
