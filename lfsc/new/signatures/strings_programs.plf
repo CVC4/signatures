@@ -1,8 +1,8 @@
 
-(program sc_skolem_prefix ((s term) (n term)) term (skolem (str.substr s (int 0) n)))
-(program sc_skolem_suffix_rem ((s term) (n term)) term (skolem (str.substr s n (int.- (str.len s) n))))
+(program sc_skolem_prefix ((s term) (n term)) term (str.substr s (int 0) n))
+(program sc_skolem_suffix_rem ((s term) (n term)) term (str.substr s n (int.- (str.len s) n)))
 (program sc_skolem_first_ctn_pre ((s term) (t term)) term (sc_skolem_prefix s (str.indexof s t (int 0))))
-(program sc_skolem_first_ctn_post ((s term) (t term)) term (sc_skolem_suffix_rem s (int.+ (str.len (sc_skolem_first_ctn_pre s t)) (str.len t))))
+(program sc_skolem_first_ctn_post ((s term) (t term)) term (sc_skolem_suffix_rem s (int.+ (str.len (sc_skolem_first_ctn_pre s t)) (int.+ (str.len t) (int 0)))))
 
 ; head and tail for n-ary operators with null terminators
 (program sc_string_head ((t term)) term (nary_head f_str.++ t))
@@ -23,8 +23,8 @@
 (program sc_string_reduction_substr ((s term) (n term) (m term)) term
   (let k (skolem (str.substr s n m))
   (let npm (int.+ n (int.+ m (int 0)))
-  (let k1 (sc_skolem_prefix s n)
-  (let k2 (sc_skolem_suffix_rem s npm)
+  (let k1 (skolem (sc_skolem_prefix s n))
+  (let k2 (skolem (sc_skolem_suffix_rem s npm))
   (ite Bool
     ; condition
     (and (int.>= n (int 0))
@@ -71,8 +71,8 @@
 
 ; ite( (str.contains s r), (= s (str.++ sk1 t sk2)), (not (= s t)))
 (program sc_string_eager_reduction_contains ((s term) (t term)) term
-  (let k1 (sc_skolem_first_ctn_pre s t)
-  (let k2 (sc_skolem_first_ctn_post s t)
+  (let k1 (skolem (sc_skolem_first_ctn_pre s t))
+  (let k2 (skolem (sc_skolem_first_ctn_post s t))
   (ite Bool 
     (str.contains s t)
     (= s (str.++ k1 (str.++ t (str.++ k2 emptystr))))
