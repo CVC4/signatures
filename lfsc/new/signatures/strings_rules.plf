@@ -6,16 +6,43 @@
 
 (declare concat_eq_rtl_simple (! s term (! t term (! x term (! p (holds (= (str.++ s x) (str.++ t x))) (holds (= s t)))))))
 
-(program sc_concat_eq_ltr_simple ((s term) (t term)) term 
-  (ifequal (str.head s) (str.head t) (apply (apply f_= (str.tail s)) (str.tail t)) (fail term))   
+; strip equal prefix of s and t
+(program sc_strip_prefix ((s term) (t term)) termPair
+  (match s
+    ((apply s1 s2)
+      (match s1
+        ((apply f_str.++ s12)
+        (match t
+          ((apply t1 t2)
+          (match t1
+            ((apply f_str.++ t12)
+            (ifequal s12 t12
+              (sc_strip_prefix s2 t2) 
+              (pair s t)))))
+          (emptystr (pair s t))))))
+    (emptystr (pair s t)))
 )
 
-(declare concat_eq_ltr_simple (! s term 
-                              (! t term 
-                              (! res term 
-                              (! p (holds (= s t)) 
-                              (! r (^ (sc_concat_eq_ltr_simple s t) res) 
-                                (holds res))))))) 
+(program sc_concat_eq ((s term) (t term) (rev flag)) term
+  (match 
+    (sc_strip_prefix 
+      (sc_string_rev (sc_string_singleton_intro s) rev) 
+      (sc_string_rev (sc_string_singleton_intro t) rev))
+    ((pair ss ts) 
+       (= (sc_string_singleton_elim (sc_string_rev ss rev)) 
+          (sc_string_singleton_elim (sc_string_rev ts rev)))
+          
+          ))
+)
+
+
+(declare concat_eq (! s term 
+                   (! t term 
+                   (! res term 
+                   (! rev flag
+                   (! p (holds (= s t))
+                   (! r (^ (sc_concat_eq s t rev) res) 
+                      (holds res))))))))
 
 ; -------------------------------------
 

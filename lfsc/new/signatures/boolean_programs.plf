@@ -9,7 +9,6 @@
     false)
 )
  
- 
 ; (and F1 ... Fn) -> (or (not F1) ... (not Fn))
 (program sc_not_and_rec ((t term)) term
   (match t
@@ -39,10 +38,8 @@
   (nary_singleton_elim f_and (sc_not_and_rev_rec t) true)
 )
 
-
 (program sc_process_scope ((t term) (c term)) term
   (let premise (sc_not_and_rev (nary_truncate f_or t c false))
   (match c
     (false (not premise))
     (default (=> premise c)))))
-    

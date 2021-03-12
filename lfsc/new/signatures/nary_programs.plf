@@ -1,4 +1,12 @@
 
+
+; head and tail for n-ary operators with null terminators
+(program nary_head ((f term) (t term)) term
+  (match t ((apply t1 t2) (match t1 ((apply f t12) t12)))))
+(program nary_tail ((f term) (t term)) term
+  (match t ((apply t1 t2) (match t1 ((apply f t12) t2)))))
+
+
 ; remove the first occurrence of l from t, where t is an n-ary, null-terminated chain
 (program nary_rm_first ((f term) (t term) (l term)) term
   (match t
@@ -41,13 +49,24 @@
     (default t2))    ; any non-application term is interpreted as the end marker
 )
 
-; replaces e.g. (or P false) with P
+; replaces e.g. (or t false) with t
 (program nary_singleton_elim ((f term) (t term) (null term)) term
   (match t
     ((apply t1 t2) 
       ; if null terminated at this level, then we return the head, otherwise not in n-ary form
       (ifequal t2 null (match t1 ((apply f t12) t12)) t))
-    (default t))
+    (default t))    ; TODO: default should be null
+)
+
+; inverse of above, e.g. replaces t with (or t false) if t is not already in n-ary form
+(program nary_singleton_intro ((f term) (t term) (null term)) term
+  (match t
+    ((apply t1 t2) 
+      (match t1
+        ((apply t11 t12) (ifequal t11 f t (apply (apply f t) null)))
+        (default (apply (apply f t) null))))
+    (null t)
+    (default (apply (apply f t) null)))
 )
 
 ; extract the n^th child of n-ary chain of operator f
@@ -60,6 +79,7 @@
       )))
 )
 
+; helper for dropping duplicates
 (program nary_drop_dups_rec ((f term) (t term)) term
   (match t
     ((apply t1 t2)
@@ -70,16 +90,29 @@
     (default t))
 )
 
+; drop duplicates in an n-ary chain
 (program nary_drop_dups ((f term) (t term) (null term)) term
   (nary_singleton_elim f (nary_drop_dups_rec f t) null)
 )
 
-
-; (or t1 ... tn c) ---> (or t1 ... tn false)
+; truncate, for example, (or t1 ... tn c) ---> (or t1 ... tn false)
 (program nary_truncate ((f term) (t term) (c term) (null term)) term
   (ifequal t c null
     (match t
       ((apply t1 t2)
         (match t1 ((apply f t12) (apply t1 (nary_truncate f t2 c null)))))))
 )
-              
+
+; helper for reverse
+(program nary_reverse_rec ((f term) (t term) (acc term) (null term)) term
+  (match t
+    ((apply t1 t2)
+      (match t1
+        ((apply f t12) (nary_reverse_rec f t2 (apply t1 acc) null))))
+    (default acc))    ; TODO: default should be null
+)
+
+; reverse
+(program nary_reverse ((f term) (t term) (null term)) term
+  (nary_reverse_rec f t null null)
+)

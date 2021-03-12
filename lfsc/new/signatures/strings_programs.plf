@@ -1,24 +1,14 @@
 
 ; head and tail for n-ary operators with null terminators
-(program str.head ((t term)) term
-  (match t ((apply t1 t2) (match t1 ((apply f_str.++ t12) t12)))))
-(program str.tail ((t term)) term
-  (match t ((apply f_str.++ t2) t2)))
+(program sc_string_head ((t term)) term (nary_head f_str.++ t))
+(program sc_string_tail ((t term)) term (nary_tail f_str.++ t))
 
-;t = x, s=y ---> (str.++ x y)
-;t = (str.++ x1 x2), s = y1 ----> (str.++ x1 (str.++ x2 y1))
-;t = (str.++ (str.++ x1 x2) (str.++ y1 y2)), s=y ----> (str.++ (str.++ (str.++ (str.++ x1 x2) y1) y2) y)
-(program str.concat ((t term) (s term)) term
-  (match t 
-    ((apply t1 t2)
-      (match t1 ((apply f_str.++ t12) (apply t1 (str.concat t2 s)))))
-    (emptystr s))
-)
+(program sc_string_singleton_elim ((t term)) term (nary_singleton_elim f_str.++ t emptystr))
+(program sc_string_singleton_intro ((t term)) term (nary_singleton_intro f_str.++ t emptystr))
 
+; return reverse of t if rev = tt, return t unchanged otherwise
+(program sc_string_rev ((t term) (rev flag)) term (ifequal rev tt (nary_reverse f_str.++ t emptystr) t))
 
-
-    
-    
 (program sc_string_reduction ((t term)) term
   (match t 
     ((apply t1 t2)
