@@ -4,8 +4,10 @@
 (program sc_resolution ((c1 term) (c2 term) (pol flag) (l term)) term
   (nary_singleton_elim f_or
     (nary_concat f_or
-      (nary_rm_first_or_self f_or c1 (ifequal pol tt l (apply f_not l)) false) 
-      (nary_rm_first_or_self f_or c2 (ifequal pol tt (apply f_not l) l) false)) 
+      ; TODO: check equal before singleton intro? then use simple nary_rm_first
+      (nary_rm_first_or_self f_or (nary_singleton_intro f_or c1 false) (ifequal pol tt l (apply f_not l)) false) 
+      (nary_rm_first_or_self f_or (nary_singleton_intro f_or c2 false) (ifequal pol tt (apply f_not l) l) false)
+      false) 
     false)
 )
  

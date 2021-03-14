@@ -5,7 +5,7 @@
 
 ; -------------------------------------
 
-; strip equal prefix of s and t
+; strip equal prefix of s and t, which does not look into word constants
 (program sc_strip_prefix ((s term) (t term)) termPair
   (match s
     ((apply s1 s2)
@@ -28,7 +28,8 @@
     (sc_strip_prefix 
       (sc_string_singleton_intro s rev)
       (sc_string_singleton_intro t rev))
-    ((pair ss ts) 
+    ((pair ss ts)
+       ; FIXME: if ss and ts have word constants at heads, then strip those too 
        (= (sc_string_singleton_elim ss rev) 
           (sc_string_singleton_elim ts rev))))
 )
@@ -40,6 +41,7 @@
                    (! p (holds (= s t))
                    (! r (^ (sc_concat_eq s t rev) res) 
                       (holds res))))))))
+
 
 ;  // ======== Concat constant split
 ;  // Children: (P1:(= (str.++ t1 t2) (str.++ c s2)),
@@ -63,9 +65,10 @@
 
 (program sc_concat_csplit ((thead term) (t term) (s term) (rev flag)) term
   (match (sc_string_singleton_intro t rev)
-    ((apply t1 t2) 
+    ((apply t1 t2)
       (match t1
-        ((apply f_str.++ thead)
+        ((apply f_str.++ t12)
+          (ifequal t12 thead
           (match s
             ((apply s1 s2)
               (match s1
@@ -75,7 +78,8 @@
                      (= thead
                       (ifequal rev ff
                           (str.++ s12 (str.++ (skolem (sc_skolem_suffix_rem thead (int 1))) emptystr))
-                          (str.++ (skolem (sc_skolem_prefix thead (int.- (str.len thead) (int 1)))) (str.++ s12 emptystr))))))))))))))
+                          (str.++ (skolem (sc_skolem_prefix thead (int.- (str.len thead) (int 1)))) (str.++ s12 emptystr))))))))))
+           (fail term))))))
 )
   
 (declare concat_csplit 

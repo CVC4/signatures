@@ -15,9 +15,9 @@
         ((apply f t12) (ifequal t12 l t2 (apply t1 (nary_rm_first f t2 l)))))))   ; otherwise not in n-ary form (for f)
 )
 
-; also checks t == l, return nt if so, where nt is a null terminator
-(program nary_rm_first_or_self ((f term) (t term) (l term) (nt term)) term
-  (ifequal t l nt (nary_rm_first f t l))
+; also checks t == l, return null if so, where null is a null terminator
+(program nary_rm_first_or_self ((f term) (t term) (l term) (null term)) term
+  (ifequal t l null (nary_rm_first f t l))
 )
 
 ; does t contain l? where t is an n-ary, null-terminated chain
@@ -43,10 +43,19 @@
     (default tt))
 )
 
-(program nary_concat ((f term) (t1 term) (t2 term)) term
+(program nary_concat ((f term) (t1 term) (t2 term) (null term)) term
   (match t1
-    ((apply f t12) (apply f (nary_concat f t12 t2)))
-    (default t2))    ; any non-application term is interpreted as the end marker
+    ((apply t11 t12) 
+      (match t11
+        ((apply f t112) (apply t11 (nary_concat f t12 t2 null)))))
+    (default t2))    ; any non-application term is interpreted as the end marker TODO: use null
+)
+
+; FIXME: do this
+(program nary_decompose ((f term) (t term) (null term)) termPair
+  (match t
+    ((apply t1 t2) (pair t null))
+    (default (pair t null)))
 )
 
 ; replaces e.g. (or t false) with t
@@ -109,7 +118,7 @@
     ((apply t1 t2)
       (match t1
         ((apply f t12) (nary_reverse_rec f t2 (apply t1 acc) null))))
-    (default acc))    ; TODO: default should be null
+    (null acc))    ; TODO: default should be null
 )
 
 ; reverse

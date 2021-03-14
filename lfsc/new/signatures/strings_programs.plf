@@ -12,6 +12,8 @@
 ; head and tail for n-ary operators with null terminators
 (program sc_string_head ((t term)) term (nary_head f_str.++ t))
 (program sc_string_tail ((t term)) term (nary_tail f_str.++ t))
+; TODO: decompose strings
+
 ; return reverse of t if rev = tt, return t unchanged otherwise
 (program sc_string_rev ((t term) (rev flag)) term (ifequal rev tt (nary_reverse f_str.++ t emptystr) t))
 (program sc_string_singleton_elim ((t term) (rev flag)) term (nary_singleton_elim f_str.++ (sc_string_rev t rev) emptystr))
