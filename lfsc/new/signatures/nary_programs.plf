@@ -8,8 +8,7 @@
     (default (ifequal t null tt ff)))
 )
 ; ------------TEMPORARY
-    
-        
+
 ; head and tail for n-ary operators with null terminators
 (program nary_head ((f term) (t term)) term
   (match t ((apply t1 t2) (match t1 ((apply f t12) t12)))))
@@ -61,6 +60,7 @@
     (default t2))    ; any non-application term is interpreted as the end marker TODO: use null
 )
 
+; dual to insert below
 (program nary_decompose ((f term) (t term) (null term)) termPair
   (match t
     ((apply t1 t2) 
@@ -69,6 +69,9 @@
         (default (pair null t))))
     (default (pair null t)))
 )
+
+(program nary_insert ((f term) (elem term) (t term) (null term)) term
+  (ifequal elem null t (apply (apply f elem) t)))
 
 ; replaces e.g. (or t false) with t
 (program nary_elim ((f term) (t term) (null term)) term

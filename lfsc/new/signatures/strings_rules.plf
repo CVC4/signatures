@@ -5,6 +5,51 @@
 
 ; -------------------------------------
 
+; flatten constants into the main concatenation
+; (str.++ (str.++ "A" (str.++ "B" "")) (str.++ x ...)) becomes
+; (str.++ "A" (str.++ "B" (str.++ x ....)))
+(program sc_string_flatten ((s term)) term
+  (match s
+    ((apply s1 s2)
+      (match s1
+        ((apply f_str.++ s12)
+          (match s12
+            ; nested concatenation
+            ((apply f_str.++ s122) (sc_string_concat s12 (sc_string_flatten s2)))
+            (default (apply s1 (sc_string_flatten s2)))))))
+    (emptystr s))
+)
+
+; helper for collect adjacent constants, collects constants at prefix
+(program sc_string_collect_acc ((s term)) termPair
+  (match s
+    ((apply s1 s2)
+      (match s1
+        ((apply f_str.++ s12)
+          (match s12
+            ((char n)
+              (match (sc_string_collect_acc s2)
+                ((pair ssc1 ssc2) (pair (apply s1 ssc1) ssc2))))
+            (default (pair emptystr s))))))
+    (emptystr (pair emptystr s)))
+)
+
+; collect adjacent constants
+; (str.++ "A" (str.++ "B" (str.++ x ....))) becomes
+; (str.++ (str.++ "A" (str.++ "B" "")) (str.++ x ...))
+(program sc_string_collect ((s term)) term
+  (match (sc_string_collect_acc s)
+    ((pair sc1 sc2)
+      (match sc1
+        ; did not strip a constant prefix
+        (emptystr 
+          (match s
+            ((apply s1 s2) (apply s1 (sc_string_collect s2)))
+            (emptystr s)))
+        ; stripped a constant prefix, must eliminate singleton???
+        (default (str.++ (sc_string_nary_elim sc1) (sc_string_collect sc2))))))
+)
+
 ; strip equal prefix of s and t, which does not look into word constants
 (program sc_strip_prefix ((s term) (t term)) termPair
   (match s
@@ -22,17 +67,42 @@
     (emptystr (pair s t)))
 )
 
-; must ensure s, t are in n-ary form when necessary, reversed when necessary. We revert this after stripping a prefix.
 (program sc_concat_eq ((s term) (t term) (rev flag)) term
-  (match 
-    (sc_strip_prefix 
-      (sc_string_nary_intro s rev)
-      (sc_string_nary_intro t rev))
+  (match (sc_strip_prefix 
+           ; intro, flatten, reverse
+           (sc_string_rev (sc_string_flatten (sc_string_nary_intro s)) rev) 
+           (sc_string_rev (sc_string_flatten (sc_string_nary_intro t)) rev))
     ((pair ss ts)
-       ; FIXME: if ss and ts have word constants at heads, then strip those too 
-       (= (sc_string_nary_elim ss rev) 
-          (sc_string_nary_elim ts rev))
-          ))
+      ; reverse, collect, elim
+      (= 
+        (sc_string_nary_elim (sc_string_collect (sc_string_rev ss rev)))
+        (sc_string_nary_elim (sc_string_collect (sc_string_rev ts rev)))))))
+
+; ----------- below here, update the flatten / collect paradigm
+
+
+; standard -> nary pair
+(program sc_strip_fix ((s term) (t term) (rev flag)) termPair
+  (sc_strip_prefix (sc_string_nary_intro_2 s rev) (sc_string_nary_intro_2 t rev)))
+
+; must ensure s, t are in n-ary form when necessary, reversed when necessary. We revert this after stripping a prefix.
+(program sc_concat_eq_2 ((s term) (t term) (rev flag)) term
+  ; strip at the top level
+  (match (sc_strip_fix s t rev)
+    ((pair ss ts)
+       ; if ss and ts have word constants at heads, then strip those too 
+       (let ssp (sc_string_decompose ss)
+       (let tsp (sc_string_decompose ts)
+       (match ssp
+         ((pair ssp1 ssp2)
+          (match tsp
+            ((pair tsp1 tsp2)
+              (let hs (sc_strip_fix ssp1 tsp1 rev)
+              (match hs
+                ((pair hs1 hs2)
+                  (=
+                    (sc_string_nary_elim_2 (sc_string_insert (sc_string_nary_elim_2 hs1 rev) ssp2) rev)
+                    (sc_string_nary_elim_2 (sc_string_insert (sc_string_nary_elim_2 hs2 rev) tsp2) rev)))))))))))))
 )
 
 (declare concat_eq (! s term 
@@ -40,7 +110,7 @@
                    (! res term 
                    (! rev flag
                    (! p (holds (= s t))
-                   (! r (^ (sc_concat_eq s t rev) res) 
+                   (! r (^ (sc_concat_eq_2 s t rev) res) 
                       (holds res))))))))
 
 
@@ -65,7 +135,7 @@
 
 
 (program sc_concat_csplit ((thead term) (t term) (s term) (rev flag)) term
-  (match (sc_string_nary_intro t rev)
+  (match (sc_string_nary_intro_2 t rev)
     ((apply t1 t2)
       (match t1
         ((apply f_str.++ t12)
