@@ -40,7 +40,7 @@
   (let lhs (sc_arith_get_lhs f)
   (let rhs (sc_arith_get_rhs f)
     (=> (and (int.> m (int 0)) (and f true))
-        (apply (apply r (int.* (int.* m lhs) (int 1))) (int.* (int.* m rhs) (int 1))))))))
+        (apply (apply r (int.* m (int.* lhs (int 1)))) (int.* m (int.* rhs (int 1)))))))))
 
 (declare arith_mult_pos
   (! res term
@@ -54,7 +54,7 @@
   (let lhs (sc_arith_get_lhs f)
   (let rhs (sc_arith_get_rhs f)
     (=> (and (int.< m (int 0)) (and f true))
-        (apply (apply (sc_arith_rel_inv r) (int.* (int.* m lhs) (int 1))) (int.* (int.* m rhs) (int 1))))))))
+        (apply (apply (sc_arith_rel_inv r) (int.* m (int.* lhs (int 1)))) (int.* m (int.* rhs (int 1)))))))))
         
 (declare arith_mult_neg
   (! res term
