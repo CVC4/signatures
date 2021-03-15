@@ -26,12 +26,13 @@
 (program sc_concat_eq ((s term) (t term) (rev flag)) term
   (match 
     (sc_strip_prefix 
-      (sc_string_singleton_intro s rev)
-      (sc_string_singleton_intro t rev))
+      (sc_string_nary_intro s rev)
+      (sc_string_nary_intro t rev))
     ((pair ss ts)
        ; FIXME: if ss and ts have word constants at heads, then strip those too 
-       (= (sc_string_singleton_elim ss rev) 
-          (sc_string_singleton_elim ts rev))))
+       (= (sc_string_nary_elim ss rev) 
+          (sc_string_nary_elim ts rev))
+          ))
 )
 
 (declare concat_eq (! s term 
@@ -64,7 +65,7 @@
 
 
 (program sc_concat_csplit ((thead term) (t term) (s term) (rev flag)) term
-  (match (sc_string_singleton_intro t rev)
+  (match (sc_string_nary_intro t rev)
     ((apply t1 t2)
       (match t1
         ((apply f_str.++ t12)

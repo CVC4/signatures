@@ -1,5 +1,15 @@
-
-
+; ------------TEMPORARY, for debugging
+(program is_nary_form ((f term) (t term) (null term)) flag
+  (match t
+    ((apply t1 t2)
+      (match t1
+        ((apply t11 t12) (ifequal t11 f (is_nary_form f t2 null) ff))
+        (default ff)))
+    (default (ifequal t null tt ff)))
+)
+; ------------TEMPORARY
+    
+        
 ; head and tail for n-ary operators with null terminators
 (program nary_head ((f term) (t term)) term
   (match t ((apply t1 t2) (match t1 ((apply f t12) t12)))))
@@ -51,31 +61,32 @@
     (default t2))    ; any non-application term is interpreted as the end marker TODO: use null
 )
 
-; FIXME: do this
 (program nary_decompose ((f term) (t term) (null term)) termPair
   (match t
-    ((apply t1 t2) (pair t null))
-    (default (pair t null)))
+    ((apply t1 t2) 
+      (match t1
+        ((apply f t12) (pair t12 t2))
+        (default (pair null t))))
+    (default (pair null t)))
 )
 
 ; replaces e.g. (or t false) with t
-(program nary_singleton_elim ((f term) (t term) (null term)) term
+(program nary_elim ((f term) (t term) (null term)) term
   (match t
     ((apply t1 t2) 
       ; if null terminated at this level, then we return the head, otherwise not in n-ary form
       (ifequal t2 null (match t1 ((apply f t12) t12)) t))
-    (default t))    ; TODO: default should be null
+    (default (ifequal t null t (fail term))))
 )
 
 ; inverse of above, e.g. replaces t with (or t false) if t is not already in n-ary form
-(program nary_singleton_intro ((f term) (t term) (null term)) term
+(program nary_intro ((f term) (t term) (null term)) term
   (match t
     ((apply t1 t2) 
       (match t1
         ((apply t11 t12) (ifequal t11 f t (apply (apply f t) null)))
         (default (apply (apply f t) null))))
-    (null t)
-    (default (apply (apply f t) null)))
+    (default (ifequal t null t (apply (apply f t) null))))
 )
 
 ; extract the n^th child of n-ary chain of operator f
@@ -101,7 +112,7 @@
 
 ; drop duplicates in an n-ary chain
 (program nary_drop_dups ((f term) (t term) (null term)) term
-  (nary_singleton_elim f (nary_drop_dups_rec f t) null)
+  (nary_elim f (nary_drop_dups_rec f t) null)
 )
 
 ; truncate, for example, (or t1 ... tn c) ---> (or t1 ... tn false)
@@ -118,7 +129,7 @@
     ((apply t1 t2)
       (match t1
         ((apply f t12) (nary_reverse_rec f t2 (apply t1 acc) null))))
-    (null acc))    ; TODO: default should be null
+    (default (ifequal t null acc (fail term))))
 )
 
 ; reverse
