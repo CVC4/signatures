@@ -1,0 +1,29 @@
+
+; get the relation symbol
+(program sc_arith_get_rel ((f term)) term
+  (match f ((apply f1 f2) (match f1 ((apply f11 f12) f11)))))
+
+; get the left hand side of a relation
+(program sc_arith_get_lhs ((f term)) term
+  (match f ((apply f1 f2) (match f1 ((apply f11 f12) f12)))))
+
+; get the right hand side of a relation
+(program sc_arith_get_rhs ((f term)) term
+  (match f ((apply f1 f2) (match f1 ((apply f11 f12) f2)))))
+
+; handles lower bounds only
+(program sc_arith_sum_rels ((r1 term) (r2 term)) term
+  (match r1
+    (f_int.< f_int.<)
+    (default 
+      (match r2
+      (f_int.< f_int.<)
+      (default f_int.<=)))))
+
+(program sc_arith_rel_inv ((r term)) term
+  (match r
+    (f_= f_=)
+    (f_int.< f_int.>)
+    (f_int.> f_int.<)
+    (f_int.<= f_int.>=)
+    (f_int.>= f_int.<=)))

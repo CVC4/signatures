@@ -26,6 +26,7 @@
 ;(declare and_elim (! f1 term (! f2 term (! n mpz (! p (holds f1) (! r (^ (nary_extract f_and f1 n) f2)  (holds f2)))))))
 
 ; for AND_INTRO
+; TODO: use true intro, single rule
 ; Start with null terminator, (and_intro2* _ _ (and_intro1 _))
 (declare and_intro1 (! f term (! p (holds f) (holds (and f true)))))
 (declare and_intro2 (! f1 term (! f2 term (! p1 (holds f1) (! p2 (holds f2) (holds (and f1 f2)))))))

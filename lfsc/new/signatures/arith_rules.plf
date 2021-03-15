@@ -1,0 +1,64 @@
+
+;  ======== Sum Upper Bounds
+;  Children: (P1, ... , Pn)
+;            where each Pi has form (><i, Li, Ri)
+;            for ><i in {<, <=, ==}
+;  Conclusion: (>< L R)
+;            where >< is < if any ><i is <, and <= otherwise.
+;                  L is (+ L1 ... Ln)
+;                  R is (+ R1 ... Rn)
+
+; f2 is already in n-ary form
+(program sc_arith_sum_ub ((f1 term) (f2 term)) term
+  (let r1 (sc_arith_get_rel f1)
+  (let lhs1 (sc_arith_get_lhs f1)
+  (let rhs1 (sc_arith_get_rhs f1)
+  (let r2 (sc_arith_get_rel f2)
+  (let lhs2 (sc_arith_get_lhs f2)
+  (let rhs2 (sc_arith_get_rhs f2)
+    (apply (apply (sc_arith_sum_rels r1 r2) (int.+ lhs1 lhs2)) (int.+ rhs1 rhs2)))))))))
+
+(declare arith_sum_ub
+  (! f1 term
+  (! f2 term
+  (! res term
+  (! p (holds f1)
+  (! p (holds f2)
+  (! r (^ (sc_arith_sum_ub f1 f2) res)
+    (holds res))))))))
+
+
+;  ======= Multiplication with positive factor
+;  Children: none
+;  Arguments: (m, (rel lhs rhs))
+;  ---------------------
+;  Conclusion: (=> (and (> m 0) (rel lhs rhs)) (rel (* m lhs) (* m rhs)))
+;  Where rel is a relation symbol.
+
+(program sc_arith_mult_pos ((m term) (f term)) term
+  (let r (sc_arith_get_rel f)
+  (let lhs (sc_arith_get_lhs f)
+  (let rhs (sc_arith_get_rhs f)
+    (=> (and (int.> m (int 0)) (and f true))
+        (apply (apply r (int.* (int.* m lhs) (int 1))) (int.* (int.* m rhs) (int 1))))))))
+
+(declare arith_mult_pos
+  (! res term
+  (! m term
+  (! f term
+  (! r (^ (sc_arith_mult_pos m f) res)
+    (holds res))))))
+
+(program sc_arith_mult_neg ((m term) (f term)) term
+  (let r (sc_arith_get_rel f)
+  (let lhs (sc_arith_get_lhs f)
+  (let rhs (sc_arith_get_rhs f)
+    (=> (and (int.< m (int 0)) (and f true))
+        (apply (apply (sc_arith_rel_inv r) (int.* (int.* m lhs) (int 1))) (int.* (int.* m rhs) (int 1))))))))
+        
+(declare arith_mult_neg
+  (! res term
+  (! m term
+  (! f term
+  (! r (^ (sc_arith_mult_neg m f) res)
+    (holds res))))))
