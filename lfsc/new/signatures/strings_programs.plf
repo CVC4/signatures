@@ -22,9 +22,6 @@
 (program sc_string_rev ((t term) (rev flag)) term (ifequal rev tt (nary_reverse f_str.++ t emptystr) t))
 (program sc_string_nary_elim ((t term)) term (nary_elim f_str.++ t emptystr))
 (program sc_string_nary_intro ((t term)) term (nary_intro f_str.++ t emptystr))
-; TODO: remove?
-(program sc_string_nary_elim_2 ((t term) (rev flag)) term (nary_elim f_str.++ (sc_string_rev t rev) emptystr))
-(program sc_string_nary_intro_2 ((t term) (rev flag)) term (sc_string_rev (nary_intro f_str.++ t emptystr) rev))
 
 ; ========= Reduction for substring
 ; processing term:  substr( s, n, m )

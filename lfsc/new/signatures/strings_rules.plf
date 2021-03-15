@@ -67,50 +67,30 @@
     (emptystr (pair s t)))
 )
 
+(program sc_string_to_flat_form ((s term) (rev flag)) term
+  ; intro, flatten, reverse
+  (sc_string_rev (sc_string_flatten (sc_string_nary_intro s)) rev))
+  
+(program sc_string_from_flat_form ((s term) (rev flag)) term
+  ; reverse, collect, elim
+  (sc_string_nary_elim (sc_string_collect (sc_string_rev s rev))))
+  
+
 (program sc_concat_eq ((s term) (t term) (rev flag)) term
   (match (sc_strip_prefix 
-           ; intro, flatten, reverse
-           (sc_string_rev (sc_string_flatten (sc_string_nary_intro s)) rev) 
-           (sc_string_rev (sc_string_flatten (sc_string_nary_intro t)) rev))
+           (sc_string_to_flat_form s rev) 
+           (sc_string_to_flat_form t rev))
     ((pair ss ts)
-      ; reverse, collect, elim
       (= 
-        (sc_string_nary_elim (sc_string_collect (sc_string_rev ss rev)))
-        (sc_string_nary_elim (sc_string_collect (sc_string_rev ts rev)))))))
-
-; ----------- below here, update the flatten / collect paradigm
-
-
-; standard -> nary pair
-(program sc_strip_fix ((s term) (t term) (rev flag)) termPair
-  (sc_strip_prefix (sc_string_nary_intro_2 s rev) (sc_string_nary_intro_2 t rev)))
-
-; must ensure s, t are in n-ary form when necessary, reversed when necessary. We revert this after stripping a prefix.
-(program sc_concat_eq_2 ((s term) (t term) (rev flag)) term
-  ; strip at the top level
-  (match (sc_strip_fix s t rev)
-    ((pair ss ts)
-       ; if ss and ts have word constants at heads, then strip those too 
-       (let ssp (sc_string_decompose ss)
-       (let tsp (sc_string_decompose ts)
-       (match ssp
-         ((pair ssp1 ssp2)
-          (match tsp
-            ((pair tsp1 tsp2)
-              (let hs (sc_strip_fix ssp1 tsp1 rev)
-              (match hs
-                ((pair hs1 hs2)
-                  (=
-                    (sc_string_nary_elim_2 (sc_string_insert (sc_string_nary_elim_2 hs1 rev) ssp2) rev)
-                    (sc_string_nary_elim_2 (sc_string_insert (sc_string_nary_elim_2 hs2 rev) tsp2) rev)))))))))))))
-)
+        (sc_string_from_flat_form ss rev)
+        (sc_string_from_flat_form ts rev)))))
 
 (declare concat_eq (! s term 
                    (! t term 
                    (! res term 
                    (! rev flag
                    (! p (holds (= s t))
-                   (! r (^ (sc_concat_eq_2 s t rev) res) 
+                   (! r (^ (sc_concat_eq s t rev) res) 
                       (holds res))))))))
 
 
@@ -135,12 +115,12 @@
 
 
 (program sc_concat_csplit ((thead term) (t term) (s term) (rev flag)) term
-  (match (sc_string_nary_intro_2 t rev)
+  (match (sc_string_to_flat_form t rev)
     ((apply t1 t2)
       (match t1
         ((apply f_str.++ t12)
           (ifequal t12 thead
-          (match s
+          (match (sc_string_to_flat_form s rev)
             ((apply s1 s2)
               (match s1
                 ((apply f_str.++ s12)
