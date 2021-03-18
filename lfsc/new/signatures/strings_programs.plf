@@ -91,7 +91,6 @@
   ))
 )
 
-
 (program sc_string_eager_reduction ((t term)) term
   (match t 
     ((apply t1 t2)

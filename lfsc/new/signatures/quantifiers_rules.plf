@@ -21,7 +21,6 @@
 ;  // ----------------------------------------
 ;  // Conclusion: F*sigma
 ;  // sigma maps x1 ... xn to t1 ... tn.
-
 (declare instantiate (! body term
                      (! v mpz
                      (! u sort
@@ -39,7 +38,6 @@
 ;  // sigma maps x1 ... xn to their representative skolems obtained by
 ;  // SkolemManager::mkSkolemize, returned in the skolems argument of that
 ;  // method. Alternatively, can use negated forall as a premise.
-
 (declare skolemize (! body term
                      (! v mpz
                      (! s sort

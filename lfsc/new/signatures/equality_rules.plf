@@ -1,8 +1,6 @@
 ; Congruence :
 
-(declare refl (! t term
-              (! r (^ (well_typed t) ok)
-	(holds (= t t)))))
+(declare refl (! t term (! r (^ (well_typed t) ok) (holds (= t t)))))
 
 (declare symm (! s term
         (! t term

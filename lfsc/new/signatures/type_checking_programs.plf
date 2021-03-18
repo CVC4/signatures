@@ -12,7 +12,6 @@
         ; [2] parametric interpreted function symbols. Note these must have
         ; exceptions in well_typed below.
         (f_= (arrow (type_check t2) Bool))
-
         ; ...
         ; [3] function applications of non-parametric function symbols
         (default 
@@ -71,7 +70,6 @@
     (f_re.union (arrow RegLan (arrow RegLan RegLan)))
     ((f_re.loop n1 n2) (arrow RegLan RegLan))
     (f_str.in_re (arrow String (arrow RegLan Bool)))
-    
     ; ...
     ; fail: unknown term
   )
