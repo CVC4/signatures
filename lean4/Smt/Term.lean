@@ -223,7 +223,7 @@ def constructNaryTerm (constructor : term → term → term)
       bindN l >>= λ l' =>
       match l' with
       | h₁ :: h₂ :: t =>
-        foldlM (λ t₁ t₂ : term =>
+        List.foldlM (λ t₁ t₂ : term =>
            sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
              if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
       | _ => none
@@ -241,7 +241,7 @@ def mkAppAux : term → term → Option term :=
 def mkApp : Option term → Option term → Option term := bind2 mkAppAux
 
 def mkAppN (t : Option term) (l : List (Option term)) : Option term :=
-  t >>= λ t' => bindN l >>= λ l' => foldlM mkAppAux t' l'
+  t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
 
 -- equality
 def mkEq : Option term → Option term → Option term :=
