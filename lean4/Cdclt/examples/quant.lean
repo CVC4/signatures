@@ -22,6 +22,6 @@ theorem testInst1 : thHolds myquant → thHolds (f1 • t1) :=
 show thHolds (f1 • t1) from instForall t1 s0
 
 -- should not go through since t2 has different type from x
-theorem testInst2 : thHolds myquant → thHolds (f1 • t2) :=
-λ s0 : thHolds myquant =>
-show thHolds (f1 • t2) from instForall t2 s0
+-- theorem testInst2 : thHolds myquant → thHolds (f1 • t2) :=
+-- λ s0 : thHolds myquant =>
+-- show thHolds (f1 • t2) from instForall t2 s0
