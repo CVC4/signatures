@@ -1,4 +1,4 @@
-import Smt.Cdclt
+import Cdclt.Boolean
 
 open proof
 open proof.sort proof.term

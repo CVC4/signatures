@@ -1,4 +1,4 @@
-import Smt.Term
+import Cdclt.Term
 
 open proof
 open proof.sort proof.term
