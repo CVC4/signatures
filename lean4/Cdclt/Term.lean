@@ -6,7 +6,7 @@ namespace proof
    equality and ITE. These sorts are handled in a special way in the
    type checker.
 
-   Additionally, we have atomic sorts, parameterized by a nat, arrow
+   Additionally, we have atomic sorts, parameterized by a Nat, arrow
    for functional sorts, and bitvector sorts parameterized by their
    length -/
 inductive sort : Type where
@@ -19,9 +19,9 @@ deriving DecidableEq
 namespace sort
 
 /- Each predefined function is also parameterized by a
-   nat, an application of terms is parametrized
-   by all the nats involved in the application,
-   thus giving unique sets of nats to unique terms -/
+   Nat, an application of terms is parametrized
+   by all the Nats involved in the application,
+   thus giving unique sets of Nats to unique terms -/
 def botNum     : Nat := 0
 def notNum     : Nat := botNum + 1
 def orNum      : Nat := notNum + 1
@@ -70,7 +70,6 @@ def bvToString : List Bool → String
 | [] => ""
 | h :: t => (if h then "1" else "0") ++ bvToString t
 
---set_option trace.eqn_compiler.elim_match true
 def valueToString : value → String
 | value.bitvec l => bvToString l
 | value.integer i => toString i
@@ -81,7 +80,7 @@ instance: ToString value where toString := valueToString
    constants of a sort, applications,
    or quantified formulas
    Quantified variables are also
-   parameterized by a nat -/
+   parameterized by a Nat -/
 inductive term : Type where
 | val : value → Option sort → term
 | const : Nat → Option sort → term
@@ -97,7 +96,6 @@ open sort
 open value
 
 -- Sort definitions
-@[matchPattern] def wildcardSort := atom 0
 @[matchPattern] def boolSort := atom boolNum
 @[matchPattern] def intSort := atom intNum
 
@@ -124,6 +122,7 @@ open value
   const bvEqNum (arrow (bv n) (arrow (bv n) boolSort))
 
 -- macros for creating terms with interpreted constants
+@[matchPattern] def bot : term := botConst
 @[matchPattern] def not : term → term := λ t => notConst • t
 @[matchPattern] def top : term := not botConst
 @[matchPattern] def or : term → term → term := λ t₁ t₂ => orConst • t₁ • t₂
@@ -144,7 +143,7 @@ open value
   λ n t₁ t₂ => bvEqConst n • t₁ • t₂
 
 def termToString : term → String
-| botConst => "⊥"
+| bot => "⊥"
 | top => "⊤"
 | not t => "¬" ++ termToString t
 | or t₁ t₂ => termToString t₁ ++ " ∨ " ++ termToString t₂
@@ -186,8 +185,6 @@ def sortOfAux : term → Option sort
     | _ => none
 | qforall v t =>
     sortOfAux t >>= λ st => if st = boolSort then st else none
--- parametric operators are by default well-solted, with a special default type
-| const _ dep => wildcardSort
 | const _ s => s
 
 def sortOf (t : Option term) : Option sort := t >>= λ t' => sortOfAux t'
@@ -205,6 +202,8 @@ def bind3 {m : Type → Type} [Monad m] {α β γ δ : Type}
   (f : α → β → γ → m δ) (a : m α) (b : m β) (c : m γ) : m δ :=
     a >>= λ a' => b >>= λ b' => c >>= λ c' => f a' b' c'
 
+/-  return : α → m α
+    (return x) puts x in a monad box -/
 /- Similar to above, but for unpacking a list -/
 def bindN {m : Type u → Type v} [Monad m] {α : Type u}
   : List (m α) → m (List α)
