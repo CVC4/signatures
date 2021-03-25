@@ -178,7 +178,8 @@ def termToString : term → String
 | fIte c t₁ t₂ =>
   termToString c ++ " ? " ++ termToString t₁ ++ " : " ++ termToString t₂
 | bitOf _ t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
-/-| bvEq _ t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
+/-| bbT _ => "bbT"
+| bvEq _ t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
 | bvNot _ t => "¬_bv" ++ termToString t
 | bvAnd _ t₁ t₂ => termToString t₁ ++ " ∧_bv " ++ termToString t₂
 | bvOr _ t₁ t₂ => termToString t₁ ++ " ∨_bv " ++ termToString t₂
