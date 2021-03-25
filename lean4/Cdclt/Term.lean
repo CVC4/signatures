@@ -33,10 +33,12 @@ def fIteNum   : Nat := bIteNum + 1
 def eqNum      : Nat := fIteNum + 1
 def forallNum  : Nat := eqNum + 1
 def bvBitOfNum : Nat := forallNum + 1
-def bvEqNum : Nat := bvBitOfNum + 1
+def bvBbTNum : Nat := bvBitOfNum + 1
+def bvEqNum : Nat := bvBbTNum + 1
 def bvNotNum : Nat := bvEqNum + 1
 def bvAndNum : Nat := bvNotNum + 1
 def bvOrNum : Nat := bvAndNum + 1
+def bvUltNum : Nat := bvOrNum + 1
 
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
@@ -118,6 +120,8 @@ open value
 
 @[matchPattern] def bitOfConst (n : Nat) :=
   const bvBitOfNum (arrow (bv n) (arrow intSort boolSort))
+@[matchPattern] def bbTConst (n : Nat) :=
+  const bvBbTNum (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
 @[matchPattern] def bvEqConst (n : Nat) :=
   const bvEqNum (arrow (bv n) (arrow (bv n) boolSort))
 
@@ -139,10 +143,12 @@ open value
 
 @[matchPattern] def bitOf : Nat → term → term → term :=
   λ n t₁ t₂ => bitOfConst n • t₁ • t₂
+@[matchPattern] def bbT : Nat → term := λ n => bbTConst n
 @[matchPattern] def bvEq : Nat → term → term → term :=
   λ n t₁ t₂ => bvEqConst n • t₁ • t₂
 
 def termToString : term → String
+| val v s => valueToString v
 | bot => "⊥"
 | top => "⊤"
 | not t => "¬" ++ termToString t
@@ -159,7 +165,6 @@ def termToString : term → String
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
-| _ => ""
 
 instance : ToString term where toString := termToString
 
