@@ -107,6 +107,7 @@ def reduceOrNth : Nat → term → Option term
 | 1,     (term.or _ t)               => t
 | (n+1), (term.or _ (term.or t₀ t₁)) => reduceOrNth n (or t₀ t₁)
 | _,     _                           => none
+
 def reduceNotOr (n : Nat) (t : Option term) : Option term :=
   t >>= λ t' =>
     match t' with
