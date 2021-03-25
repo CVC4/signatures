@@ -47,7 +47,7 @@ def resolveR₀ (n : Option term) (c₁ c₂: clause) : clause :=
 def resolveR₁ (n : Option term) (c₁ c₂: clause) : clause :=
   concatCl (List.erase c₁ (mkNot n)) (List.erase c₂ n)
 
-axiom R0 : ∀ {c₁ c₂ : clause} 
+axiom R0 : ∀ {c₁ c₂ : clause}
   (p₁ : holds c₁) (p₂ : holds c₂) (n : Option term), holds (resolveR₀ n c₁ c₂)
 
 axiom R1 : ∀ {c₁ c₂ : clause}
@@ -124,13 +124,13 @@ axiom notImplies1 : ∀ {t₁ t₂ : Option term},
 axiom notImplies2 : ∀ {t₁ t₂ : Option term},
   thHolds (mkNot $ mkImplies t₁ t₂) → thHolds (mkNot t₁)
 
-axiom equivElim1 : ∀ {t₁ t₂}, 
+axiom equivElim1 : ∀ {t₁ t₂},
   thHolds (mkEq t₁ t₂) → holds [mkNot t₁, t₂]
 
-axiom equivElim2 : ∀ {t₁ t₂}, 
+axiom equivElim2 : ∀ {t₁ t₂},
   thHolds (mkEq t₁ t₂) → holds [t₁, mkNot t₂]
 
-axiom notEquivElim1 : ∀ {t₁ t₂}, 
+axiom notEquivElim1 : ∀ {t₁ t₂},
   thHolds (mkNot $ mkEq t₁ t₂) → holds [t₁, t₂]
 
 axiom notEquivElim2 : ∀ {t₁ t₂},
@@ -172,7 +172,7 @@ def reduceNotAndAux : term → clause
 def reduceNotAnd : Option term → clause
 | (some t) => reduceNotAndAux t
 | none     => [none]
-axiom notAnd : ∀ {t : Option term}, 
+axiom notAnd : ∀ {t : Option term},
   thHolds (mkNot t) → holds (reduceNotAnd t)
 
 
