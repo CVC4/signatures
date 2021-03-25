@@ -250,6 +250,13 @@ axiom bbBvOr : ∀ {t₁ t₂ : Option term},
 
 
 --------------------------------------- Comparison Operators ---------------------------------------
+/-
+Endian-ness:
+We assume that a BV is represented as:
+MSB ... LSB
+(bv 4) representation of decimal 1:
+0001
+-/
 
 /- -------------------
  BV unsigned less than
@@ -261,23 +268,12 @@ def mkBvUlt : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUlt
 
 /-
-If we reverse l₁ and l₂ in bblastBvUlt
-[x₀, x₁, ... , xₙ] <ᵤ [y₀, y₁, ... , yₙ] iff resₙ
-where res₀ = ¬x₀ ∧ y₀
-      resᵢ = ((xᵢ ↔ yᵢ) ∧ res_{i-1}) ∨ (¬xᵢ ∧ yᵢ)
-def boolListUlt : List (Option term) → List (Option term) → Option term
-| [h₁] [h₂] => mkAnd (mkNot h₁) h₂
-| (h₁ :: t₁) (h₂ :: t₂) => (mkOr (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)) (mkAnd (mkNot h₁) h₂))
-| _ _ => none
--/
-
-/-
 [x₀, x₁, ... , xₙ] <ᵤ [y₀, y₁, ... , yₙ] = 
   (¬x₀ ∧ y₀) ∨ ((x₀ ↔ y₀) ∧ ([x₁, ... , xₙ] <ᵤ [y₁, ... , yₙ]))
 -/
 def boolListUlt : List (Option term) → List (Option term) → Option term
 | [h₁], [h₂] => mkAnd (mkNot h₁) h₂
-| (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)) )
+| (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)))
 | _, _ => none
 
 /-
@@ -306,6 +302,147 @@ def bblastBvUlt : Option term → Option term → Option term :=
 -- Bit-blasting BvUlt rule
 axiom bbBvUlt : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvUlt t₁ t₂) (bblastBvUlt t₁ t₂))
+
+
+/- ----------------------
+ BV unsigned greater than
+----------------------- -/
+
+-- If terms are well-typed, construct a BV Ugt application
+-- of them
+def mkBvUgt : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUgt
+
+/-
+[x₀, x₁, ... , xₙ] >ᵤ [y₀, y₁, ... , yₙ] = 
+  (x₀ ∧ ¬y₀) ∨ ((x₀ ↔ y₀) ∧ ([x₁, ... , xₙ] >ᵤ [y₁, ... , yₙ]))
+-/
+def boolListUgt : List (Option term) → List (Option term) → Option term
+| [h₁], [h₂] => mkAnd h₁ (mkNot h₂)
+| (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd h₁ (mkNot h₂)) (mkAnd (mkEq h₁ h₂) (boolListUgt t₁ t₂)))
+| _, _ => none
+
+/-
+bblastBvUgt ot₁ ot₂
+If ot₁ and ot₂ are BVs of the same length, 
+then return a boolean term that represents 
+ot₁ >ᵤ ot₂
+-/
+def bblastBvUgt : Option term → Option term → Option term :=
+  λ ot₁ ot₂ =>
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            boolListUgt (bitOfN t₁ m) (bitOfN t₂ m)
+      ) else some top
+    | (_, _) => some bot
+
+#eval bblastBvUgt (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvUgt (const 21 (bv 4)) 
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvUgt (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvUgt rule
+axiom bbBvUgt : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvUgt t₁ t₂) (bblastBvUgt t₁ t₂))
+
+
+/- ----------------------
+ BV signed less than
+----------------------- -/
+
+-- If terms are well-typed, construct a BV Slt application
+-- of them
+def mkBvSlt : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSlt
+
+/-
+[x₀, x₁, ... , xₙ] <ₛ [y₀, y₁, ... , yₙ] = 
+  (x₀ ∧ ¬y₀) ∨ (x₀ = y₀ ∧ ([x₁, ..., xₙ] <ᵤ [y₁, ..., yₙ]))
+-/
+def boolListSlt : List (Option term) → List (Option term) → Option term
+| (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd h₁ (mkNot h₂)) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)))
+| _, _ => none
+
+/-
+bblastBvSlt ot₁ ot₂
+If ot₁ and ot₂ are BVs of the same length, 
+then return a boolean term that represents 
+ot₁ <ₛ ot₂
+-/
+def bblastBvSlt : Option term → Option term → Option term :=
+  λ ot₁ ot₂ =>
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            boolListSlt (bitOfN t₁ m) (bitOfN t₂ m)
+      ) else some top
+    | (_, _) => some bot
+
+#eval bblastBvSlt (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvSlt (val (value.bitvec [true, false, true, false]) (bv 4))
+  (val (value.bitvec [true, false, true, true]) (bv 4))
+#eval bblastBvSlt (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvSlt (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvUgt rule
+axiom bbBvSlt : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvSlt t₁ t₂) (bblastBvSlt t₁ t₂))
+
+
+/- ----------------------
+ BV signed greater than
+----------------------- -/
+
+-- If terms are well-typed, construct a BV Sgt application
+-- of them
+def mkBvSgt : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSgt
+
+/-
+[x₀, x₁, ... , xₙ] >ₛ [y₀, y₁, ... , yₙ] = 
+  (¬x₀ ∧ y₀) ∨ (x₀ = y₀ ∧ ([x₁, ..., xₙ] >ᵤ [y₁, ..., yₙ]))
+-/
+def boolListSgt : List (Option term) → List (Option term) → Option term
+| (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUgt t₁ t₂)))
+| _, _ => none
+
+/-
+bblastBvSgt ot₁ ot₂
+If ot₁ and ot₂ are BVs of the same length, 
+then return a boolean term that represents 
+ot₁ <ₛ ot₂
+-/
+def bblastBvSgt : Option term → Option term → Option term :=
+  λ ot₁ ot₂ =>
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            boolListSgt (bitOfN t₁ m) (bitOfN t₂ m)
+      ) else some top
+    | (_, _) => some bot
+
+#eval bblastBvSgt (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastBvSgt (val (value.bitvec [true, false, true, true]) (bv 4))
+  (val (value.bitvec [true, false, true, false]) (bv 4))
+#eval bblastBvSgt (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvSgt (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvSgt rule
+axiom bbBvSgt : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvSgt t₁ t₂) (bblastBvSgt t₁ t₂))
+
 
 end term
 

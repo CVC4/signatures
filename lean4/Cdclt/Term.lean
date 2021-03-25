@@ -39,7 +39,9 @@ def bvNotNum : Nat := bvEqNum + 1
 def bvAndNum : Nat := bvNotNum + 1
 def bvOrNum : Nat := bvAndNum + 1
 def bvUltNum : Nat := bvOrNum + 1
-
+def bvUgtNum : Nat := bvUltNum + 1
+def bvSltNum : Nat := bvUgtNum + 1
+def bvSgtNum : Nat := bvSltNum + 1
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
 
@@ -132,6 +134,12 @@ open value
   const bvOrNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvUltConst (n : Nat) :=
   const bvUltNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvUgtConst (n : Nat) :=
+  const bvUgtNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvSltConst (n : Nat) :=
+  const bvSltNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvSgtConst (n : Nat) :=
+  const bvSgtNum (arrow (bv n) (arrow (bv n) boolSort))
 
 -- macros for creating terms with interpreted constants
 @[matchPattern] def bot : term := botConst
@@ -162,6 +170,12 @@ open value
   λ n t₁ t₂ => bvAndConst n • t₁ • t₂
 @[matchPattern] def bvUlt : Nat → term → term → term :=
   λ n t₁ t₂ => bvUltConst n • t₁ • t₂
+@[matchPattern] def bvUgt : Nat → term → term → term :=
+  λ n t₁ t₂ => bvUgtConst n • t₁ • t₂
+@[matchPattern] def bvSlt : Nat → term → term → term :=
+  λ n t₁ t₂ => bvSltConst n • t₁ • t₂
+@[matchPattern] def bvSgt : Nat → term → term → term :=
+  λ n t₁ t₂ => bvSgtConst n • t₁ • t₂
 
 def termToString : term → String
 | val v s => valueToString v
@@ -183,7 +197,10 @@ def termToString : term → String
 | bvNot _ t => "¬_bv" ++ termToString t
 | bvAnd _ t₁ t₂ => termToString t₁ ++ " ∧_bv " ++ termToString t₂
 | bvOr _ t₁ t₂ => termToString t₁ ++ " ∨_bv " ++ termToString t₂
-| bvUlt _ t₁ t₂ => termToString t₁ ++ " <_ubv " ++ termToString t₂-/
+| bvUlt _ t₁ t₂ => termToString t₁ ++ " <ᵤ " ++ termToString t₂
+| bvUgt _ t₁ t₂ => termToString t₁ ++ " >ᵤ " ++ termToString t₂
+| bvSlt _ t₁ t₂ => termToString t₁ ++ " <ₛ " ++ termToString t₂
+| bvSgt _ t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂-/
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
