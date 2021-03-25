@@ -124,6 +124,14 @@ open value
   const bvBbTNum (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
 @[matchPattern] def bvEqConst (n : Nat) :=
   const bvEqNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvNotConst (n : Nat) :=
+  const bvNotNum (arrow (bv n) (bv n))
+@[matchPattern] def bvAndConst (n : Nat) :=
+  const bvAndNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvOrConst (n : Nat) :=
+  const bvOrNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvUltConst (n : Nat) :=
+  const bvUltNum (arrow (bv n) (arrow (bv n) boolSort))
 
 -- macros for creating terms with interpreted constants
 @[matchPattern] def bot : term := botConst
@@ -146,6 +154,14 @@ open value
 @[matchPattern] def bbT : Nat → term := λ n => bbTConst n
 @[matchPattern] def bvEq : Nat → term → term → term :=
   λ n t₁ t₂ => bvEqConst n • t₁ • t₂
+@[matchPattern] def bvNot : Nat → term → term :=
+  λ n t => bvNotConst n • t
+@[matchPattern] def bvAnd : Nat → term → term → term :=
+  λ n t₁ t₂ => bvAndConst n • t₁ • t₂
+@[matchPattern] def bvOr : Nat → term → term → term :=
+  λ n t₁ t₂ => bvAndConst n • t₁ • t₂
+@[matchPattern] def bvUlt : Nat → term → term → term :=
+  λ n t₁ t₂ => bvUltConst n • t₁ • t₂
 
 def termToString : term → String
 | val v s => valueToString v
@@ -162,6 +178,11 @@ def termToString : term → String
 | fIte c t₁ t₂ =>
   termToString c ++ " ? " ++ termToString t₁ ++ " : " ++ termToString t₂
 | bitOf _ t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
+/-| bvEq _ t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
+| bvNot _ t => "¬_bv" ++ termToString t
+| bvAnd _ t₁ t₂ => termToString t₁ ++ " ∧_bv " ++ termToString t₂
+| bvOr _ t₁ t₂ => termToString t₁ ++ " ∨_bv " ++ termToString t₂
+| bvUlt _ t₁ t₂ => termToString t₁ ++ " <_ubv " ++ termToString t₂-/
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
