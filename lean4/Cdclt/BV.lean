@@ -276,6 +276,21 @@ def boolListUlt : List (Option term) → List (Option term) → Option term
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)))
 | _, _ => none
 
+-- For debugging
+def ListUlt : List Bool → List Bool → Option Bool
+| [h₁], [h₂] => some (¬h₁ && h₂)
+| (h₁ :: t₁), (h₂ :: t₂) => 
+  match (ListUlt t₁ t₂) with 
+  | some b => some ((¬h₁ && h₂) || ((h₁ = h₂) && b))
+  | none => none
+| _, _ => none
+-- 0000 <ᵤ 1111
+#eval ListUlt [false, false, false, false] [true, true, true, true]
+-- 0010 <ᵤ 0011
+#eval ListUlt [false, false, true, false] [false, false, true, true]
+-- 10 <ᵤ 01
+#eval ListUlt [true, false] [false, true]
+
 /-
 bblastBvUlt ot₁ ot₂
 If ot₁ and ot₂ are BVs of the same length, 
@@ -322,6 +337,21 @@ def boolListUgt : List (Option term) → List (Option term) → Option term
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd h₁ (mkNot h₂)) (mkAnd (mkEq h₁ h₂) (boolListUgt t₁ t₂)))
 | _, _ => none
 
+-- For debugging
+def ListUgt : List Bool → List Bool → Option Bool
+| [h₁], [h₂] => some (h₁ && ¬h₂)
+| (h₁ :: t₁), (h₂ :: t₂) => 
+  match (ListUgt t₁ t₂) with 
+  | some b => some ((h₁ && ¬h₂) || ((h₁ = h₂) && b))
+  | none => none
+| _, _ => none
+-- 1111 >ᵤ 0000
+#eval ListUgt [true, true, true, true] [false, false, false, false]
+-- 0011 >ᵤ 0010
+#eval ListUgt [false, false, true, true] [false, false, true, false]
+-- 01 >ᵤ 10
+#eval ListUgt [false, true] [true, false]
+
 /-
 bblastBvUgt ot₁ ot₂
 If ot₁ and ot₂ are BVs of the same length, 
@@ -364,8 +394,24 @@ def mkBvSlt : Option term → Option term → Option term :=
   (x₀ ∧ ¬y₀) ∨ (x₀ = y₀ ∧ ([x₁, ..., xₙ] <ᵤ [y₁, ..., yₙ]))
 -/
 def boolListSlt : List (Option term) → List (Option term) → Option term
+| [h₁], [h₂] => (mkAnd h₁ (mkNot h₂))
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd h₁ (mkNot h₂)) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)))
 | _, _ => none
+
+-- For debugging
+def ListSlt : List Bool → List Bool → Option Bool
+| [h₁], [h₂] => some (h₁ && ¬h₂)
+| (h₁ :: t₁), (h₂ :: t₂) => 
+  match (ListUlt t₁ t₂) with 
+  | some b => some ((h₁ && ¬h₂) || ((h₁ = h₂) && b))
+  | none => none
+| _, _ => none
+-- 1111 <ₛ 0000
+#eval ListSlt [true, true, true, true] [false, false, false, false]
+-- 1010 <ₛ 1011
+#eval ListSlt [true, false, true, false] [true, false, true, true]
+-- 01 <ₛ 10
+#eval ListSlt [false, true] [true, false]
 
 /-
 bblastBvSlt ot₁ ot₂
@@ -411,8 +457,24 @@ def mkBvSgt : Option term → Option term → Option term :=
   (¬x₀ ∧ y₀) ∨ (x₀ = y₀ ∧ ([x₁, ..., xₙ] >ᵤ [y₁, ..., yₙ]))
 -/
 def boolListSgt : List (Option term) → List (Option term) → Option term
+| [h₁], [h₂] => (mkAnd (mkNot h₁) h₂)
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUgt t₁ t₂)))
 | _, _ => none
+
+-- For debugging
+def ListSgt : List Bool → List Bool → Option Bool
+| [h₁], [h₂] => some (¬h₁ && h₂)
+| (h₁ :: t₁), (h₂ :: t₂) => 
+  match (ListUgt t₁ t₂) with 
+  | some b => some ((¬h₁ && h₂) || ((h₁ = h₂) && b))
+  | none => none
+| _, _ => none
+-- 0000 >ₛ 1111
+#eval ListSgt [false, false, false, false] [true, true, true, true]
+-- 1011 >ₛ 1010
+#eval ListSgt [true, false, true, true] [true, false, true, false]
+-- 10 >ₛ 01
+#eval ListSgt [true, false] [false, true]
 
 /-
 bblastBvSgt ot₁ ot₂
