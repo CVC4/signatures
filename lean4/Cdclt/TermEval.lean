@@ -52,7 +52,15 @@ partial def termEval (ot : Option term) : Option term :=
        | top, top => bot
        | bot, bot => bot
        | _, _ => t
-  | eq t₁ t₂ => if t₁ = t₂ then top else bot
+  | eq t₁ t₂ => 
+    do let t₁' ← termEval t₁
+       let t₂' ← termEval t₂
+       match t₁', t₂' with
+       | bot, top => bot
+       | top, bot => bot
+       | top, top => top
+       | bot, bot => top
+       | _, _ => t
   | bIte c t₁ t₂ =>
     do let c' ← termEval c
        match c' with
