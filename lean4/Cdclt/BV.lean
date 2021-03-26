@@ -1,5 +1,6 @@
 import Cdclt.Term
 import Cdclt.Boolean
+import Cdclt.TermEval
 
 open proof
 open proof.sort proof.term
@@ -147,8 +148,17 @@ def bblastBvEq : Option term → Option term → Option term :=
             mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq)
       ) else some top
     | (_, _) => some bot
+-- 0000 = 1111
 #eval bblastBvEq (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvEq (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 010 = 010
+#eval bblastBvEq (val (value.bitvec [false, true, false]) (bv 3))
+  (val (value.bitvec [false, true, false]) (bv 3))
+#eval termEval (bblastBvEq (val (value.bitvec [false, true, false]) (bv 3))
+  (val (value.bitvec [false, true, false]) (bv 3)))
+-- Using variables
 #eval bblastBvEq (const 21 (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvEq (const 21 (bv 4)) (const 22 (bv 4))
@@ -276,21 +286,6 @@ def boolListUlt : List (Option term) → List (Option term) → Option term
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)))
 | _, _ => none
 
--- For debugging
-def ListUlt : List Bool → List Bool → Option Bool
-| [h₁], [h₂] => some (¬h₁ && h₂)
-| (h₁ :: t₁), (h₂ :: t₂) => 
-  match (ListUlt t₁ t₂) with 
-  | some b => some ((¬h₁ && h₂) || ((h₁ = h₂) && b))
-  | none => none
-| _, _ => none
--- 0000 <ᵤ 1111
-#eval ListUlt [false, false, false, false] [true, true, true, true]
--- 0010 <ᵤ 0011
-#eval ListUlt [false, false, true, false] [false, false, true, true]
--- 10 <ᵤ 01
-#eval ListUlt [true, false] [false, true]
-
 /-
 bblastBvUlt ot₁ ot₂
 If ot₁ and ot₂ are BVs of the same length, 
@@ -308,8 +303,22 @@ def bblastBvUlt : Option term → Option term → Option term :=
       ) else some top
     | (_, _) => some bot
 
+-- 0000 <ᵤ 1111
 #eval bblastBvUlt (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvUlt (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 0010 <ᵤ 0011
+#eval bblastBvUlt (val (value.bitvec [false, false, true, false]) (bv 4))
+  (val (value.bitvec [false, false, true, true]) (bv 4))
+#eval termEval (bblastBvUlt (val (value.bitvec [false, false, true, false]) (bv 4))
+  (val (value.bitvec [false, false, true, true]) (bv 4)))
+-- 10 <ᵤ 01
+#eval bblastBvUlt (val (value.bitvec [true, false]) (bv 2))
+  (val (value.bitvec [false, true]) (bv 2))
+#eval termEval (bblastBvUlt (val (value.bitvec [true, false]) (bv 2))
+  (val (value.bitvec [false, true]) (bv 2)))
+-- Using variables
 #eval bblastBvUlt (const 21 (bv 4)) 
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvUlt (const 21 (bv 4)) (const 22 (bv 4))
@@ -337,21 +346,6 @@ def boolListUgt : List (Option term) → List (Option term) → Option term
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd h₁ (mkNot h₂)) (mkAnd (mkEq h₁ h₂) (boolListUgt t₁ t₂)))
 | _, _ => none
 
--- For debugging
-def ListUgt : List Bool → List Bool → Option Bool
-| [h₁], [h₂] => some (h₁ && ¬h₂)
-| (h₁ :: t₁), (h₂ :: t₂) => 
-  match (ListUgt t₁ t₂) with 
-  | some b => some ((h₁ && ¬h₂) || ((h₁ = h₂) && b))
-  | none => none
-| _, _ => none
--- 1111 >ᵤ 0000
-#eval ListUgt [true, true, true, true] [false, false, false, false]
--- 0011 >ᵤ 0010
-#eval ListUgt [false, false, true, true] [false, false, true, false]
--- 01 >ᵤ 10
-#eval ListUgt [false, true] [true, false]
-
 /-
 bblastBvUgt ot₁ ot₂
 If ot₁ and ot₂ are BVs of the same length, 
@@ -369,8 +363,22 @@ def bblastBvUgt : Option term → Option term → Option term :=
       ) else some top
     | (_, _) => some bot
 
+-- 1111 >ᵤ 0000
 #eval bblastBvUgt (val (value.bitvec [true, true, true, true]) (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval termEval (bblastBvUgt (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4)))
+-- 0011 >ᵤ 0010
+#eval bblastBvUgt (val (value.bitvec [false, false, true, true]) (bv 4))
+  (val (value.bitvec [false, false, true, false]) (bv 4))
+#eval termEval (bblastBvUgt (val (value.bitvec [false, false, true, true]) (bv 4))
+  (val (value.bitvec [false, false, true, false]) (bv 4)))
+-- 01 >ᵤ 10
+#eval bblastBvUgt (val (value.bitvec [false, true]) (bv 2))
+  (val (value.bitvec [true, false]) (bv 2))
+#eval termEval (bblastBvUgt (val (value.bitvec [false, true]) (bv 2))
+  (val (value.bitvec [true, false]) (bv 2)))
+-- Using variables
 #eval bblastBvUgt (const 21 (bv 4)) 
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvUgt (const 21 (bv 4)) (const 22 (bv 4))
@@ -398,21 +406,6 @@ def boolListSlt : List (Option term) → List (Option term) → Option term
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd h₁ (mkNot h₂)) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)))
 | _, _ => none
 
--- For debugging
-def ListSlt : List Bool → List Bool → Option Bool
-| [h₁], [h₂] => some (h₁ && ¬h₂)
-| (h₁ :: t₁), (h₂ :: t₂) => 
-  match (ListUlt t₁ t₂) with 
-  | some b => some ((h₁ && ¬h₂) || ((h₁ = h₂) && b))
-  | none => none
-| _, _ => none
--- 1111 <ₛ 0000
-#eval ListSlt [true, true, true, true] [false, false, false, false]
--- 1010 <ₛ 1011
-#eval ListSlt [true, false, true, false] [true, false, true, true]
--- 01 <ₛ 10
-#eval ListSlt [false, true] [true, false]
-
 /-
 bblastBvSlt ot₁ ot₂
 If ot₁ and ot₂ are BVs of the same length, 
@@ -430,10 +423,22 @@ def bblastBvSlt : Option term → Option term → Option term :=
       ) else some top
     | (_, _) => some bot
 
+-- 1111 <ₛ 0000
 #eval bblastBvSlt (val (value.bitvec [true, true, true, true]) (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval termEval (bblastBvSlt (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4)))
+-- 1010 <ₛ 1011
 #eval bblastBvSlt (val (value.bitvec [true, false, true, false]) (bv 4))
   (val (value.bitvec [true, false, true, true]) (bv 4))
+#eval termEval (bblastBvSlt (val (value.bitvec [true, false, true, false]) (bv 4))
+  (val (value.bitvec [true, false, true, true]) (bv 4)))
+-- 01 <ₛ 10
+#eval bblastBvSlt (val (value.bitvec [false, true]) (bv 2))
+  (val (value.bitvec [true, false]) (bv 2))
+#eval termEval (bblastBvSlt (val (value.bitvec [false, true]) (bv 2))
+  (val (value.bitvec [true, false]) (bv 2)))
+-- Using variables
 #eval bblastBvSlt (const 21 (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvSlt (const 21 (bv 4)) (const 22 (bv 4))
@@ -461,21 +466,6 @@ def boolListSgt : List (Option term) → List (Option term) → Option term
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUgt t₁ t₂)))
 | _, _ => none
 
--- For debugging
-def ListSgt : List Bool → List Bool → Option Bool
-| [h₁], [h₂] => some (¬h₁ && h₂)
-| (h₁ :: t₁), (h₂ :: t₂) => 
-  match (ListUgt t₁ t₂) with 
-  | some b => some ((¬h₁ && h₂) || ((h₁ = h₂) && b))
-  | none => none
-| _, _ => none
--- 0000 >ₛ 1111
-#eval ListSgt [false, false, false, false] [true, true, true, true]
--- 1011 >ₛ 1010
-#eval ListSgt [true, false, true, true] [true, false, true, false]
--- 10 >ₛ 01
-#eval ListSgt [true, false] [false, true]
-
 /-
 bblastBvSgt ot₁ ot₂
 If ot₁ and ot₂ are BVs of the same length, 
@@ -493,10 +483,22 @@ def bblastBvSgt : Option term → Option term → Option term :=
       ) else some top
     | (_, _) => some bot
 
+-- 0000 >ₛ 1111
 #eval bblastBvSgt (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvSgt (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 1011 >ₛ 1010
 #eval bblastBvSgt (val (value.bitvec [true, false, true, true]) (bv 4))
   (val (value.bitvec [true, false, true, false]) (bv 4))
+#eval termEval (bblastBvSgt (val (value.bitvec [true, false, true, true]) (bv 4))
+  (val (value.bitvec [true, false, true, false]) (bv 4)))
+-- 10 >ₛ 01
+#eval bblastBvSgt (val (value.bitvec [true, false]) (bv 2))
+  (val (value.bitvec [false, true]) (bv 2))
+#eval termEval (bblastBvSgt (val (value.bitvec [true, false]) (bv 2))
+  (val (value.bitvec [false, true]) (bv 2)))
+-- Using variables
 #eval bblastBvSgt (const 21 (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvSgt (const 21 (bv 4)) (const 22 (bv 4))

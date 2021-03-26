@@ -1,5 +1,4 @@
 import Cdclt.Term
-import Cdclt.BV
 
 open proof
 open proof.sort proof.term
@@ -64,9 +63,6 @@ partial def termEval (ot : Option term) : Option term :=
 #check termEval (mkAnd top bot)
 
 #eval termEval (mkAnd top bot)
-
-#eval termEval $ bblastBvSlt (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
 
 end term
 
