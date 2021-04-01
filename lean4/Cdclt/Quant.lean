@@ -6,8 +6,6 @@ open rules
 
 namespace quantRules
 
-def t := val (value.bitvec [true, false])
-
 def substitute (v : Nat) (t : term) : term → Option term
 -- replace each term in application
 | f • t₁ => substitute v t f >>= λ fs =>
