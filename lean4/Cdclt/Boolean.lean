@@ -47,13 +47,13 @@ def resolveR₀ (n : Option term) (c₁ c₂: clause) : clause :=
 def resolveR₁ (n : Option term) (c₁ c₂: clause) : clause :=
   concatCl (List.erase c₁ (mkNot n)) (List.erase c₂ n)
 
-axiom R0 : ∀ {c₁ c₂ : clause}
-  (p₁ : holds c₁) (p₂ : holds c₂) (n : Option term), holds (resolveR₀ n c₁ c₂)
+axiom R0 : ∀ {c₁ c₂ : clause},
+  holds c₁ → holds c₂ → (n : Option term) → holds (resolveR₀ n c₁ c₂)
 
-axiom R1 : ∀ {c₁ c₂ : clause}
-  (p₁ : holds c₁) (p₂ : holds c₂) (n : Option term), holds (resolveR₁ n c₁ c₂)
+axiom R1 : ∀ {c₁ c₂ : clause},
+  holds c₁ → holds c₂ → (n : Option term) → holds (resolveR₁ n c₁ c₂)
 
-axiom factoring : ∀ {c : clause} (p : holds c), holds (removeDuplicates c)
+axiom factoring : ∀ {c : clause}, holds c → holds (removeDuplicates c)
 
 axiom reorder {c₁ : clause} (perm : List Nat) :
   holds c₁ → holds (List.map (nTh c₁) perm)
@@ -85,8 +85,8 @@ def reduceAndNth : Nat → term → Option term
 | _,     _                              => none
 def reduceAnd (n : Nat) : Option term → Option term :=
   λ t => t >>= λ t' => reduceAndNth n t'
-axiom andElim : ∀ {t : Option term} (p : thHolds t) (n : Nat),
-  thHolds (reduceAnd n t)
+axiom andElim : ∀ {t : Option term},
+  thHolds t → (n : Nat) → thHolds (reduceAnd n t)
 
 /-
 l₁  ...  lₙ
@@ -290,8 +290,8 @@ axiom clAssume : ∀ {t : Option term}, thHolds t → holds [t]
 
 axiom clOr : ∀ {t : Option term} (p : thHolds t), holds (reduceOr t)
 
-axiom scope : ∀ {t₁ t₂ : Option term}
-  (p₁ : thHolds t₁) (p₂ : thHolds t₂), thHolds (mkOr (mkNot t₁) t₂)
+axiom scope : ∀ {t₁ t₂ : Option term},
+  thHolds t₁ → thHolds t₂ → thHolds (mkOr (mkNot t₁) t₂)
 
 ------------------------------------ Holes ------------------------------------
 

@@ -45,6 +45,7 @@ def bvSgtNum : Nat := bvSltNum + 1
 def bvAddNum : Nat := bvSgtNum + 1
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
+def strNum : Nat := intNum + 1
 
 def sortToString : sort → String
 | dep => "blah"
@@ -67,7 +68,9 @@ def mkArrowN : List (Option sort) → Option sort
 end sort
 
 inductive value : Type where
+| bool : Bool → value
 | bitvec : List Bool → value
+| char : Nat → value
 | integer : Int → value
 deriving DecidableEq
 
@@ -76,12 +79,15 @@ def bvToString : List Bool → String
 | h :: t => (if h then "1" else "0") ++ bvToString t
 
 def valueToString : value → String
+| value.bool true => "⊥"
+| value.bool false => "⊤"
 | value.bitvec l => bvToString l
+| value.char c => toString $ Char.ofNat c
 | value.integer i => toString i
 
 instance: ToString value where toString := valueToString
 
-/- terms are values (nullary constants),
+/- terms are values (interpreted constants),
    constants of a sort, applications,
    or quantified formulas
    Quantified variables are also
@@ -103,6 +109,7 @@ open value
 -- Sort definitions
 @[matchPattern] def boolSort := atom boolNum
 @[matchPattern] def intSort := atom intNum
+@[matchPattern] def stringSort := atom strNum
 
 -- Interpreted constants
 @[matchPattern] def botConst := const botNum boolSort
@@ -145,9 +152,9 @@ open value
   const bvAddNum (arrow (bv n) (arrow (bv n) (bv n)))
 
 -- macros for creating terms with interpreted constants
-@[matchPattern] def bot : term := botConst
+@[matchPattern] def bot : term := val (bool false) boolSort
+@[matchPattern] def top : term := val (bool true) boolSort
 @[matchPattern] def not : term → term := λ t => notConst • t
-@[matchPattern] def top : term := not botConst
 @[matchPattern] def or : term → term → term := λ t₁ t₂ => orConst • t₁ • t₂
 @[matchPattern] def and : term → term → term := λ t₁ t₂ => andConst • t₁ • t₂
 @[matchPattern] def implies : term → term → term :=
@@ -184,8 +191,6 @@ open value
 
 def termToString : term → String
 | val v s => valueToString v
-| bot => "⊥"
-| top => "⊤"
 | not t => "¬" ++ termToString t
 | or t₁ t₂ => termToString t₁ ++ " ∨ " ++ termToString t₂
 | and t₁ t₂ => termToString t₁ ++ " ∧ " ++ termToString t₂
@@ -215,9 +220,11 @@ instance : ToString term where toString := termToString
 
 -- computing the sort of terms
 def sortOfAux : term → Option sort
-| val (integer i) _ => intSort
+| val (value.bool _) _ => boolSort
 | val (bitvec l) _ =>
     do let len ← List.length l if len = 0 then none else bv len
+| val (value.char _) _ => stringSort
+| val (integer _) _ => intSort
 | eq t₁ t₂ =>
     sortOfAux t₁ >>= λ s₁ =>
     sortOfAux t₂ >>= λ s₂ =>
