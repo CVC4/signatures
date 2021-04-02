@@ -66,12 +66,14 @@ partial def termEval (ot : Option term) : Option term :=
        | top => termEval t₁
        | bot => termEval t₂
        | _ => t
+  | app t₁ t₂ =>
+    do let t₁' ← termEval t₁
+       let t₂' ← termEval t₂
+       (app t₁' t₂')
   | _ => t
 
 #check termEval (mkAnd top bot)
-
 #eval termEval (mkAnd top bot)
-
 end term
 
 end proof

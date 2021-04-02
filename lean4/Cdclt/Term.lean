@@ -42,6 +42,7 @@ def bvUltNum : Nat := bvOrNum + 1
 def bvUgtNum : Nat := bvUltNum + 1
 def bvSltNum : Nat := bvUgtNum + 1
 def bvSgtNum : Nat := bvSltNum + 1
+def bvAddNum : Nat := bvSgtNum + 1
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
 
@@ -140,6 +141,8 @@ open value
   const bvSltNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvSgtConst (n : Nat) :=
   const bvSgtNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvAddConst (n : Nat) :=
+  const bvAddNum (arrow (bv n) (arrow (bv n) (bv n)))
 
 -- macros for creating terms with interpreted constants
 @[matchPattern] def bot : term := botConst
@@ -176,6 +179,8 @@ open value
   λ n t₁ t₂ => bvSltConst n • t₁ • t₂
 @[matchPattern] def bvSgt : Nat → term → term → term :=
   λ n t₁ t₂ => bvSgtConst n • t₁ • t₂
+@[matchPattern] def bvAdd : Nat → term → term → term :=
+  λ n t₁ t₂ => bvAddConst n • t₁ • t₂
 
 def termToString : term → String
 | val v s => valueToString v
@@ -200,7 +205,8 @@ def termToString : term → String
 | bvUlt _ t₁ t₂ => termToString t₁ ++ " <ᵤ " ++ termToString t₂
 | bvUgt _ t₁ t₂ => termToString t₁ ++ " >ᵤ " ++ termToString t₂
 | bvSlt _ t₁ t₂ => termToString t₁ ++ " <ₛ " ++ termToString t₂
-| bvSgt _ t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂-/
+| bvSgt _ t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂
+| bvAdd _ t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂-/
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
