@@ -43,6 +43,13 @@ def bvUgtNum : Nat := bvUltNum + 1
 def bvSltNum : Nat := bvUgtNum + 1
 def bvSgtNum : Nat := bvSltNum + 1
 def bvAddNum : Nat := bvSgtNum + 1
+def plusNum : Nat := bvAddNum + 1
+def minusNum : Nat := plusNum + 1
+def multNum : Nat := minusNum + 1
+def gtNum : Nat := multNum + 1
+def gteNum : Nat := gtNum + 1
+def ltNum : Nat := gteNum + 1
+def lteNum : Nat := ltNum + 1
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
 def strNum : Nat := intNum + 1
@@ -128,6 +135,21 @@ open value
 @[matchPattern] def eqConst := const eqNum dep
 @[matchPattern] def fIteConst := const fIteNum dep
 
+@[matchPattern] def plusConst :=
+  const plusNum (arrow intSort (arrow intSort intSort))
+@[matchPattern] def minusConst :=
+  const minusNum (arrow intSort (arrow intSort intSort))
+@[matchPattern] def multConst :=
+  const multNum (arrow intSort (arrow intSort intSort))
+@[matchPattern] def gtConst :=
+  const gtNum (arrow intSort (arrow intSort boolSort))
+@[matchPattern] def gteConst :=
+  const gteNum (arrow intSort (arrow intSort boolSort))
+@[matchPattern] def ltConst :=
+  const ltNum (arrow intSort (arrow intSort boolSort))
+@[matchPattern] def lteConst :=
+  const lteNum (arrow intSort (arrow intSort boolSort))
+
 @[matchPattern] def bitOfConst (n : Nat) :=
   const bvBitOfNum (arrow (bv n) (arrow intSort boolSort))
 @[matchPattern] def bbTConst (n : Nat) :=
@@ -162,6 +184,15 @@ open value
 @[matchPattern] def xor : term → term → term := λ t₁ t₂ => xorConst • t₁ • t₂
 @[matchPattern] def bIte : term → term → term → term :=
   λ c t₁ t₂ => bIteConst • c • t₁ • t₂
+
+@[matchPattern] def plus : term → term → term := λ t₁ t₂ => plusConst • t₁ • t₂
+@[matchPattern] def minus : term → term → term :=
+  λ t₁ t₂ => minusConst • t₁ • t₂
+@[matchPattern] def mult : term → term → term := λ t₁ t₂ => multConst • t₁ • t₂
+@[matchPattern] def gt : term → term → term := λ t₁ t₂ => gtConst • t₁ • t₂
+@[matchPattern] def gte : term → term → term := λ t₁ t₂ => gteConst • t₁ • t₂
+@[matchPattern] def lt : term → term → term := λ t₁ t₂ => ltConst • t₁ • t₂
+@[matchPattern] def lte : term → term → term := λ t₁ t₂ => lteConst • t₁ • t₂
 
 @[matchPattern] def fIte : term → term → term → term :=
   λ t₁ t₂ t₃ => fIteConst • t₁ • t₂ • t₃
@@ -201,6 +232,13 @@ def termToString : term → String
 | eq t₁ t₂ => termToString t₁ ++ " ≃ " ++ termToString t₂
 | fIte c t₁ t₂ =>
   termToString c ++ " ? " ++ termToString t₁ ++ " : " ++ termToString t₂
+| plus t₁ t₂ => termToString t₁ ++ " + " ++ termToString t₂
+| minus t₁ t₂ => termToString t₁ ++ " - " ++ termToString t₂
+| mult t₁ t₂ => termToString t₁ ++ " * " ++ termToString t₂
+| gt t₁ t₂ => termToString t₁ ++ " > " ++ termToString t₂
+| gte t₁ t₂ => termToString t₁ ++ " ≥ " ++ termToString t₂
+| lt t₁ t₂ => termToString t₁ ++ " < " ++ termToString t₂
+| lte t₁ t₂ => termToString t₁ ++ " ≤ " ++ termToString t₂
 | bitOf _ t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
 /-| bbT _ => "bbT"
 | bvEq _ t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
