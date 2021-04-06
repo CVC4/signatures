@@ -43,6 +43,12 @@ def bvUgtNum : Nat := bvUltNum + 1
 def bvSltNum : Nat := bvUgtNum + 1
 def bvSgtNum : Nat := bvSltNum + 1
 def bvAddNum : Nat := bvSgtNum + 1
+def bvNegNum : Nat := bvAddNum + 1
+def bvMulNum : Nat := bvNegNum + 1
+def bvUdivNum : Nat := bvMulNum + 1
+def bvUremNum : Nat := bvUdivNum + 1
+def bvExtractNum : Nat := bvUremNum + 1
+def bvConcatNum : Nat := bvExtractNum + 1
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
 def strNum : Nat := intNum + 1
@@ -79,8 +85,8 @@ def bvToString : List Bool → String
 | h :: t => (if h then "1" else "0") ++ bvToString t
 
 def valueToString : value → String
-| value.bool true => "⊥"
-| value.bool false => "⊤"
+| value.bool true => "⊤"
+| value.bool false => "⊥"
 | value.bitvec l => bvToString l
 | value.char c => toString $ Char.ofNat c
 | value.integer i => toString i
@@ -150,6 +156,12 @@ open value
   const bvSgtNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvAddConst (n : Nat) :=
   const bvAddNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvNegConst (n : Nat) :=
+  const bvNegNum (arrow (bv n) (bv n))
+@[matchPattern] def bvExtractConst (n i j : Nat) :=
+  const bvExtractNum (arrow (bv n) (arrow intSort (arrow intSort (bv (i - j + 1)))))
+@[matchPattern] def bvConcatConst (m n : Nat) :=
+  const bvConcatNum (arrow (bv m) (arrow (bv n) (bv (m+n))))
 
 -- macros for creating terms with interpreted constants
 @[matchPattern] def bot : term := val (bool false) boolSort
@@ -188,6 +200,13 @@ open value
   λ n t₁ t₂ => bvSgtConst n • t₁ • t₂
 @[matchPattern] def bvAdd : Nat → term → term → term :=
   λ n t₁ t₂ => bvAddConst n • t₁ • t₂
+@[matchPattern] def bvNeg : Nat → term → term :=
+  λ n t => bvNegConst n • t
+@[matchPattern] def bvExtract : 
+  Nat → Nat → Nat → term → term → term → term :=
+  λ n i j t₁ t₂ t₃ => bvExtractConst n i j • t₁ • t₂ • t₃
+@[matchPattern] def bvConcat : Nat → Nat → term → term → term :=
+  λ n m t₁ t₂ => bvConcatConst n m • t₁ • t₂
 
 def termToString : term → String
 | val v s => valueToString v
@@ -211,7 +230,10 @@ def termToString : term → String
 | bvUgt _ t₁ t₂ => termToString t₁ ++ " >ᵤ " ++ termToString t₂
 | bvSlt _ t₁ t₂ => termToString t₁ ++ " <ₛ " ++ termToString t₂
 | bvSgt _ t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂
-| bvAdd _ t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂-/
+| bvAdd _ t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂
+| bvNeg _ t => "-_bv " ++ termToString t
+| bvExtract _ i j t₁ t₂ t₃ => termToString t ++ "[" ++ repr i ++ ":" ++ repr j ++ "]"
+| bvConcat _ _ t₁ t₂ => termToString t₁ ++ " ++ " ++ termToString t₂-/
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
