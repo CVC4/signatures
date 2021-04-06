@@ -742,6 +742,101 @@ axiom bbBvConcat : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvConcat t₁ t₂) (bblastBvAdd t₁ t₂))
 
 
+/- ---------------
+ BV Zero Extend
+---------------- -/
+
+-- If terms are well-typed, construct their BV zero extend application
+def mkBvZeroExt : Option term → Option term → Option term :=
+  λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
+             oi >>= λ i => sortOf i >>= λ si =>
+  match s, si with
+  | bv n, intSort => 
+    match i with
+    | val (value.integer i₁) intSort => bvZeroExt n (Int.toNat i₁) t i
+    | _ => none
+  | _, _ => none
+
+/-
+If terms are well-typed, construct their bit-blasted BV zero extend
+     [x₀ x₁ ... xₙ]    i
+-----------------------------
+  [0₁ ... 0ᵢ x₀ x₁ ... xₙ]
+-/
+def bblastZeroExt : Option term → Option term → Option term :=
+  λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
+             oi >>= λ i => sortOf i >>= λ si =>
+  match s, si with
+  | bv n, intSort => 
+    match i with
+    | val (value.integer i₁) intSort => 
+      mkBbT (List.append (List.replicate (Int.toNat i₁) (some bot)) (bitOfN t n))
+    | _ => none
+  | _, _ => none
+#eval bblastZeroExt (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.integer 2) intSort)
+#eval bblastZeroExt (val (value.bitvec [true, false]) (bv 2))
+  (val (value.integer 0) intSort)
+-- Using variables
+#eval bblastZeroExt (const 21 (bv 4))  (val (value.integer 2) intSort)
+
+-- Bit-blasting BvZeroExt rule
+axiom bbBvZeroExt : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvZeroExt t₁ t₂) (bblastZeroExt t₁ t₂))
+
+
+/- ---------------
+ BV Sign Extend
+---------------- -/
+
+-- If terms are well-typed, construct their BV sign extend application
+def mkBvSignExt : Option term → Option term → Option term :=
+  λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
+             oi >>= λ i => sortOf i >>= λ si =>
+  match s, si with
+  | bv n, intSort => 
+    match i with
+    | val (value.integer i₁) intSort => bvSignExt n (Int.toNat i₁) t i
+    | _ => none
+  | _, _ => none
+
+def hd : List α → Option α
+| h :: t => some h
+| [] => none
+
+/-
+If terms are well-typed, construct their bit-blasted BV sign extend
+     [x₀ x₁ ... xₙ]    i
+-----------------------------
+  [x₀ ... x₀ x₀ x₁ ... xₙ]
+where i x₀'s are prefixed to x
+-/
+def bblastSignExt : Option term → Option term → Option term :=
+  λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
+             oi >>= λ i => sortOf i >>= λ si =>
+  match s, si with
+  | bv n, intSort => 
+    match i with
+    | val (value.integer i₁) intSort =>
+      match hd (bitOfN t n) with
+      | some sign => mkBbT (List.append (List.replicate (Int.toNat i₁) sign) (bitOfN t n))
+      | none => none
+    | _ => none
+  | _, _ => none
+#eval bblastSignExt (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.integer 2) intSort)
+#eval bblastSignExt (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.integer 2) intSort)
+#eval bblastSignExt (val (value.bitvec [true, false]) (bv 2))
+  (val (value.integer 0) intSort)
+-- Using variables
+#eval bblastSignExt (const 21 (bv 4)) (val (value.integer 2) intSort)
+
+-- Bit-blasting BvSignExt rule
+axiom bbBvSignExt : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvSignExt t₁ t₂) (bblastSignExt t₁ t₂))
+
+
 end term
 
 end proof

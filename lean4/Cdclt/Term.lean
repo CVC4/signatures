@@ -49,7 +49,9 @@ def bvUdivNum : Nat := bvMulNum + 1
 def bvUremNum : Nat := bvUdivNum + 1
 def bvExtractNum : Nat := bvUremNum + 1
 def bvConcatNum : Nat := bvExtractNum + 1
-def plusNum : Nat := bvConcatNum + 1
+def bvZeroExtNum : Nat := bvConcatNum + 1
+def bvSignExtNum : Nat := bvZeroExtNum + 1
+def plusNum : Nat := bvSignExtNum + 1
 def minusNum : Nat := plusNum + 1
 def multNum : Nat := minusNum + 1
 def gtNum : Nat := multNum + 1
@@ -184,6 +186,10 @@ open value
   const bvExtractNum (arrow (bv n) (arrow intSort (arrow intSort (bv (i - j + 1)))))
 @[matchPattern] def bvConcatConst (m n : Nat) :=
   const bvConcatNum (arrow (bv m) (arrow (bv n) (bv (m+n))))
+@[matchPattern] def bvZeroExtConst (n i : Nat) :=
+  const bvZeroExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
+@[matchPattern] def bvSignExtConst (n i : Nat) :=
+  const bvSignExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
 
 -- macros for creating terms with interpreted constants
 @[matchPattern] def bot : term := val (bool false) boolSort
@@ -238,6 +244,10 @@ open value
   λ n i j t₁ t₂ t₃ => bvExtractConst n i j • t₁ • t₂ • t₃
 @[matchPattern] def bvConcat : Nat → Nat → term → term → term :=
   λ n m t₁ t₂ => bvConcatConst n m • t₁ • t₂
+@[matchPattern] def bvZeroExt : Nat → Nat → term → term → term :=
+  λ n i t₁ t₂ => bvZeroExtConst n i • t₁ • t₂
+@[matchPattern] def bvSignExt : Nat → Nat → term → term → term :=
+  λ n i t₁ t₂ => bvSignExtConst n i • t₁ • t₂ 
 
 def termToString : term → String
 | val v s => valueToString v
@@ -271,7 +281,9 @@ def termToString : term → String
 | bvAdd _ t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂
 | bvNeg _ t => "-_bv " ++ termToString t
 | bvExtract _ i j t₁ t₂ t₃ => termToString t ++ "[" ++ repr i ++ ":" ++ repr j ++ "]"
-| bvConcat _ _ t₁ t₂ => termToString t₁ ++ " ++ " ++ termToString t₂-/
+| bvConcat _ _ t₁ t₂ => termToString t₁ ++ " ++ " ++ termToString t₂
+| bvZeroExt _ _ t₁ t₂ => "zeroExt " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvSignExt _ _ t₁ t₂ => "signExt " ++ termToString t₁ ++ " " ++ termToString t₂ -/
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
