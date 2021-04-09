@@ -9,12 +9,14 @@ leanpkg build
 ```
 
 ## Lean File Structure
-`term.lean` contains the term structure.
+`Term.lean` contains the term structure.
 
-`cdclt.lean` contains the Boolean rules including the resolution calculus and the CNF calculus.
+`Boolean.lean` contains the Boolean rules including the resolution calculus and the CNF calculus.
 
-`bv.lean` contains the bit-vector proof calculus.
+`Euf.lean` contains the EUF (equality over uninterpreted functions) rules.
 
-`aux.lean` contains auxilary functions used by other files.
+`BV.lean` contains the bit-vector proof calculus.
 
-`examples.lean` contains some small test files for the signatures.
+`Quant.lean` contains the quantifier rules.
+
+`examples/` contains some small test files for the signatures.

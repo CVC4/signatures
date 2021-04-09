@@ -272,9 +272,9 @@ same as above)
 in which, for $i\geq 0$,
 \[
   \begin{array}{lcl}
-    \mathrm{res}_0&=&\neg x_0 \wedge y_0\\
+    \mathrm{res}_0&=& x_0 \wedge \neg y_0\\
     \mathrm{res}_{i+1}&=&((x_{i+1}\leftrightarrow y_{i+1})\wedge
-                          \mathrm{res}_i)\vee (\neg x_{i+1}\wedge y_{i+1})
+                          \mathrm{res}_i)\vee (x_{i+1}\wedge \neg y_{i+1})
   \end{array}
 \]
 

@@ -1,4 +1,4 @@
- import Cdclt.Term
+import Cdclt.Term
 
 open proof
 open proof.sort proof.term
@@ -35,12 +35,11 @@ def reduceOrAux : term → clause
 | term.or t₀ (term.or t₁ t₂) => t₀::t₁::(reduceOrAux t₂)
 | term.or t₀ t₁              => [t₀, t₁]
 | t                          => [t]
-
 def reduceOr : Option term → clause
 | some t => reduceOrAux t
 | none   => [none]
 
------------------- Clausal reasoning
+------------------------------- Clausal Reasoning -------------------------------
 
 def resolveR₀ (n : Option term) (c₁ c₂: clause) : clause :=
   concatCl (List.erase c₁ n) (List.erase c₂ (mkNot n) )
@@ -48,13 +47,13 @@ def resolveR₀ (n : Option term) (c₁ c₂: clause) : clause :=
 def resolveR₁ (n : Option term) (c₁ c₂: clause) : clause :=
   concatCl (List.erase c₁ (mkNot n)) (List.erase c₂ n)
 
-axiom R0 : ∀ {c₁ c₂ : clause}
-  (p₁ : holds c₁) (p₂ : holds c₂) (n : Option term), holds (resolveR₀ n c₁ c₂)
+axiom R0 : ∀ {c₁ c₂ : clause},
+  holds c₁ → holds c₂ → (n : Option term) → holds (resolveR₀ n c₁ c₂)
 
-axiom R1 : ∀ {c₁ c₂ : clause}
-  (p₁ : holds c₁) (p₂ : holds c₂) (n : Option term), holds (resolveR₁ n c₁ c₂)
+axiom R1 : ∀ {c₁ c₂ : clause},
+  holds c₁ → holds c₂ → (n : Option term) → holds (resolveR₁ n c₁ c₂)
 
-axiom factoring : ∀ {c : clause} (p : holds c), holds (removeDuplicates c)
+axiom factoring : ∀ {c : clause}, holds c → holds (removeDuplicates c)
 
 axiom reorder {c₁ : clause} (perm : List Nat) :
   holds c₁ → holds (List.map (nTh c₁) perm)
@@ -70,26 +69,38 @@ axiom notNotElim : ∀ {t : Option term}, thHolds (mkNot $ mkNot t) → thHolds 
 axiom contradiction : ∀ {t : Option term},
   thHolds t → thHolds (mkNot t) → holds []
 
--- natural deduction style reasoning
 
-/- reduceAndNth and reduceOrNth were broken when
-   we started using ℕ instead of pos_num in term.lean -/
+-------------------- Natural Deduction Style Reasoning --------------------
+
+/-
+l₁ ∧ ... ∧ lₙ
+-------------andElim
+      lᵢ
+-/
 -- get n-th element in AND chain (right-associative)
 def reduceAndNth : Nat → term → Option term
 | 0,     (term.and t v)                 => t
 | 1,     (term.and _ t)                 => t
 | (n+1), (term.and  _ (term.and t₀ t₁)) =>  reduceAndNth n (and t₀ t₁)
 | _,     _                              => none
-
 def reduceAnd (n : Nat) : Option term → Option term :=
   λ t => t >>= λ t' => reduceAndNth n t'
+axiom andElim : ∀ {t : Option term},
+  thHolds t → (n : Nat) → thHolds (reduceAnd n t)
 
-axiom andElim : ∀ {t : Option term} (p : thHolds t) (n : Nat),
-  thHolds (reduceAnd n t)
-
+/-
+l₁  ...  lₙ
+-----------andIntro
+l₁ ∧ ... ∧ lₙ
+-/
 axiom andIntro : ∀ {t₁ t₂ : Option term},
   thHolds t₁ → thHolds t₂ → thHolds (mkAnd t₁ t₂)
 
+/-
+¬(l₁ ∨ ... ∨ lₙ)
+----------------notOrElim
+        lᵢ
+-/
 -- get n-th in NOT-OR chain (right-associative)
 def reduceOrNth : Nat → term → Option term
 | 0,     (term.or t _)               => t
@@ -102,7 +113,6 @@ def reduceNotOr (n : Nat) (t : Option term) : Option term :=
     match t' with
     | term.not t'' => mkNot $ reduceOrNth n t''
     | _            => none
-
 axiom notOrElim : ∀ {t : Option term} (p : thHolds t) (n : Nat),
   thHolds (reduceNotOr n t)
 
@@ -111,48 +121,63 @@ axiom impliesElim : ∀ {t₁ t₂ : Option term},
 
 axiom notImplies1 : ∀ {t₁ t₂ : Option term},
   thHolds (mkNot $ mkImplies t₁ t₂) → thHolds t₁
+
 axiom notImplies2 : ∀ {t₁ t₂ : Option term},
   thHolds (mkNot $ mkImplies t₁ t₂) → thHolds (mkNot t₁)
 
-axiom equivElim1 : ∀ {t₁ t₂}, thHolds (mkEq t₁ t₂) → holds [mkNot t₁, t₂]
-axiom equivElim2 : ∀ {t₁ t₂}, thHolds (mkEq t₁ t₂) → holds [t₁, mkNot t₂]
+axiom equivElim1 : ∀ {t₁ t₂},
+  thHolds (mkEq t₁ t₂) → holds [mkNot t₁, t₂]
 
-axiom notEquivElim1 : ∀ {t₁ t₂}, thHolds (mkNot $ mkEq t₁ t₂) → holds [t₁, t₂]
+axiom equivElim2 : ∀ {t₁ t₂},
+  thHolds (mkEq t₁ t₂) → holds [t₁, mkNot t₂]
+
+axiom notEquivElim1 : ∀ {t₁ t₂},
+  thHolds (mkNot $ mkEq t₁ t₂) → holds [t₁, t₂]
+
 axiom notEquivElim2 : ∀ {t₁ t₂},
   thHolds (mkNot $ mkEq t₁ t₂) → holds [mkNot t₁, mkNot t₂]
 
 axiom xorElim1 : ∀ {t₁ t₂ : Option term},
   thHolds (mkXor t₁ t₂) → holds [t₁, t₂]
+
 axiom xorElim2 : ∀ {t₁ t₂ : Option term},
   thHolds (mkXor t₁ t₂) → holds [mkNot t₁, mkNot t₂]
 
 axiom notXorElim1 : ∀ {t₁ t₂ : Option term},
   thHolds (mkNot $ mkXor t₁ t₂) → holds [t₁, mkNot t₂]
+
 axiom notXorElim2 : ∀ {t₁ t₂ : Option term},
   thHolds (mkNot $ mkXor t₁ t₂) → holds [mkNot t₁, t₂]
 
 axiom iteElim1 : ∀ {c t₁ t₂ : Option term}, thHolds (mkIte c t₁ t₂) →
   holds [mkNot c, t₁]
+
 axiom iteElim2 : ∀ {c t₁ t₂ : Option term}, thHolds (mkIte c t₁ t₂) →
   holds [c, t₂]
 
 axiom notIteElim1 : ∀ {c t₁ t₂ : Option term},
   thHolds (mkNot $ mkIte c t₁ t₂) → holds [mkNot c, mkNot t₁]
+
 axiom notIteElim2 : ∀ {c t₁ t₂ : Option term},
   thHolds (mkNot $ mkIte c t₁ t₂) → holds [c, mkNot t₂]
 
+/-
+¬(l₁ ∧ ... ∧ lₙ)
+----------------notAnd
+¬l₁ ∨ ... ∨ ¬lₙ
+-/
 def reduceNotAndAux : term → clause
 | term.and t₀ (term.and t₁ t₂) => mkNot t₀ :: mkNot t₁ :: reduceNotAndAux t₂
 | term.and t₀ t₁               => [mkNot t₀, mkNot t₁]
 | t                            => [t]
-
 def reduceNotAnd : Option term → clause
 | (some t) => reduceNotAndAux t
 | none     => [none]
+axiom notAnd : ∀ {t : Option term},
+  thHolds (mkNot t) → holds (reduceNotAnd t)
 
-axiom notAnd : ∀ {t : Option term} (p : thHolds t), holds (reduceNotAnd t)
 
--------------------- CNF rules (introduce valid clauses)
+-------------------- CNF Reasoning (to introduce valid clauses) --------------------
 
 def mkNotList : clause → clause
 | [] => []
@@ -260,15 +285,15 @@ axiom cnfIteNeg3 {c t₁ t₂ : Option term} :
   holds [mkIte c t₁ t₂, mkNot t₁, mkNot t₂]
 
 -- connecting theory reasoning and clausal reasoning
-
+---------------- Connecting Theory Reasoning and Clausal Reasoning ----------------
 axiom clAssume : ∀ {t : Option term}, thHolds t → holds [t]
 
 axiom clOr : ∀ {t : Option term} (p : thHolds t), holds (reduceOr t)
 
-axiom scope : ∀ {t₁ t₂ : Option term}
-  (p₁ : thHolds t₁) (p₂ : thHolds t₂), thHolds (mkOr (mkNot t₁) t₂)
+axiom scope : ∀ {t₁ t₂ : Option term},
+  thHolds t₁ → thHolds t₂ → thHolds (mkOr (mkNot t₁) t₂)
 
--------------------------- Holes
+------------------------------------ Holes ------------------------------------
 
 axiom trust : ∀ {c₁ c₂ : clause}, holds c₁ → holds c₂
 
