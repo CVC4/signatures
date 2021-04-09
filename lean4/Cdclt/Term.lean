@@ -306,6 +306,7 @@ def sortOfAux : term → Option sort
     sortOfAux t₁ >>= λ s₂ =>
     sortOfAux t₂ >>= λ s₃ =>
     if s₁ = boolSort ∧ s₂ = s₃ then s₂ else none
+| eqConst • t => sortOfAux t >>= λ s => arrow s boolSort
 | f • t =>
     sortOfAux f >>= λ sf =>
     sortOfAux t >>= λ st =>
@@ -363,6 +364,7 @@ def mkAppAux : term → term → Option term :=
     sortOf t₂ >>= λ s₂ =>
     match s₁ with
     | arrow s₂ _ => t₁ • t₂
+    | dep => t₁ • t₂
     | _ => none
 
 -- binary and n-ary application

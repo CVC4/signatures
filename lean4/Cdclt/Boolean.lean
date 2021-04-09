@@ -286,6 +286,8 @@ axiom cnfIteNeg3 {c t₁ t₂ : Option term} :
 
 -- connecting theory reasoning and clausal reasoning
 ---------------- Connecting Theory Reasoning and Clausal Reasoning ----------------
+axiom thAssume : ∀ {t : Option term}, holds [t] → thHolds t
+
 axiom clAssume : ∀ {t : Option term}, thHolds t → holds [t]
 
 axiom clOr : ∀ {t : Option term} (p : thHolds t), holds (reduceOr t)
@@ -298,5 +300,7 @@ axiom scope : ∀ {t₁ t₂ : Option term},
 axiom trust : ∀ {c₁ c₂ : clause}, holds c₁ → holds c₂
 
 axiom thTrust : ∀ {t₁ t₂ : Option term}, thHolds t₁ → thHolds t₂
+
+axiom thTrustValid : ∀ {t : Option term}, thHolds t
 
 end rules
