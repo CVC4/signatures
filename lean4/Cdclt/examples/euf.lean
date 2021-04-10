@@ -87,7 +87,7 @@ def andp₂p₃ := mkAnd p₂ p₃
 def ornp₁andp₂p₃ := mkOr np₁ andp₂p₃
 def ornp₃neqfafb := mkOr np₃ neqfafb
 
-theorem simpleCong :
+theorem simpleCongRw :
   thHolds eqab → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → thHolds bot :=
 λ s0 : thHolds eqab =>
 λ s1 : thHolds ornp₃neqfafb =>
@@ -108,3 +108,50 @@ have s13 : thHolds (mkEq neqfbfb bot) from trans s12 s10
 have s14 : thHolds eqneqfafbbot from trans s9 s13
 
 show thHolds bot from eqResolve s6 s14
+
+/-
+(SCOPE |:conclusion| (not (and (= a b) (or (not p3) (not (= (f a) (f b)))) p1 (or (not p1) (and p2 p3))))
+  (CHAIN_RESOLUTION |:conclusion| false
+    (REORDERING |:conclusion| (or (= (f a) (f b)) (not (= a b)))
+      (IMPLIES_ELIM |:conclusion| (or (not (= a b)) (= (f a) (f b)))
+        (SCOPE |:conclusion| (=> (= a b) (= (f a) (f b)))
+          (CONG |:conclusion| (= (f a) (f b))
+            (SYMM |:conclusion| (= a b)
+              (SYMM |:conclusion| (= b a)
+                (ASSUME |:conclusion| (= a b) |:args| ((= a b))))) |:args| (23 f))
+          |:args| ((= a b))))
+      |:args| ((or (= (f a) (f b)) (not (= a b)))))
+    (CHAIN_RESOLUTION |:conclusion| (not (= (f a) (f b)))
+      (ASSUME |:conclusion| (or (not p3) (not (= (f a) (f b)))) |:args| ((or (not p3) (not (= (f a) (f b))))))
+      (CHAIN_RESOLUTION |:conclusion| p3
+        (REORDERING |:conclusion| (or p3 (not (and p2 p3)))
+          (CNF_AND_POS |:conclusion| (or (not (and p2 p3)) p3) |:args| ((and p2 p3) 1)) |:args| ((or p3 (not (and p2 p3)))))
+        (CHAIN_RESOLUTION |:conclusion| (and p2 p3)
+          (ASSUME |:conclusion| (or (not p1) (and p2 p3)) |:args| ((or (not p1) (and p2 p3))))
+          (ASSUME |:conclusion| p1 |:args| (p1)) |:args| (false p1))
+        |:args| (false (and p2 p3)))
+      |:args| (false p3))
+    (ASSUME |:conclusion| (= a b) |:args| ((= a b)))
+    |:args| (true (= (f a) (f b)) false (= a b)))
+  |:args| ((= a b) (or (not p3) (not (= (f a) (f b)))) p1 (or (not p1) (and p2 p3))))
+-/
+
+theorem simpleCong :
+  thHolds eqab → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → holds [] :=
+λ s0 : thHolds eqab =>
+λ s1 : thHolds ornp₃neqfafb =>
+λ s2 : thHolds p₁ =>
+λ s3 : thHolds ornp₁andp₂p₃ =>
+have s4 : thHolds (mkEq b a) from symm s0
+have s5 : thHolds eqab from symm s4
+have s6 : thHolds eqfafb from cong (@refl f) s5
+have s7 : holds [mkNot eqab, eqfafb] from clOr (scope s0 s6)
+have s8 : holds [eqfafb, mkNot eqab] from reorder [1,0] s7
+
+have s9 : holds [andp₂p₃] from R1 (clOr s3) (clAssume s2) p₁
+have s10 : holds [mkNot andp₂p₃, p₃] from @cnfAndPos [p₂, p₃] 1
+have s11 : holds [p₃, mkNot andp₂p₃] from reorder [1,0] s10
+have s12 : holds [p₃] from R1 s11 s9 andp₂p₃
+have s13 : holds [neqfafb] from R1 (clOr s1) s12 p₃
+
+show holds [] from R1 s13 (R0 (clAssume s0) s8 eqab) eqfafb
