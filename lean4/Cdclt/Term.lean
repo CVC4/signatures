@@ -88,7 +88,7 @@ inductive Term : Type where
 | val : Value → Option sort → Term -- interpreted constant
 | const : Name → Option sort → Term -- uninterpreted constant
 | app : Term → Term → Term
-| qforall : Nat → Term → Term
+| qforall : Name → Term → Term
 deriving DecidableEq, Repr
 
 namespace Term
@@ -98,16 +98,22 @@ infixl:20  " • " => app
 open sort
 open Value
 
+
 -- Sort definitions
 @[matchPattern] def boolSort := atom (mkName "bool")
 @[matchPattern] def intSort := atom (mkName "int")
 @[matchPattern] def stringSort := atom (mkName "string")
 
+@[matchPattern] def ltConst : Term :=
+  const (mkName "lt") (arrow intSort (arrow intSort boolSort))
+
 -- macros for creating Terms with interpreted constants
 @[matchPattern] def bot : Term := val (bool false) boolSort
 @[matchPattern] def top : Term := val (bool true) boolSort
+
 @[matchPattern] def not : Term → Term :=
   λ t => const (mkName "not") (arrow boolSort boolSort) • t
+
 @[matchPattern] def or : Term → Term → Term :=
   λ t₁ t₂ => const (mkName "or") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
 @[matchPattern] def and : Term → Term → Term :=
@@ -272,8 +278,8 @@ def mkAppAux : Term → Term → Option Term :=
 -- binary and n-ary application
 def mkApp : Option Term → Option Term → Option Term := bind2 mkAppAux
 
-def mkAppN (t : Option Term) (l : List (Option Term)) : Option Term :=
-  t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
+--def mkAppN (t : Option Term) (l : List (Option Term)) : Option Term :=
+--  t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
 
 -- equality
 def mkEq : Option Term → Option Term → Option Term :=
@@ -316,8 +322,27 @@ def mkImplies : Option Term → Option Term → Option Term :=
 def mkXor : Option Term → Option Term → Option Term :=
   constructBinaryTerm xor (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkForall (v : Nat) (body : Option Term) : Option Term :=
+def mkForall (v : Name) (body : Option Term) : Option Term :=
   body >>= λ body' => (qforall v body')
+
+#check Lean.Quote
+
+syntax "`[Term|" term "]" : term
+macro_rules
+ | `(`[Term|top]) => `((top : Term))
+ | `(`[Term|bot]) => `((bot : Term))
+ | `(`[Term|mkAppN $a $l]) => `(($a : Term)) --match l with `(match $l with
+                              --  | then $a else mkApp $a `[Term| mkAppN $(List.car l) $(List.cdr l)])
+ | `(`[Term|$x < $y]) => `(`[Term|mkAppN ltConst [$x, $y]])
+ | `(`[Term|$x:ident]) => `(($(Lean.quote x.getId.toString) : Term))
+
+#check `[Term|top]
+
+--#check let x := Term.val (Value.integer 2) _;
+--        let y := Term.val (Value.integer 3) _;
+--         `[Term|x < y]
+
+
 
 end Term
 
