@@ -5,7 +5,7 @@ open proof.sort proof.Term
 open rules
 
 namespace quantRules
-
+#check Repr
 def substitute (v : Name) (t : Term) : Term → Option Term
 -- replace each Term in application
 | f • t₁ => substitute v t f >>= λ fs =>
