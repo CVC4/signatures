@@ -53,31 +53,6 @@ deriving DecidableEq, Repr
 
 namespace sort
 
-/- Each predefined function is also parameterized by a
-   Nat, an application of Terms is parametrized
-   by all the Nats involved in the application,
-   thus giving unique sets of Nats to unique Terms -/
-def botNum     : Nat := 0
-def notNum     : Nat := botNum + 1
-def orNum      : Nat := notNum + 1
-def andNum     : Nat := orNum + 1
-def impliesNum : Nat := andNum + 1
-def xorNum     : Nat := impliesNum + 1
-def bIteNum   : Nat := xorNum + 1
-def fIteNum   : Nat := bIteNum + 1
-def eqNum      : Nat := fIteNum + 1
-def forallNum  : Nat := eqNum + 1
-def bvBitOfNum : Nat := forallNum + 1
-def bvBbTNum : Nat := bvBitOfNum + 1
-def bvEqNum : Nat := bvBbTNum + 1
-def bvNotNum : Nat := bvEqNum + 1
-def bvAndNum : Nat := bvNotNum + 1
-def bvOrNum : Nat := bvAndNum + 1
-def bvUltNum : Nat := bvOrNum + 1
-def bvUgtNum : Nat := bvUltNum + 1
-def bvSltNum : Nat := bvUgtNum + 1
-def bvSgtNum : Nat := bvSltNum + 1
-
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
 def strNum : Nat := intNum + 1
