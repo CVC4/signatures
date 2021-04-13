@@ -165,7 +165,23 @@ open Value
   λ n t₁ t₂ => const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
 @[matchPattern] def bvSgt : Nat → Term → Term → Term :=
   λ n t₁ t₂ => const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
-
+@[matchPattern] def bvAdd : Nat → Term → Term → Term :=
+  λ n t₁ t₂ => const (mkName "bvAdd") (arrow (bv n) (arrow (bv n) (bv n))) • t₁ • t₂
+@[matchPattern] def bvNeg : Nat → Term → Term :=
+  λ n t => const (mkName "bvNeg") (arrow (bv n) (bv n)) • t
+@[matchPattern] def bvExtract : Nat → Nat → Nat → Term → Term → Term → Term :=
+  λ n i j t₁ t₂ t₃ => const (mkName "bvExtract") 
+                  (arrow (bv n) (arrow intSort (arrow intSort (bv (i - j + 1)))))
+                  • t₁ • t₂ • t₃
+@[matchPattern] def bvConcat : Nat → Nat → Term → Term → Term :=
+  λ m n t₁ t₂ => const (mkName "bvConcat") (arrow (bv m) (arrow (bv n) (bv (m + n))))
+                  • t₁ • t₂
+@[matchPattern] def bvZeroExt : Nat → Nat → Term → Term :=
+  λ n i t => const (mkName "bvZeroExt") (arrow (bv n) (arrow intSort (bv (n + i)))) 
+                  • t
+@[matchPattern] def bvSignExt : Nat → Nat → Term → Term :=
+  λ n i t => const (mkName "bvSignExt") (arrow (bv n) (arrow intSort (bv (n + i)))) 
+                  • t
 --def TermToString : Term → String
 --| val v s => ValueToString v
 --| not t => "¬" ++ TermToString t
