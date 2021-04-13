@@ -1,3 +1,6 @@
+import Std.Data.AssocList
+import Lean.Meta
+
 open List
 
 namespace proof
@@ -42,25 +45,11 @@ def bvUltNum : Nat := bvOrNum + 1
 def bvUgtNum : Nat := bvUltNum + 1
 def bvSltNum : Nat := bvUgtNum + 1
 def bvSgtNum : Nat := bvSltNum + 1
-def bvAddNum : Nat := bvSgtNum + 1
-def bvNegNum : Nat := bvAddNum + 1
-def bvMulNum : Nat := bvNegNum + 1
-def bvUdivNum : Nat := bvMulNum + 1
-def bvUremNum : Nat := bvUdivNum + 1
-def bvExtractNum : Nat := bvUremNum + 1
-def bvConcatNum : Nat := bvExtractNum + 1
-def bvZeroExtNum : Nat := bvConcatNum + 1
-def bvSignExtNum : Nat := bvZeroExtNum + 1
-def plusNum : Nat := bvSignExtNum + 1
-def minusNum : Nat := plusNum + 1
-def multNum : Nat := minusNum + 1
-def gtNum : Nat := multNum + 1
-def gteNum : Nat := gtNum + 1
-def ltNum : Nat := gteNum + 1
-def lteNum : Nat := ltNum + 1
+
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
 def strNum : Nat := intNum + 1
+
 
 def sortToString : sort → String
 | dep => "blah"
@@ -68,7 +57,32 @@ def sortToString : sort → String
 | arrow s1 s2 => "(" ++ sortToString s1 ++ " → " ++ sortToString s2 ++ ")"
 | bv n => "bv " ++ toString n
 
-instance : ToString sort where toString := sortToString
+instance : Bind Option where
+  bind :=
+   λ ot f => match ot with
+             | none => none
+             | some a => f a
+
+instance : Pure Option := ⟨fun a => Option.some a⟩
+
+instance : Functor Option :=
+ { map := fun f o => match o with
+   | (Option.some x) => f x
+   | _ => none,
+   mapConst := fun a o => pure a }
+
+instance : Seq Option where seq o₁ o₂ := match (o₁,o₂) with
+                                         | (some f, some x) => some (f x)
+                                         | _ => none
+instance : SeqLeft Option where seqLeft o₁ o₂ := o₁
+instance : SeqRight Option where seqRight o₁ o₂ := o₂
+
+instance : Monad Option where
+  map      f x := bind x (Function.comp pure f)
+  seq      f x := bind f fun y => Functor.map y x
+  seqLeft  x y := bind x fun a => bind y (fun _ => pure a)
+  seqRight x y := bind x fun _ => y
+
 
 /- mkArrowN curries multi-argument types
    f : X₁ × X₂ × ... into
@@ -94,8 +108,8 @@ def bvToString : List Bool → String
 | h :: t => (if h then "1" else "0") ++ bvToString t
 
 def valueToString : value → String
-| value.bool true => "⊤"
-| value.bool false => "⊥"
+| value.bool true => "⊥"
+| value.bool false => "⊤"
 | value.bitvec l => bvToString l
 | value.char c => toString $ Char.ofNat c
 | value.integer i => toString i
@@ -107,9 +121,25 @@ instance: ToString value where toString := valueToString
    or quantified formulas
    Quantified variables are also
    parameterized by a Nat -/
+
+inductive Name where
+  | anonymous : Name
+  | str : Name → String → Name
+deriving DecidableEq
+
+def Name.toString : Name → String
+| anonymous => ""
+| str anonymous s => s
+| str n s => s ++ "." ++ toString n
+
+instance : ToString Name where
+ toString n := n.toString
+
+def mkName : String → Name := Name.str Name.anonymous
+
 inductive term : Type where
-| val : value → Option sort → term
-| const : Nat → Option sort → term
+| val : value → Option sort → term -- interpreted constant
+| const : Name → Option sort → term -- uninterpreted constant
 | app : term → term → term
 | qforall : Nat → term → term
 deriving DecidableEq
@@ -127,69 +157,42 @@ open value
 @[matchPattern] def stringSort := atom strNum
 
 -- Interpreted constants
-@[matchPattern] def botConst := const botNum boolSort
-@[matchPattern] def notConst := const notNum (arrow boolSort boolSort)
+@[matchPattern] def botConst := const (mkName "bot") boolSort
+@[matchPattern] def notConst := const (mkName "not") (arrow boolSort boolSort)
 @[matchPattern] def orConst :=
-  const orNum (arrow boolSort (arrow boolSort boolSort))
+  const (mkName "or") (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def andConst :=
-  const andNum (arrow boolSort (arrow boolSort boolSort))
+  const (mkName "and") (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def impliesConst :=
-  const impliesNum (arrow boolSort (arrow boolSort boolSort))
+  const (mkName "implies") (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def xorConst :=
-  const xorNum (arrow boolSort (arrow boolSort boolSort))
+  const (mkName "xor") (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def bIteConst :=
-  const bIteNum (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
+  const (mkName "bIte") (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
 
-@[matchPattern] def eqConst := const eqNum dep
-@[matchPattern] def fIteConst := const fIteNum dep
-
-@[matchPattern] def plusConst :=
-  const plusNum (arrow intSort (arrow intSort intSort))
-@[matchPattern] def minusConst :=
-  const minusNum (arrow intSort (arrow intSort intSort))
-@[matchPattern] def multConst :=
-  const multNum (arrow intSort (arrow intSort intSort))
-@[matchPattern] def gtConst :=
-  const gtNum (arrow intSort (arrow intSort boolSort))
-@[matchPattern] def gteConst :=
-  const gteNum (arrow intSort (arrow intSort boolSort))
-@[matchPattern] def ltConst :=
-  const ltNum (arrow intSort (arrow intSort boolSort))
-@[matchPattern] def lteConst :=
-  const lteNum (arrow intSort (arrow intSort boolSort))
+@[matchPattern] def eqConst := const (mkName "eq") dep
+@[matchPattern] def fIteConst := const (mkName "fIte") dep
 
 @[matchPattern] def bitOfConst (n : Nat) :=
-  const bvBitOfNum (arrow (bv n) (arrow intSort boolSort))
+  const (mkName "bitOf") (arrow (bv n) (arrow intSort boolSort))
 @[matchPattern] def bbTConst (n : Nat) :=
-  const bvBbTNum (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
+  const (mkName "bbT") (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
 @[matchPattern] def bvEqConst (n : Nat) :=
-  const bvEqNum (arrow (bv n) (arrow (bv n) boolSort))
+  const (mkName "bvEq") (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvNotConst (n : Nat) :=
-  const bvNotNum (arrow (bv n) (bv n))
+  const (mkName "bvNot") (arrow (bv n) (bv n))
 @[matchPattern] def bvAndConst (n : Nat) :=
-  const bvAndNum (arrow (bv n) (arrow (bv n) (bv n)))
+  const (mkName "bvAnd") (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvOrConst (n : Nat) :=
-  const bvOrNum (arrow (bv n) (arrow (bv n) (bv n)))
+  const (mkName "bvOr") (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvUltConst (n : Nat) :=
-  const bvUltNum (arrow (bv n) (arrow (bv n) boolSort))
+  const (mkName "bvUlt") (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvUgtConst (n : Nat) :=
-  const bvUgtNum (arrow (bv n) (arrow (bv n) boolSort))
+  const (mkName "bvUgt") (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvSltConst (n : Nat) :=
-  const bvSltNum (arrow (bv n) (arrow (bv n) boolSort))
+  const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvSgtConst (n : Nat) :=
-  const bvSgtNum (arrow (bv n) (arrow (bv n) boolSort))
-@[matchPattern] def bvAddConst (n : Nat) :=
-  const bvAddNum (arrow (bv n) (arrow (bv n) (bv n)))
-@[matchPattern] def bvNegConst (n : Nat) :=
-  const bvNegNum (arrow (bv n) (bv n))
-@[matchPattern] def bvExtractConst (n i j : Nat) :=
-  const bvExtractNum (arrow (bv n) (arrow intSort (arrow intSort (bv (i - j + 1)))))
-@[matchPattern] def bvConcatConst (m n : Nat) :=
-  const bvConcatNum (arrow (bv m) (arrow (bv n) (bv (m+n))))
-@[matchPattern] def bvZeroExtConst (n i : Nat) :=
-  const bvZeroExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
-@[matchPattern] def bvSignExtConst (n i : Nat) :=
-  const bvSignExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
+  const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort))
 
 -- macros for creating terms with interpreted constants
 @[matchPattern] def bot : term := val (bool false) boolSort
@@ -202,15 +205,6 @@ open value
 @[matchPattern] def xor : term → term → term := λ t₁ t₂ => xorConst • t₁ • t₂
 @[matchPattern] def bIte : term → term → term → term :=
   λ c t₁ t₂ => bIteConst • c • t₁ • t₂
-
-@[matchPattern] def plus : term → term → term := λ t₁ t₂ => plusConst • t₁ • t₂
-@[matchPattern] def minus : term → term → term :=
-  λ t₁ t₂ => minusConst • t₁ • t₂
-@[matchPattern] def mult : term → term → term := λ t₁ t₂ => multConst • t₁ • t₂
-@[matchPattern] def gt : term → term → term := λ t₁ t₂ => gtConst • t₁ • t₂
-@[matchPattern] def gte : term → term → term := λ t₁ t₂ => gteConst • t₁ • t₂
-@[matchPattern] def lt : term → term → term := λ t₁ t₂ => ltConst • t₁ • t₂
-@[matchPattern] def lte : term → term → term := λ t₁ t₂ => lteConst • t₁ • t₂
 
 @[matchPattern] def fIte : term → term → term → term :=
   λ t₁ t₂ t₃ => fIteConst • t₁ • t₂ • t₃
@@ -235,19 +229,6 @@ open value
   λ n t₁ t₂ => bvSltConst n • t₁ • t₂
 @[matchPattern] def bvSgt : Nat → term → term → term :=
   λ n t₁ t₂ => bvSgtConst n • t₁ • t₂
-@[matchPattern] def bvAdd : Nat → term → term → term :=
-  λ n t₁ t₂ => bvAddConst n • t₁ • t₂
-@[matchPattern] def bvNeg : Nat → term → term :=
-  λ n t => bvNegConst n • t
-@[matchPattern] def bvExtract : 
-  Nat → Nat → Nat → term → term → term → term :=
-  λ n i j t₁ t₂ t₃ => bvExtractConst n i j • t₁ • t₂ • t₃
-@[matchPattern] def bvConcat : Nat → Nat → term → term → term :=
-  λ n m t₁ t₂ => bvConcatConst n m • t₁ • t₂
-@[matchPattern] def bvZeroExt : Nat → Nat → term → term → term :=
-  λ n i t₁ t₂ => bvZeroExtConst n i • t₁ • t₂
-@[matchPattern] def bvSignExt : Nat → Nat → term → term → term :=
-  λ n i t₁ t₂ => bvSignExtConst n i • t₁ • t₂ 
 
 def termToString : term → String
 | val v s => valueToString v
@@ -261,13 +242,6 @@ def termToString : term → String
 | eq t₁ t₂ => termToString t₁ ++ " ≃ " ++ termToString t₂
 | fIte c t₁ t₂ =>
   termToString c ++ " ? " ++ termToString t₁ ++ " : " ++ termToString t₂
-| plus t₁ t₂ => termToString t₁ ++ " + " ++ termToString t₂
-| minus t₁ t₂ => termToString t₁ ++ " - " ++ termToString t₂
-| mult t₁ t₂ => termToString t₁ ++ " * " ++ termToString t₂
-| gt t₁ t₂ => termToString t₁ ++ " > " ++ termToString t₂
-| gte t₁ t₂ => termToString t₁ ++ " ≥ " ++ termToString t₂
-| lt t₁ t₂ => termToString t₁ ++ " < " ++ termToString t₂
-| lte t₁ t₂ => termToString t₁ ++ " ≤ " ++ termToString t₂
 | bitOf _ t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
 /-| bbT _ => "bbT"
 | bvEq _ t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
@@ -277,13 +251,7 @@ def termToString : term → String
 | bvUlt _ t₁ t₂ => termToString t₁ ++ " <ᵤ " ++ termToString t₂
 | bvUgt _ t₁ t₂ => termToString t₁ ++ " >ᵤ " ++ termToString t₂
 | bvSlt _ t₁ t₂ => termToString t₁ ++ " <ₛ " ++ termToString t₂
-| bvSgt _ t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂
-| bvAdd _ t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂
-| bvNeg _ t => "-_bv " ++ termToString t
-| bvExtract _ i j t₁ t₂ t₃ => termToString t ++ "[" ++ repr i ++ ":" ++ repr j ++ "]"
-| bvConcat _ _ t₁ t₂ => termToString t₁ ++ " ++ " ++ termToString t₂
-| bvZeroExt _ _ t₁ t₂ => "zeroExt " ++ termToString t₁ ++ " " ++ termToString t₂
-| bvSignExt _ _ t₁ t₂ => "signExt " ++ termToString t₁ ++ " " ++ termToString t₂ -/
+| bvSgt _ t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂-/
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
@@ -306,7 +274,6 @@ def sortOfAux : term → Option sort
     sortOfAux t₁ >>= λ s₂ =>
     sortOfAux t₂ >>= λ s₃ =>
     if s₁ = boolSort ∧ s₂ = s₃ then s₂ else none
-| eqConst • t => sortOfAux t >>= λ s => arrow s boolSort
 | f • t =>
     sortOfAux f >>= λ sf =>
     sortOfAux t >>= λ st =>
@@ -364,7 +331,6 @@ def mkAppAux : term → term → Option term :=
     sortOf t₂ >>= λ s₂ =>
     match s₁ with
     | arrow s₂ _ => t₁ • t₂
-    | dep => t₁ • t₂
     | _ => none
 
 -- binary and n-ary application
