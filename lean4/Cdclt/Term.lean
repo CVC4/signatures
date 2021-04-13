@@ -128,79 +128,49 @@ open Value
 @[matchPattern] def intSort := atom (mkName "int")
 @[matchPattern] def stringSort := atom (mkName "string")
 
--- Interpreted constants
-@[matchPattern] def botConst := const (mkName "bot") boolSort
-@[matchPattern] def notConst := const (mkName "not") (arrow boolSort boolSort)
-@[matchPattern] def orConst :=
-  const (mkName "or") (arrow boolSort (arrow boolSort boolSort))
-@[matchPattern] def andConst :=
-  const (mkName "and") (arrow boolSort (arrow boolSort boolSort))
-@[matchPattern] def impliesConst :=
-  const (mkName "implies") (arrow boolSort (arrow boolSort boolSort))
-@[matchPattern] def xorConst :=
-  const (mkName "xor") (arrow boolSort (arrow boolSort boolSort))
-@[matchPattern] def bIteConst :=
-  const (mkName "bIte") (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
-
-@[matchPattern] def eqConst := const (mkName "eq") dep
-@[matchPattern] def fIteConst := const (mkName "fIte") dep
-
-@[matchPattern] def bitOfConst (n : Nat) :=
-  const (mkName "bitOf") (arrow (bv n) (arrow intSort boolSort))
-@[matchPattern] def bbTConst (n : Nat) :=
-  const (mkName "bbT") (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
-@[matchPattern] def bvEqConst (n : Nat) :=
-  const (mkName "bvEq") (arrow (bv n) (arrow (bv n) boolSort))
-@[matchPattern] def bvNotConst (n : Nat) :=
-  const (mkName "bvNot") (arrow (bv n) (bv n))
-@[matchPattern] def bvAndConst (n : Nat) :=
-  const (mkName "bvAnd") (arrow (bv n) (arrow (bv n) (bv n)))
-@[matchPattern] def bvOrConst (n : Nat) :=
-  const (mkName "bvOr") (arrow (bv n) (arrow (bv n) (bv n)))
-@[matchPattern] def bvUltConst (n : Nat) :=
-  const (mkName "bvUlt") (arrow (bv n) (arrow (bv n) boolSort))
-@[matchPattern] def bvUgtConst (n : Nat) :=
-  const (mkName "bvUgt") (arrow (bv n) (arrow (bv n) boolSort))
-@[matchPattern] def bvSltConst (n : Nat) :=
-  const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort))
-@[matchPattern] def bvSgtConst (n : Nat) :=
-  const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort))
-
 -- macros for creating Terms with interpreted constants
 @[matchPattern] def bot : Term := val (bool false) boolSort
 @[matchPattern] def top : Term := val (bool true) boolSort
-@[matchPattern] def not : Term → Term := λ t => notConst • t
-@[matchPattern] def or : Term → Term → Term := λ t₁ t₂ => orConst • t₁ • t₂
-@[matchPattern] def and : Term → Term → Term := λ t₁ t₂ => andConst • t₁ • t₂
+@[matchPattern] def not : Term → Term :=
+  λ t => const (mkName "not") (arrow boolSort boolSort) • t
+@[matchPattern] def or : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "or") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+@[matchPattern] def and : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "and") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
 @[matchPattern] def implies : Term → Term → Term :=
-  λ t₁ t₂ => impliesConst • t₁ • t₂
-@[matchPattern] def xor : Term → Term → Term := λ t₁ t₂ => xorConst • t₁ • t₂
+  λ t₁ t₂ => const (mkName "implies") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+@[matchPattern] def xor : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "xor") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
 @[matchPattern] def bIte : Term → Term → Term → Term :=
-  λ c t₁ t₂ => bIteConst • c • t₁ • t₂
+  λ c t₁ t₂ =>
+    const (mkName "bIte") (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
+     • c • t₁ • t₂
 
 @[matchPattern] def fIte : Term → Term → Term → Term :=
-  λ t₁ t₂ t₃ => fIteConst • t₁ • t₂ • t₃
-@[matchPattern] def eq : Term → Term → Term := λ t₁ t₂ => eqConst • t₁ • t₂
+  λ t₁ t₂ t₃ => const (mkName "fIte") dep • t₁ • t₂ • t₃
+@[matchPattern] def eq : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "eq") dep • t₁ • t₂
 
 @[matchPattern] def bitOf : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => bitOfConst n • t₁ • t₂
-@[matchPattern] def bbT : Nat → Term := λ n => bbTConst n
+  λ n t₁ t₂ => const (mkName "bitOf") (arrow (bv n) (arrow intSort boolSort)) • t₁ • t₂
+@[matchPattern] def bbT : Nat → Term :=
+  λ n => const (mkName "bbT") (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
 @[matchPattern] def bvEq : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => bvEqConst n • t₁ • t₂
+  λ n t₁ t₂ => const (mkName "bvEq") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
 @[matchPattern] def bvNot : Nat → Term → Term :=
-  λ n t => bvNotConst n • t
+  λ n t => const (mkName "bvNot") (arrow (bv n) (bv n)) • t
 @[matchPattern] def bvAnd : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => bvAndConst n • t₁ • t₂
+  λ n t₁ t₂ => const (mkName "bvAnd") (arrow (bv n) (arrow (bv n) (bv n))) • t₁ • t₂
 @[matchPattern] def bvOr : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => bvAndConst n • t₁ • t₂
+  λ n t₁ t₂ => const (mkName "bvOr") (arrow (bv n) (arrow (bv n) (bv n))) • t₁ • t₂
 @[matchPattern] def bvUlt : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => bvUltConst n • t₁ • t₂
+  λ n t₁ t₂ => const (mkName "bvUlt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
 @[matchPattern] def bvUgt : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => bvUgtConst n • t₁ • t₂
+  λ n t₁ t₂ => const (mkName "bvUgt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
 @[matchPattern] def bvSlt : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => bvSltConst n • t₁ • t₂
+  λ n t₁ t₂ => const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
 @[matchPattern] def bvSgt : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => bvSgtConst n • t₁ • t₂
+  λ n t₁ t₂ => const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
 
 --def TermToString : Term → String
 --| val v s => ValueToString v
