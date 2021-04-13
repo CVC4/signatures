@@ -126,6 +126,25 @@ open Value
 @[matchPattern] def eq : Term → Term → Term :=
   λ t₁ t₂ => const (mkName "eq") dep • t₁ • t₂
 
+-- arith
+
+@[matchPattern] def plus : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "plus") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+@[matchPattern] def minus : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "minus") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+@[matchPattern] def mult : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "mult") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+@[matchPattern] def gt : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "gt") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+@[matchPattern] def gte : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "gte") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+@[matchPattern] def lt : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "lt") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+@[matchPattern] def lte : Term → Term → Term :=
+  λ t₁ t₂ => const (mkName "lte") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+
+-- bitvec
+
 @[matchPattern] def bitOf : Nat → Term → Term → Term :=
   λ n t₁ t₂ => const (mkName "bitOf") (arrow (bv n) (arrow intSort boolSort)) • t₁ • t₂
 @[matchPattern] def bbT : Nat → Term :=
