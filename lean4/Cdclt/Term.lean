@@ -147,10 +147,11 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
 
 -- bitvec
 
+@[matchPattern] def bbT (n : Nat) : Term :=
+  const (mkName "bbT") (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
+
 @[matchPattern] def bitOfConst (n : Nat) : Term :=
   const (mkName "bitOf") (arrow (bv n) (arrow intSort boolSort))
-@[matchPattern] def bbTConst (n : Nat) : Term :=
-  const (mkName "bbT") (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
 @[matchPattern] def bvEqConst (n : Nat) : Term :=
   const (mkName "bvEq") (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvNotConst (n : Nat) : Term :=
@@ -181,7 +182,6 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
   const (mkName "bvSignExt") (arrow (bv n) (arrow intSort (bv (n + i))))
 
 @[matchPattern] def bitOf (n : Nat) : Term → Term → Term :=  liftBinary $ bitOfConst n
-@[matchPattern] def bbT (n : Nat) : Term → Term → Term := liftBinary $ bbTConst n
 @[matchPattern] def bvEq (n : Nat) : Term → Term → Term := liftBinary $ bvEqConst n
 @[matchPattern] def bvNot (n : Nat) : Term → Term := liftUnary $ bvNotConst n
 @[matchPattern] def bvAnd (n : Nat) : Term → Term → Term :=  liftBinary $ bvAndConst n
