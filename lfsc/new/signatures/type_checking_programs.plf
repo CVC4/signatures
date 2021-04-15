@@ -8,20 +8,27 @@
     ((bvar n s) s)
     ((skolem w) (type_check w))
     ((apply t1 t2)
+      (let t2s (type_check t2)
       (match t1
         ; [2] parametric interpreted function symbols. Note these must have
         ; exceptions in well_typed below.
-        (f_= (arrow (type_check t2) Bool))
+        (f_= (arrow t2s Bool))
+        ; arrays
+        (f_select (match t2s ((Array s1 s2) (arrow s1 s2))))
+        (f_store (match t2s ((Array s1 s2) (arrow s1 (arrow s2 (Array s1 s2))))))
+        ; sequences
+        ; bitvectors
+        ; sets
         ; ...
         ; [3] function applications of non-parametric function symbols
         (default 
           (match (type_check t1)
             ; must be an application of function
             ((arrow sarg sreturn) 
-                (ifequal (type_check t2) sarg 
+                (ifequal t2s sarg 
                   sreturn 
                   ; fail: function applied to terms of different sorts
-                  (fail sort)))))))
+                  (fail sort))))))))
 
     ; [4] all non-parametric interpreted function symbols
     ; Booleans
@@ -29,6 +36,7 @@
     (false Bool)
     ((f_ite s) (arrow Bool (arrow s (arrow s s))))
     (f_and (arrow Bool (arrow Bool Bool)))
+    (f_distinct (arrow Bool (arrow Bool Bool)))
     (f_or (arrow Bool (arrow Bool Bool)))
     (f_=> (arrow Bool (arrow Bool Bool)))
     (f_xor (arrow Bool (arrow Bool Bool)))
@@ -103,9 +111,13 @@
     ; fail: unknown term
   )
 )
-(program well_typed ((t term)) Ok
-  (match t
-    ; special case: the equality symbol itself is well-typed
-    (f_= ok)
-    (default 
-      (do (type_check t) ok))))
+; TODO: do we need this?
+(program well_typed ((t term)) Ok ok)
+
+;  (match t
+;    ; special case: the equality symbol itself is well-typed
+;    (f_= ok)
+;    (f_select ok)
+;    (f_store ok)
+;    (default 
+;      (do (type_check t) ok))))
