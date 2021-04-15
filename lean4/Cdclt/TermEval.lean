@@ -7,7 +7,7 @@ namespace proof
 
 namespace Term
 
-partial def termEval (ot : Option Term) : Option Term :=
+partial def termEval (ot : OptionM Term) : OptionM Term :=
   ot >>= λ t =>
   match t with
   | top => top

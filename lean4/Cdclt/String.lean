@@ -1,23 +1,23 @@
-import Cdclt.Term
+-- import Cdclt.Term
 
---#check Cdctl.StrTree
+-- #check Cdctl.StrTree
 --
---open Cdclt.StrTree
---#check node [leaf "hi"]
+-- open Cdclt.StrTree
+-- #check node [leaf "hi"]
 --
---def List.max : List Nat → Nat :=
---  List.foldl (λ x y => if x > y then x else y) 0
+-- def List.max : List Nat → Nat :=
+--   List.foldl (λ x y => if x > y then x else y) 0
 --
---partial def depth : StrTree → Nat
---| leaf _ => 0
---| node l => 1 + List.max (List.map depth l)
+-- partial def depth : StrTree → Nat
+-- | leaf _ => 0
+-- | node l => 1 + List.max (List.map depth l)
 --
---#eval depth $ node [leaf "hi", node [leaf ""]]
---#check List.cons
+-- #eval depth $ node [leaf "hi", node [leaf ""]]
+-- #check List.cons
 --
---partial def sc_string_head : StrTree → String
---| leaf s => s
---| node List.nil => ""
---| node (List.cons h _) => sc_string_head h
+-- partial def sc_string_head : StrTree → String
+-- | leaf s => s
+-- | node List.nil => ""
+-- | node (List.cons h _) => sc_string_head h
 --
---#eval sc_string_head $ node [leaf "hi", node [leaf ""]]
+-- #eval sc_string_head $ node [leaf "hi", node [leaf ""]]
