@@ -46,13 +46,23 @@ inductive Value : Type where
 | str : String → Value
 deriving DecidableEq, Repr
 
+def BVToStringAux : List Bool → String
+| h :: t => (if h then "1" else "0") ++ (BVToStringAux t)
+| [] => ""
+def BVToString : List Bool → String :=
+λ l => "[" ++ BVToStringAux l ++ "]"
+def ValueToString : Value → String
+| Value.bool b => if b then "true" else "false"
+| Value.bitvec l => BVToString l
+| Value.char c => String.singleton c
+| Value.integer i =>  "i" -- Change to ToString i
+| Value.str s => s
+
 /- Terms are values (interpreted constants),
    constants of a sort, applications,
    or quantified formulas
    Quantified variables are also
    parameterized by a Nat -/
-
-
 inductive Term : Type where
 | val : Value → Option sort → Term -- interpreted constant
 | const : Lean.Name → Option sort → Term -- uninterpreted constant
@@ -120,7 +130,7 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
 @[matchPattern] def xor : Term → Term → Term := liftBinary xorConst
 @[matchPattern] def bIte : Term → Term → Term → Term := liftTernary bIteConst
 @[matchPattern] def fIte : Term → Term → Term → Term := liftTernary fIteConst
-@[matchPattern] def equ : Term → Term → Term := liftBinary eqConst
+@[matchPattern] def equ : Term → Term → Term := liftBinary equConst
 
 -- bitvec
 
@@ -169,8 +179,7 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
 @[matchPattern] def bvSgt (n : Nat) : Term → Term → Term := liftBinary $ bvSgtConst n
 @[matchPattern] def bvAdd (n : Nat) : Term → Term → Term := liftBinary $ bvAddConst n
 @[matchPattern] def bvNeg (n : Nat) : Term → Term := liftUnary $ bvNegConst n
-@[matchPattern] def bvExtract (n i j : Nat) : Term → Term → Term → Term :=
-  liftTernary $ bvExtractConst n i j
+@[matchPattern] def bvExtract (n i j : Nat) : Term → Term → Term → Term :=  liftTernary $ bvExtractConst n i j
 @[matchPattern] def bvConcat (m n : Nat) : Term → Term → Term := liftBinary $ bvConcatConst m n
 @[matchPattern] def bvZeroExt (n i : Nat) : Term → Term → Term := liftBinary $ bvZeroExtConst n i
 @[matchPattern] def bvSignExt (n i : Nat) : Term → Term → Term := liftBinary $ bvSignExtConst n i
@@ -203,20 +212,28 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
 --| f • t =>  "(" ++ (TermToString f) ++ " " ++ (TermToString t) ++ ")"
 --| qforall v t => "∀ " ++ toString v ++ " . " ++ TermToString t
 --
+
+--def OptionTermToString : Option Term → String
+--| some t => TermToString t
+--| none => "none"
+--
 --instance : ToString Term where toString := TermToString
+--instance : ToString (Option Term) where toString := OptionTermToString
+
 
 -- computing the sort of Terms
 def sortOfAux : Term → OptionM sort
 | val (Value.bool _) _ => boolSort
+| val (Value.str _) _ => stringSort
 | val (bitvec l) _ =>
     do let len ← List.length l if len = 0 then none else bv l.length
 | val (Value.char _) _ => stringSort
 | val (integer _) _ => intSort
-| equ t₁ t₂ =>
+| const `equ dep • t₁ • t₂ =>
     sortOfAux t₁ >>= λ s₁ =>
     sortOfAux t₂ >>= λ s₂ =>
     if s₁ = s₂ then boolSort else none
-| fIte c t₁ t₂ =>
+| const `fIte dep • c • t₁ • t₂ =>
     sortOfAux c >>= λ s₁ =>
     sortOfAux t₁ >>= λ s₂ =>
     sortOfAux t₂ >>= λ s₃ =>
@@ -283,8 +300,8 @@ def mkAppAux : Term → Term → OptionM Term :=
 -- binary and n-ary application
 def mkApp : OptionM Term → OptionM Term → OptionM Term := bind2 mkAppAux
 
---def mkAppN (t : OptionM Term) (l : List (OptionM Term)) : OptionM Term :=
---  t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
+def mkAppN (t : OptionM Term) (l : List (OptionM Term)) : OptionM Term :=
+  t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
 
 -- equality
 def mkEq : OptionM Term → OptionM Term → OptionM Term :=
