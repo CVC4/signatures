@@ -31,10 +31,6 @@ deriving DecidableEq, Repr
 
 namespace sort
 
-def boolNum : Nat := 1
-def intNum : Nat := boolNum + 1
-def strNum : Nat := intNum + 1
-
 /- mkArrowN curries multi-argument types
    f : X₁ × X₂ × ... into
    f : X₁ → X₂ → ... -/
