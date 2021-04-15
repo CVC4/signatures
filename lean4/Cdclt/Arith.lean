@@ -4,6 +4,18 @@ open proof
 open proof.sort proof.Term
 open rules
 
+-- arith
+
+@[matchPattern] def plus : Term → Term → Term := liftBinary plusConst
+@[matchPattern] def minus : Term → Term → Term := liftBinary minusConst
+@[matchPattern] def mult : Term → Term → Term := liftBinary multConst
+@[matchPattern] def gt : Term → Term → Term := liftBinary gtConst
+@[matchPattern] def gte : Term → Term → Term := liftBinary gteConst
+@[matchPattern] def lt : Term → Term → Term := liftBinary ltConst
+@[matchPattern] def lte : Term → Term → Term := liftBinary lteConst
+
+
+
 def mkPlus : Option Term → Option Term → Option Term :=
   constructBinaryTerm plus (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 

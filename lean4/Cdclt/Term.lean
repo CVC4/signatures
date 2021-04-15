@@ -1,41 +1,9 @@
 import Std.Data.AssocList
-import Lean.Meta
-
-inductive Name where
-  | anonymous : Name
-  | str : Name → String → Name
-deriving DecidableEq, Repr
-
-def mkName : String → Name := Name.str Name.anonymous
-
-instance : Bind Option where
-  bind :=
-   λ ot f => match ot with
-             | none => none
-             | some a => f a
-
-instance : Pure Option := ⟨fun a => Option.some a⟩
-
-instance : Functor Option :=
- { map := fun f o => match o with
-   | (Option.some x) => f x
-   | _ => none,
-   mapConst := fun a o => pure a }
-
-instance : Seq Option where seq o₁ o₂ := match (o₁,o₂) with
-                                         | (some f, some x) => some (f x)
-                                         | _ => none
-instance : SeqLeft Option where seqLeft o₁ o₂ := o₁
-instance : SeqRight Option where seqRight o₁ o₂ := o₂
-
-instance : Monad Option where
-  map      f x := bind x (Function.comp pure f)
-  seq      f x := bind f fun y => Functor.map y x
-  seqLeft  x y := bind x fun a => bind y (fun _ => pure a)
-  seqRight x y := bind x fun _ => y
 
 open List
 namespace proof
+
+deriving instance DecidableEq for Lean.Name
 
 /- dep is the sort for Terms that have polymorphic sorts such as
    equality and ITE. These sorts are handled in a special way in the
@@ -46,7 +14,7 @@ namespace proof
    length -/
 inductive sort : Type where
 | dep : sort
-| atom : Name → sort
+| atom : Lean.Name → sort
 | arrow : sort → sort → sort
 | bv : Nat → sort
 deriving DecidableEq, Repr
@@ -60,7 +28,7 @@ def strNum : Nat := intNum + 1
 /- mkArrowN curries multi-argument types
    f : X₁ × X₂ × ... into
    f : X₁ → X₂ → ... -/
-def mkArrowN : List (Option sort) → Option sort
+def mkArrowN : List (OptionM sort) → OptionM sort
 | some s::t =>
   match t with
   | [] => s
@@ -75,6 +43,7 @@ inductive Value : Type where
 | bitvec : List Bool → Value
 | char : Char → Value
 | integer : Int → Value
+| str : String → Value
 deriving DecidableEq, Repr
 
 /- Terms are values (interpreted constants),
@@ -86,9 +55,9 @@ deriving DecidableEq, Repr
 
 inductive Term : Type where
 | val : Value → Option sort → Term -- interpreted constant
-| const : Name → Option sort → Term -- uninterpreted constant
+| const : Lean.Name → Option sort → Term -- uninterpreted constant
 | app : Term → Term → Term
-| qforall : Name → Term → Term
+| qforall : Lean.Name → Term → Term
 deriving DecidableEq, Repr
 
 namespace Term
@@ -100,94 +69,114 @@ open Value
 
 
 -- Sort definitions
-@[matchPattern] def boolSort := atom (mkName "bool")
-@[matchPattern] def intSort := atom (mkName "int")
-@[matchPattern] def stringSort := atom (mkName "string")
+@[matchPattern] def boolSort := atom `bool
+@[matchPattern] def intSort := atom `int
+@[matchPattern] def stringSort := atom `string
 
-@[matchPattern] def ltConst : Term :=
-  const (mkName "lt") (arrow intSort (arrow intSort boolSort))
-
--- macros for creating Terms with interpreted constants
 @[matchPattern] def bot : Term := val (bool false) boolSort
 @[matchPattern] def top : Term := val (bool true) boolSort
+@[matchPattern] def notConst : Term :=
+  const `not (arrow boolSort boolSort)
+@[matchPattern] def orConst : Term :=
+  const `or (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def andConst : Term :=
+  const `and (arrow boolSort (arrow boolSort boolSort))
 
-@[matchPattern] def not : Term → Term :=
-  λ t => const (mkName "not") (arrow boolSort boolSort) • t
+@[matchPattern] def impliesConst : Term :=
+  const `implies (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def xorConst : Term  :=
+  const `xor (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def bIteConst : Term :=
+  const `bIte (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
+@[matchPattern] def fIteConst : Term := const `fIte dep
+@[matchPattern] def equConst : Term := const `equ dep
 
-@[matchPattern] def or : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "or") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def and : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "and") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def implies : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "implies") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def xor : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "xor") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def bIte : Term → Term → Term → Term :=
-  λ c t₁ t₂ =>
-    const (mkName "bIte") (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
-     • c • t₁ • t₂
+@[matchPattern] def plusConst : Term :=
+  const `plus (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def minusConst : Term :=
+  const `minus (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def multConst : Term :=
+  const `mult (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def gtConst : Term :=
+  const `gt (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def gteConst : Term :=
+  const `gte (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def ltConst : Term :=
+  const `lt (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def lteConst : Term :=
+  const `lte (arrow boolSort (arrow boolSort boolSort))
 
-@[matchPattern] def fIte : Term → Term → Term → Term :=
-  λ t₁ t₂ t₃ => const (mkName "fIte") dep • t₁ • t₂ • t₃
-@[matchPattern] def eq : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "eq") dep • t₁ • t₂
+def liftUnary (t : Term) : (Term → Term) := λ t₁ => t • t₁
+def liftBinary (t : Term) : (Term → Term → Term) := λ t₁ t₂ => t • t₁ • t₂
+def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t₃ => t • t₁ • t₂ • t₃
 
--- arith
 
-@[matchPattern] def plus : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "plus") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def minus : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "minus") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def mult : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "mult") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def gt : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "gt") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def gte : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "gte") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def lt : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "lt") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
-@[matchPattern] def lte : Term → Term → Term :=
-  λ t₁ t₂ => const (mkName "lte") (arrow boolSort (arrow boolSort boolSort)) • t₁ • t₂
+-- macros for creating Terms with interpreted constants
+
+@[matchPattern] def not : Term → Term := liftUnary notConst
+@[matchPattern] def or : Term → Term → Term := liftBinary orConst
+@[matchPattern] def and : Term → Term → Term := liftBinary andConst
+@[matchPattern] def implies : Term → Term → Term := liftBinary impliesConst
+@[matchPattern] def xor : Term → Term → Term := liftBinary xorConst
+@[matchPattern] def bIte : Term → Term → Term → Term := liftTernary bIteConst
+@[matchPattern] def fIte : Term → Term → Term → Term := liftTernary fIteConst
+@[matchPattern] def equ : Term → Term → Term := liftBinary eqConst
 
 -- bitvec
 
-@[matchPattern] def bitOf : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bitOf") (arrow (bv n) (arrow intSort boolSort)) • t₁ • t₂
-@[matchPattern] def bbT : Nat → Term :=
-  λ n => const (mkName "bbT") (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
-@[matchPattern] def bvEq : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bvEq") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
-@[matchPattern] def bvNot : Nat → Term → Term :=
-  λ n t => const (mkName "bvNot") (arrow (bv n) (bv n)) • t
-@[matchPattern] def bvAnd : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bvAnd") (arrow (bv n) (arrow (bv n) (bv n))) • t₁ • t₂
-@[matchPattern] def bvOr : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bvOr") (arrow (bv n) (arrow (bv n) (bv n))) • t₁ • t₂
-@[matchPattern] def bvUlt : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bvUlt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
-@[matchPattern] def bvUgt : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bvUgt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
-@[matchPattern] def bvSlt : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
-@[matchPattern] def bvSgt : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bvSlt") (arrow (bv n) (arrow (bv n) boolSort)) • t₁ • t₂
-@[matchPattern] def bvAdd : Nat → Term → Term → Term :=
-  λ n t₁ t₂ => const (mkName "bvAdd") (arrow (bv n) (arrow (bv n) (bv n))) • t₁ • t₂
-@[matchPattern] def bvNeg : Nat → Term → Term :=
-  λ n t => const (mkName "bvNeg") (arrow (bv n) (bv n)) • t
-@[matchPattern] def bvExtract : Nat → Nat → Nat → Term → Term → Term → Term :=
-  λ n i j t₁ t₂ t₃ => const (mkName "bvExtract") 
-                  (arrow (bv n) (arrow intSort (arrow intSort (bv (i - j + 1)))))
-                  • t₁ • t₂ • t₃
-@[matchPattern] def bvConcat : Nat → Nat → Term → Term → Term :=
-  λ m n t₁ t₂ => const (mkName "bvConcat") (arrow (bv m) (arrow (bv n) (bv (m + n))))
-                  • t₁ • t₂
-@[matchPattern] def bvZeroExt : Nat → Nat → Term → Term :=
-  λ n i t => const (mkName "bvZeroExt") (arrow (bv n) (arrow intSort (bv (n + i)))) 
-                  • t
-@[matchPattern] def bvSignExt : Nat → Nat → Term → Term :=
-  λ n i t => const (mkName "bvSignExt") (arrow (bv n) (arrow intSort (bv (n + i)))) 
-                  • t
+@[matchPattern] def bitOfConst (n : Nat) : Term :=
+  const `bitOf (arrow (bv n) (arrow intSort boolSort))
+@[matchPattern] def bbTConst (n : Nat) : Term :=
+  const `bbT (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
+@[matchPattern] def bvEqConst (n : Nat) : Term :=
+  const `bvEq (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvNotConst (n : Nat) : Term :=
+  const `bvNot (arrow (bv n) (bv n))
+@[matchPattern] def bvAndConst (n : Nat) : Term :=
+  const `bvAnd (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvOrConst (n : Nat) : Term :=
+ const `bvOr (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvUltConst (n : Nat) : Term :=
+ const `bvUlt (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvUgtConst (n : Nat) : Term :=
+ const `bvUgt (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvSltConst (n : Nat) : Term :=
+ const `bvSlt (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvSgtConst (n : Nat) : Term :=
+ const `bvSlt (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvAddConst (n : Nat) : Term :=
+ const `bvAdd (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvNegConst (n : Nat) : Term :=
+  const `bvNeg (arrow (bv n) (bv n))
+@[matchPattern] def bvExtractConst (n i j : Nat) : Term :=
+  const `bvExtract (arrow (bv n) (arrow intSort (arrow intSort (bv (i - j + 1)))))
+@[matchPattern] def bvConcatConst (m n : Nat) : Term :=
+  const `bvConcat (arrow (bv m) (arrow (bv n) (bv (m + n))))
+@[matchPattern] def bvZeroExtConst (n i : Nat) : Term :=
+  const `bvZeroExt (arrow (bv n) (arrow intSort (bv (n + i))))
+@[matchPattern] def bvSignExtConst (n i : Nat) : Term :=
+  const `bvSignExt (arrow (bv n) (arrow intSort (bv (n + i))))
+
+@[matchPattern] def bitOf (n : Nat) : Term → Term → Term :=  liftBinary $ bitOfConst n
+@[matchPattern] def bbT (n : Nat) : Term → Term → Term := liftBinary $ bbTConst n
+@[matchPattern] def bvEq (n : Nat) : Term → Term → Term := liftBinary $ bvEqConst n
+@[matchPattern] def bvNot (n : Nat) : Term → Term := liftUnary $ bvNotConst n
+@[matchPattern] def bvAnd (n : Nat) : Term → Term → Term :=  liftBinary $ bvAndConst n
+@[matchPattern] def bvOr (n : Nat) : Term → Term → Term := liftBinary $ bvOrConst n
+@[matchPattern] def bvUlt (n : Nat) : Term → Term → Term := liftBinary $ bvUltConst n
+@[matchPattern] def bvUgt (n : Nat) : Term → Term → Term := liftBinary $ bvUgtConst n
+@[matchPattern] def bvSlt (n : Nat) : Term → Term → Term :=liftBinary $ bvSltConst n
+@[matchPattern] def bvSgt (n : Nat) : Term → Term → Term := liftBinary $ bvSgtConst n
+@[matchPattern] def bvAdd (n : Nat) : Term → Term → Term := liftBinary $ bvAddConst n
+@[matchPattern] def bvNeg (n : Nat) : Term → Term := liftUnary $ bvNegConst n
+@[matchPattern] def bvExtract (n i j : Nat) : Term → Term → Term → Term :=
+  liftTernary $ bvExtractConst n i j
+@[matchPattern] def bvConcat (m n : Nat) : Term → Term → Term := liftBinary $ bvConcatConst m n
+@[matchPattern] def bvZeroExt (n i : Nat) : Term → Term → Term := liftBinary $ bvZeroExtConst n i
+@[matchPattern] def bvSignExt (n i : Nat) : Term → Term → Term := liftBinary $ bvSignExtConst n i
+
+
+
 --def TermToString : Term → String
 --| val v s => ValueToString v
 --| not t => "¬" ++ TermToString t
@@ -217,13 +206,13 @@ open Value
 --instance : ToString Term where toString := TermToString
 
 -- computing the sort of Terms
-def sortOfAux : Term → Option sort
+def sortOfAux : Term → OptionM sort
 | val (Value.bool _) _ => boolSort
 | val (bitvec l) _ =>
     do let len ← List.length l if len = 0 then none else bv l.length
 | val (Value.char _) _ => stringSort
 | val (integer _) _ => intSort
-| eq t₁ t₂ =>
+| equ t₁ t₂ =>
     sortOfAux t₁ >>= λ s₁ =>
     sortOfAux t₂ >>= λ s₂ =>
     if s₁ = s₂ then boolSort else none
@@ -242,7 +231,7 @@ def sortOfAux : Term → Option sort
     sortOfAux t >>= λ st => if st = boolSort then st else none
 | const _ s => s
 
-def sortOf (t : Option Term) : Option sort := t >>= λ t' => sortOfAux t'
+def sortOf (t : OptionM Term) : OptionM sort := t >>= λ t' => sortOfAux t'
 
 /- bind : (x : m α) → (f : (α → m α))
    unpacks the Term from the monad x and applies
@@ -268,12 +257,12 @@ def bindN {m : Type u → Type v} [Monad m] {α : Type u}
 /- Term constructors for binary and n-ary Terms. `test` is the
    predicate on the sort of the arguments that needs to be satisfied -/
 def constructBinaryTerm (constructor : Term → Term → Term)
-  (test : sort → sort → Bool) : Option Term → Option Term → Option Term :=
+  (test : sort → sort → Bool) : OptionM Term → OptionM Term → OptionM Term :=
   bind2 $ λ t₁ t₂ => sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
           if test s₁ s₂ then constructor t₁ t₂ else none
 
 def constructNaryTerm (constructor : Term → Term → Term)
-  (test : sort → sort → Bool) (l : List (Option Term)) : Option Term :=
+  (test : sort → sort → Bool) (l : List (OptionM Term)) : OptionM Term :=
       bindN l >>= λ l' =>
       match l' with
       | h₁ :: h₂ :: t =>
@@ -283,7 +272,7 @@ def constructNaryTerm (constructor : Term → Term → Term)
       | _ => none
 
 -- application of Term to Term
-def mkAppAux : Term → Term → Option Term :=
+def mkAppAux : Term → Term → OptionM Term :=
   λ t₁ t₂ =>
     sortOf t₁ >>= λ s₁ =>
     sortOf t₂ >>= λ s₂ =>
@@ -292,71 +281,66 @@ def mkAppAux : Term → Term → Option Term :=
     | _ => none
 
 -- binary and n-ary application
-def mkApp : Option Term → Option Term → Option Term := bind2 mkAppAux
+def mkApp : OptionM Term → OptionM Term → OptionM Term := bind2 mkAppAux
 
---def mkAppN (t : Option Term) (l : List (Option Term)) : Option Term :=
+--def mkAppN (t : OptionM Term) (l : List (OptionM Term)) : OptionM Term :=
 --  t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
 
 -- equality
-def mkEq : Option Term → Option Term → Option Term :=
-  constructBinaryTerm eq (λ s₁ s₂ => s₁ = s₂)
+def mkEq : OptionM Term → OptionM Term → OptionM Term :=
+  constructBinaryTerm equ (λ s₁ s₂ => s₁ = s₂)
 
 -- if-then-else
-def mkIteAux (c t₁ t₂ : Term) : Option Term :=
-  match sortOf c with
-  | some boolSort => match sortOf t₁, sortOf t₂ with
-                     | some boolSort, some boolSort => bIte c t₁ t₂
-                     | some s₁, some s₂ => if s₁ = s₂ then fIte c t₁ t₂ else none
-                     | _, _ => none
+--def mkIteAux (c t₁ t₂ : Term) : OptionM Term :=
+--  match sortOf c with
+--  | some boolSort => match sortOf t₁, sortOf t₂ with
+--                     | some boolSort, some boolSort => bIte c t₁ t₂
+--                     | some s₁, some s₂ => if s₁ = s₂ then fIte c t₁ t₂ else none
+--                     | _, _ => none
+--  | _ => none
+
+def mkIteAux (c t₁ t₂ : Term) : OptionM Term :=
+ do
+  match (← sortOf c) with
+  | atom `bool => match (← sortOf t₁), (← sortOf t₂) with
+                  | atom `bool, atom `bool => bIte c t₁ t₂
+                  | s₁, s₂ => if s₁ = s₂ then fIte c t₁ t₂ else none
   | _ => none
 
-def mkIte : Option Term → Option Term → Option Term → Option Term :=
+
+def mkIte : OptionM Term → OptionM Term → OptionM Term → OptionM Term :=
   bind3 mkIteAux
 
 -- negation
-def mkNot (t : Option Term) : Option Term :=
-  t >>= λ t' => match sortOf t' with
-                  | some boolSort => not t'
+
+def mkNot (t : OptionM Term) : OptionM Term :=
+  t >>= λ t' => do match (← (sortOf t'))  with
+                  | atom `bool => not t'
                   | _ => none
 
+
+
 -- Boolean ops
-def mkOr : Option Term → Option Term → Option Term :=
+def mkOr : OptionM Term → OptionM Term → OptionM Term :=
   constructBinaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkOrN : List (Option Term) → Option Term :=
+def mkOrN : List (OptionM Term) → OptionM Term :=
     constructNaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkAnd : Option Term → Option Term → Option Term :=
+def mkAnd : OptionM Term → OptionM Term → OptionM Term :=
   constructBinaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkAndN : List (Option Term) → Option Term :=
+def mkAndN : List (OptionM Term) → OptionM Term :=
   constructNaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkImplies : Option Term → Option Term → Option Term :=
+def mkImplies : OptionM Term → OptionM Term → OptionM Term :=
   constructBinaryTerm implies (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkXor : Option Term → Option Term → Option Term :=
+def mkXor : OptionM Term → OptionM Term → OptionM Term :=
   constructBinaryTerm xor (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkForall (v : Name) (body : Option Term) : Option Term :=
+def mkForall (v : Lean.Name) (body : OptionM Term) : OptionM Term :=
   body >>= λ body' => (qforall v body')
-
-#check Lean.Quote
-
-syntax "`[Term|" term "]" : term
-macro_rules
- | `(`[Term|top]) => `((top : Term))
- | `(`[Term|bot]) => `((bot : Term))
- | `(`[Term|mkAppN $a $l]) => `(($a : Term)) --match l with `(match $l with
-                              --  | then $a else mkApp $a `[Term| mkAppN $(List.car l) $(List.cdr l)])
- | `(`[Term|$x < $y]) => `(`[Term|mkAppN ltConst [$x, $y]])
- | `(`[Term|$x:ident]) => `(($(Lean.quote x.getId.toString) : Term))
-
-#check `[Term|top]
-
---#check let x := Term.val (Value.integer 2) _;
---        let y := Term.val (Value.integer 3) _;
---         `[Term|x < y]
 
 
 
