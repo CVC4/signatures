@@ -102,7 +102,7 @@ Construct a BV Term that is a bbT (bit-blasted Term)
 of the bools in l
 -/
 @[matchPattern] def mkBbT (l : List (OptionM Term)) : OptionM Term :=
-  mkAppN (bbT (List.length l)) l
+  mkAppN (bbTConst (List.length l)) l
 
 #check mkBbT ([some top, some top, some top, some top])
 

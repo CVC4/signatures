@@ -147,11 +147,11 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
 
 -- bitvec
 
-@[matchPattern] def bbT (n : Nat) : Term :=
-  const (mkName "bbT") (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
-
 @[matchPattern] def bitOfConst (n : Nat) : Term :=
   const (mkName "bitOf") (arrow (bv n) (arrow intSort boolSort))
+@[matchPattern] def bbTConst (n : Nat) : Term :=
+  const (mkName "bbT") (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
+
 @[matchPattern] def bvEqConst (n : Nat) : Term :=
   const (mkName "bvEq") (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvNotConst (n : Nat) : Term :=
