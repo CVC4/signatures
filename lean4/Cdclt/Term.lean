@@ -1,7 +1,9 @@
 import Std.Data.AssocList
 
-open List
-namespace proof
+inductive StrTree where
+| leaf (s : String)
+| node (children : List $ StrTree)
+deriving Repr
 
 inductive Name where
   | anonymous : Name
@@ -10,14 +12,8 @@ deriving DecidableEq, Repr
 
 def mkName (s : String) := Name.str Name.anonymous s
 
---inductive StrTree where
---| leaf (s : String)
---| node (children : List $ StrTree)
---deriving DecidableEq, Repr
-
-
-
--- show dec eq manually
+open List
+namespace proof
 
 /- dep is the sort for Terms that have polymorphic sorts such as
    eqality and ITE. These sorts are handled in a special way in the
@@ -63,8 +59,10 @@ deriving Repr, DecidableEq
 def BVToStringAux : List Bool → String
 | h :: t => (if h then "1" else "0") ++ (BVToStringAux t)
 | [] => ""
+
 def BVToString : List Bool → String :=
 λ l => "[" ++ BVToStringAux l ++ "]"
+
 def ValueToString : Value → String
 | Value.bool b => if b then "true" else "false"
 | Value.bitvec l => BVToString l

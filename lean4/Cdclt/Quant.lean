@@ -6,7 +6,7 @@ open rules
 
 namespace quantRules
 
-def substitute (v : Name) (t : Term) : Term → Option Term
+def substitute (v : Name) (t : Term) : Term → OptionM Term
 -- replace each Term in application
 | f • t₁ => substitute v t f >>= λ fs =>
             substitute v t t₁ >>= λ t₁s => fs • t₁s
