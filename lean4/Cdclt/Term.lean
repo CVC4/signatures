@@ -6,7 +6,7 @@ namespace proof
 deriving instance DecidableEq for Lean.Name
 
 /- dep is the sort for Terms that have polymorphic sorts such as
-   equality and ITE. These sorts are handled in a special way in the
+   eqality and ITE. These sorts are handled in a special way in the
    type checker.
 
    Additionally, we have atomic sorts, parameterized by a Nat, arrow
@@ -85,41 +85,40 @@ open Value
 
 @[matchPattern] def bot : Term := val (bool false) boolSort
 @[matchPattern] def top : Term := val (bool true) boolSort
-@[matchPattern] def notConst : Term :=
-  const `not (arrow boolSort boolSort)
-@[matchPattern] def orConst : Term :=
-  const `or (arrow boolSort (arrow boolSort boolSort))
-@[matchPattern] def andConst : Term :=
-  const `and (arrow boolSort (arrow boolSort boolSort))
 
+@[matchPattern] def notConst : Term :=
+  const `not_ (arrow boolSort boolSort)
+@[matchPattern] def orConst : Term :=
+  const `or_ (arrow boolSort (arrow boolSort boolSort))
+@[matchPattern] def andConst : Term :=
+  const `and_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def impliesConst : Term :=
-  const `implies (arrow boolSort (arrow boolSort boolSort))
+  const `implies_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def xorConst : Term  :=
-  const `xor (arrow boolSort (arrow boolSort boolSort))
+  const `xor_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def bIteConst : Term :=
-  const `bIte (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
-@[matchPattern] def fIteConst : Term := const `fIte dep
-@[matchPattern] def equConst : Term := const `equ dep
+  const `bIte_ (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
+@[matchPattern] def fIteConst : Term := const `fIte_ dep
+@[matchPattern] def eqConst : Term := const `eq_ dep
 
 @[matchPattern] def plusConst : Term :=
-  const `plus (arrow boolSort (arrow boolSort boolSort))
+  const `plus_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def minusConst : Term :=
-  const `minus (arrow boolSort (arrow boolSort boolSort))
+  const `minus_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def multConst : Term :=
-  const `mult (arrow boolSort (arrow boolSort boolSort))
+  const `mult_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def gtConst : Term :=
-  const `gt (arrow boolSort (arrow boolSort boolSort))
+  const `gt_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def gteConst : Term :=
-  const `gte (arrow boolSort (arrow boolSort boolSort))
+  const `gte_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def ltConst : Term :=
-  const `lt (arrow boolSort (arrow boolSort boolSort))
+  const `lt_ (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def lteConst : Term :=
-  const `lte (arrow boolSort (arrow boolSort boolSort))
+  const `lte_ (arrow boolSort (arrow boolSort boolSort))
 
 def liftUnary (t : Term) : (Term → Term) := λ t₁ => t • t₁
 def liftBinary (t : Term) : (Term → Term → Term) := λ t₁ t₂ => t • t₁ • t₂
 def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t₃ => t • t₁ • t₂ • t₃
-
 
 -- macros for creating Terms with interpreted constants
 
@@ -130,7 +129,7 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
 @[matchPattern] def xor : Term → Term → Term := liftBinary xorConst
 @[matchPattern] def bIte : Term → Term → Term → Term := liftTernary bIteConst
 @[matchPattern] def fIte : Term → Term → Term → Term := liftTernary fIteConst
-@[matchPattern] def equ : Term → Term → Term := liftBinary equConst
+@[matchPattern] def eq : Term → Term → Term := liftBinary eqConst
 
 -- bitvec
 
@@ -229,7 +228,7 @@ def sortOfAux : Term → OptionM sort
     do let len ← List.length l if len = 0 then none else bv l.length
 | val (Value.char _) _ => stringSort
 | val (integer _) _ => intSort
-| const `equ dep • t₁ • t₂ =>
+| const `eq dep • t₁ • t₂ =>
     sortOfAux t₁ >>= λ s₁ =>
     sortOfAux t₂ >>= λ s₂ =>
     if s₁ = s₂ then boolSort else none
@@ -303,9 +302,9 @@ def mkApp : OptionM Term → OptionM Term → OptionM Term := bind2 mkAppAux
 def mkAppN (t : OptionM Term) (l : List (OptionM Term)) : OptionM Term :=
   t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
 
--- equality
+-- eqality
 def mkEq : OptionM Term → OptionM Term → OptionM Term :=
-  constructBinaryTerm equ (λ s₁ s₂ => s₁ = s₂)
+  constructBinaryTerm eq (λ s₁ s₂ => s₁ = s₂)
 
 -- if-then-else
 --def mkIteAux (c t₁ t₂ : Term) : OptionM Term :=
