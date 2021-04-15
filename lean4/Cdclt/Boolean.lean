@@ -170,8 +170,8 @@ axiom notIteElim2 : ∀ {c t₁ t₂ : OptionM Term},
 ¬l₁ ∨ ... ∨ ¬lₙ
 -/
 def reduceNotAndAux : Term → clause
-| Term.and' t₀ (Term.and' t₁ t₂) => mkNot t₀ :: mkNot t₁ :: reduceNotAndAux t₂
-| Term.and' t₀ t₁               => [mkNot t₀, mkNot t₁]
+| Term.and t₀ (Term.and t₁ t₂) => mkNot t₀ :: mkNot t₁ :: reduceNotAndAux t₂
+| Term.and t₀ t₁               => [mkNot t₀, mkNot t₁]
 | t                            => [t]
 def reduceNotAnd : OptionM Term → clause
 | (some t) => reduceNotAndAux t

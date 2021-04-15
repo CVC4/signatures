@@ -10,6 +10,15 @@ deriving DecidableEq, Repr
 
 def mkName (s : String) := Name.str Name.anonymous s
 
+--inductive StrTree where
+--| leaf (s : String)
+--| node (children : List $ StrTree)
+--deriving DecidableEq, Repr
+
+
+
+-- show dec eq manually
+
 /- dep is the sort for Terms that have polymorphic sorts such as
    eqality and ITE. These sorts are handled in a special way in the
    type checker.
@@ -49,7 +58,7 @@ inductive Value : Type where
 | char : Char → Value
 | integer : Int → Value
 | str : String → Value
-deriving DecidableEq, Repr
+deriving Repr, DecidableEq
 
 def BVToStringAux : List Bool → String
 | h :: t => (if h then "1" else "0") ++ (BVToStringAux t)
@@ -97,8 +106,10 @@ open Value
   const (mkName "or") (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def andConst : Term :=
   const (mkName "and") (arrow boolSort (arrow boolSort boolSort))
+
 @[matchPattern] def impliesConst : Term :=
-  const (mkName "implies")_(arrow boolSort (arrow boolSort boolSort))
+  const (mkName "implies") (arrow boolSort (arrow boolSort boolSort))
+
 @[matchPattern] def xorConst : Term  :=
   const (mkName "xor") (arrow boolSort (arrow boolSort boolSort))
 @[matchPattern] def bIteConst : Term :=
@@ -129,7 +140,7 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
 
 @[matchPattern] def not : Term → Term := liftUnary notConst
 @[matchPattern] def or : Term → Term → Term := liftBinary orConst
-@[matchPattern] def and' : Term → Term → Term := liftBinary andConst
+@[matchPattern] def and : Term → Term → Term := liftBinary andConst
 @[matchPattern] def implies : Term → Term → Term := liftBinary impliesConst
 @[matchPattern] def xor : Term → Term → Term := liftBinary xorConst
 @[matchPattern] def bIte : Term → Term → Term → Term := liftTernary bIteConst
@@ -335,7 +346,7 @@ def mkIte : OptionM Term → OptionM Term → OptionM Term → OptionM Term :=
 -- negation
 
 def mkNot (t : OptionM Term) : OptionM Term :=
-  t >>= λ t' => do match (← (sortOf t'))  with
+  t >>= λ t' => do match (← (sortOf t')) with
                   | boolSort => not t'
                   | _ => none
 
@@ -349,10 +360,10 @@ def mkOrN : List (OptionM Term) → OptionM Term :=
     constructNaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
 def mkAnd : OptionM Term → OptionM Term → OptionM Term :=
-  constructBinaryTerm and' (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+  constructBinaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
 def mkAndN : List (OptionM Term) → OptionM Term :=
-  constructNaryTerm and' (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+  constructNaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
 def mkImplies : OptionM Term → OptionM Term → OptionM Term :=
   constructBinaryTerm implies (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
@@ -362,8 +373,6 @@ def mkXor : OptionM Term → OptionM Term → OptionM Term :=
 
 def mkForall (v : Name) (body : OptionM Term) : OptionM Term :=
   body >>= λ body' => (qforall v body')
-
-
 
 end Term
 
