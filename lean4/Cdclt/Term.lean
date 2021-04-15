@@ -68,7 +68,7 @@ inductive Term : Type where
 | const : Lean.Name → Option sort → Term -- uninterpreted constant
 | app : Term → Term → Term
 | qforall : Lean.Name → Term → Term
-deriving DecidableEq, Repr
+deriving DecidableEq, Repr, BEq
 
 namespace Term
 
