@@ -1,21 +1,21 @@
-import Cdclt.Term
 import Cdclt.Quant
 
 open proof
-open proof.sort proof.Term
+open proof.sort proof.term
 open rules
 open quantRules
 
-def u1 := atom (mkName "1")
-def u2 := atom (mkName "2")
-def x := const (mkName "60") u1
-def f1 := const (mkName "61") (arrow u1 u1)
-def t1  := const (mkName "62") u1
-def t2 := const (mkName "63") u2
-def p1 := const (mkName "64") (arrow u1 boolSort)
 
-def myquant := qforall (mkName "60") (f1 • x) -- this binds the variable
-def myquant2 := qforall (mkName "60") x -- this binds the variable
+def u1 := atom 1
+def u2 := atom 2
+def x := (const 60 u1)
+def f1 := const 61 (arrow u1 u1)
+def t1  := const 62 u1
+def t2 := const 63 u2
+def p1 := const 64 (arrow u1 boolSort)
+
+def myquant := qforall 60 (f1 • x) -- this binds the variable
+def myquant2 := qforall 60 x -- this binds the variable
 
 theorem testInst1 : thHolds myquant → thHolds (f1 • t1) :=
 λ s0 : thHolds myquant =>
