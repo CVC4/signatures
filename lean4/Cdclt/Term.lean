@@ -52,20 +52,6 @@ inductive Value : Type where
 | str : String → Value
 deriving Repr, DecidableEq
 
-def BVToStringAux : List Bool → String
-| h :: t => (if h then "1" else "0") ++ (BVToStringAux t)
-| [] => ""
-
-def BVToString : List Bool → String :=
-λ l => "[" ++ BVToStringAux l ++ "]"
-
-def ValueToString : Value → String
-| Value.bool b => if b then "true" else "false"
-| Value.bitvec l => BVToString l
-| Value.char c => String.singleton c
-| Value.integer i =>  "i" -- Change to ToString i
-| Value.str s => s
-
 /- Terms are values (interpreted constants),
    constants of a sort, applications,
    or quantified formulas
@@ -194,40 +180,56 @@ def liftTernary (t : Term) : (Term → Term → Term → Term) := λ t₁ t₂ t
 @[matchPattern] def bvSignExt (n i : Nat) : Term → Term → Term := liftBinary $ bvSignExtConst n i
 
 
+def BVToStringAux : List Bool → String
+| h :: t => (if h then "1" else "0") ++ (BVToStringAux t)
+| [] => ""
+def BVToString : List Bool → String :=
+λ l => "[" ++ BVToStringAux l ++ "]"
+def ValueToString : Value → String
+| Value.bool b => if b then "true" else "false"
+| Value.bitvec l => BVToString l
+| Value.char c => String.singleton c
+| Value.integer i =>  "i" -- Change to ToString i
+| Value.str s => s
 
---def TermToString : Term → String
---| val v s => ValueToString v
---| not t => "¬" ++ TermToString t
---| or t₁ t₂ => TermToString t₁ ++ " ∨ " ++ TermToString t₂
---| and t₁ t₂ => TermToString t₁ ++ " ∧ " ++ TermToString t₂
---| xor t₁ t₂ => TermToString t₁ ++ " ⊕ " ++ TermToString t₂
---| implies t₁ t₂ => TermToString t₁ ++ " ⇒ " ++ TermToString t₂
---| bIte c t₁ t₂ =>
---  TermToString c ++ " ? " ++ TermToString t₁ ++ " : " ++ TermToString t₂
---| eq t₁ t₂ => TermToString t₁ ++ " ≃ " ++ TermToString t₂
---| fIte c t₁ t₂ =>
---  TermToString c ++ " ? " ++ TermToString t₁ ++ " : " ++ TermToString t₂
---| bitOf _ t₁ t₂ => TermToString t₁ ++ "[" ++ TermToString t₂ ++ "]"
---/-| bbT _ => "bbT"
---| bvEq _ t₁ t₂ => TermToString t₁ ++ " ≃_bv " ++ TermToString t₂
---| bvNot _ t => "¬_bv" ++ TermToString t
---| bvAnd _ t₁ t₂ => TermToString t₁ ++ " ∧_bv " ++ TermToString t₂
---| bvOr _ t₁ t₂ => TermToString t₁ ++ " ∨_bv " ++ TermToString t₂
---| bvUlt _ t₁ t₂ => TermToString t₁ ++ " <ᵤ " ++ TermToString t₂
---| bvUgt _ t₁ t₂ => TermToString t₁ ++ " >ᵤ " ++ TermToString t₂
---| bvSlt _ t₁ t₂ => TermToString t₁ ++ " <ₛ " ++ TermToString t₂
---| bvSgt _ t₁ t₂ => TermToString t₁ ++ " >ₛ " ++ TermToString t₂-/
---| const id _ => toString id
---| f • t =>  "(" ++ (TermToString f) ++ " " ++ (TermToString t) ++ ")"
---| qforall v t => "∀ " ++ toString v ++ " . " ++ TermToString t
---
+def NameToStringAux : Name → String
+| Name.anonymous => ""
+| Name.str n s => s ++ NameToStringAux n
+def NameToString : Name → String :=
+λ n => ("'" ++ NameToStringAux n ++ "'")
 
---def OptionTermToString : Option Term → String
---| some t => TermToString t
---| none => "none"
---
---instance : ToString Term where toString := TermToString
---instance : ToString (Option Term) where toString := OptionTermToString
+def TermToString : Term → String
+| val v s => ValueToString v
+| not t => "¬" ++ TermToString t
+| or t₁ t₂ => TermToString t₁ ++ " ∨ " ++ TermToString t₂
+| and t₁ t₂ => TermToString t₁ ++ " ∧ " ++ TermToString t₂
+| xor t₁ t₂ => TermToString t₁ ++ " ⊕ " ++ TermToString t₂
+| implies t₁ t₂ => TermToString t₁ ++ " ⇒ " ++ TermToString t₂
+| bIte c t₁ t₂ => TermToString c ++ " ? " ++ TermToString t₁ 
+                  ++ " : " ++ TermToString t₂
+| eq t₁ t₂ => TermToString t₁ ++ " ≃ " ++ TermToString t₂
+| fIte c t₁ t₂ => TermToString c ++ " ? " ++ TermToString t₁ 
+                  ++ " : " ++ TermToString t₂
+| bitOf _ t₁ t₂ => TermToString t₁ ++ "[" ++ TermToString t₂ ++ "]"
+/-| bbT _ => "bbT"
+| bvEq _ t₁ t₂ => TermToString t₁ ++ " ≃_bv " ++ TermToString t₂
+| bvNot _ t => "¬_bv" ++ TermToString t
+| bvAnd _ t₁ t₂ => TermToString t₁ ++ " ∧_bv " ++ TermToString t₂
+| bvOr _ t₁ t₂ => TermToString t₁ ++ " ∨_bv " ++ TermToString t₂
+| bvUlt _ t₁ t₂ => TermToString t₁ ++ " <ᵤ " ++ TermToString t₂
+| bvUgt _ t₁ t₂ => TermToString t₁ ++ " >ᵤ " ++ TermToString t₂
+| bvSlt _ t₁ t₂ => TermToString t₁ ++ " <ₛ " ++ TermToString t₂
+| bvSgt _ t₁ t₂ => TermToString t₁ ++ " >ₛ " ++ TermToString t₂-/
+| const n _ => NameToString n
+| f • t =>  "(" ++ (TermToString f) ++ " " ++ (TermToString t) ++ ")"
+| qforall v t => "∀ " ++ NameToString v ++ " . " ++ TermToString t
+
+def OptionMTermToString : OptionM Term → String
+| some t => TermToString t
+| none => "none"
+
+instance : ToString Term where toString := TermToString
+instance : ToString (Option Term) where toString := OptionMTermToString
 
 
 -- computing the sort of Terms

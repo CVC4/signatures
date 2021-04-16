@@ -175,10 +175,10 @@ def bblastBvEq : OptionM Term → OptionM Term → OptionM Term :=
 -- 0000 = 1111
 #check bblastBvEq (val (Value.bitvec [false, false, false, false]) (bv 4))
   (val (Value.bitvec [true, true, true, true]) (bv 4))
-#check termEval (bblastBvEq (val (Value.bitvec [false, false, false, false]) (bv 4))
+#eval OptionMTermToString (termEval (bblastBvEq (val (Value.bitvec [false, false, false, false]) (bv 4))
+  (val (Value.bitvec [true, true, true, true]) (bv 4))))
+#eval OptionMTermToString (bblastBvEq (val (Value.bitvec [false, false, false, false]) (bv 4))
   (val (Value.bitvec [true, true, true, true]) (bv 4)))
--- #check OptionMTermToString (termEval (bblastBvEq (val (Value.bitvec [false, false, false, false]) (bv 4))
---  (val (Value.bitvec [true, true, true, true]) (bv 4))))
 -- 010 = 010
 -- #check bblastBvEq (val (Value.bitvec [false, true, false]) (bv 3))
 --   (val (Value.bitvec [false, true, false]) (bv 3))
