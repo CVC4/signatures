@@ -127,7 +127,7 @@ def zip {α β γ : Type} : List α → List β →  (α → β → γ) → List
    | (h₁ :: t₁), (h₂ :: t₂), p => (p h₁ h₂) :: (zip t₁ t₂ p)
    | _, _, _ => []
 
--- For BVAnd and BVOr
+-- For bitwise ops
 /-
 bblastBvBitwise ot₁ ot₂ const
 checks that ot₁ and ot₂ are BVs of the same length
@@ -213,7 +213,13 @@ def bblastBvNot (ot : Option term) : Option term :=
     match s with
     | bv n => mkBbT (List.map mkNot (bitOfN t n))
     | _ => none
+-- ¬0000
 #eval bblastBvNot (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval termEval (bblastBvNot (val (value.bitvec [false, false, false, false]) (bv 4)))
+-- ¬ 1010
+#eval bblastBvNot (val (value.bitvec [true, false, true, false]) (bv 4))
+#eval termEval (bblastBvNot (val (value.bitvec [true, false, true, false]) (bv 4)))
+-- Using variables
 #eval bblastBvNot (const 21 (bv 4))
 
 -- Bit-blasting BvNot rule
@@ -238,8 +244,17 @@ If terms are well-typed, construct their bit-blasted BV and
 def bblastBvAnd : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkAnd
 
+-- 0000 ∧ 1111
 #eval bblastBvAnd (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvAnd (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 0111 ∧ 1101
+#eval bblastBvAnd (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, false, true]) (bv 4))
+#eval termEval (bblastBvAnd (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, false, true]) (bv 4)))
+-- Using variables
 #eval bblastBvAnd (const 21 (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvAnd (const 21 (bv 4)) (const 22 (bv 4))
@@ -266,16 +281,172 @@ If terms are well-typed, construct their bit-blasted BV or
 def bblastBvOr : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkOr
 
+-- 0000 ∨ 1111
 #eval bblastBvOr (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvOr (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 0101 ∨ 1010
+#eval bblastBvOr (val (value.bitvec [false, true, false, true]) (bv 4))
+  (val (value.bitvec [true, false, true, false]) (bv 4))
+#eval termEval (bblastBvOr (val (value.bitvec [false, true, false, true]) (bv 4))
+  (val (value.bitvec [true, false, true, false]) (bv 4)))
+-- Using variables
 #eval bblastBvOr (const 21 (bv 4))
   (val (value.bitvec [false, false, false, false]) (bv 4))
 #eval bblastBvOr (const 21 (bv 4)) (const 22 (bv 4))
-#eval mkBbT (bitOfN (val (value.bitvec [true, true, true, true]) (bv 4)) 4)
 
 -- Bit-blasting BvOr rule
 axiom bbBvOr : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvOr t₁ t₂) (bblastBvOr t₁ t₂))
+
+
+/- ------
+ BV Xor
+------ -/
+
+-- If terms are well-typed, construct their BV Xor application
+def mkBvXor : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvXor
+
+/-
+If terms are well-typed, construct their bit-blasted BV xor
+[x₀ x₁ ... xₙ] ⊕bv [y₀ y₁ ... yₙ]
+---------------------------------
+ [x₀ ⊕ y₀, x₁ ⊕ x₂, ... xₙ ⊕ yₙ]
+-/
+def bblastBvXor : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkXor
+
+-- 0000 ⊕ 1111
+#eval bblastBvXor (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvXor (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 1111 ⊕ 1111
+#eval bblastBvXor (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvXor (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- Using variables
+#eval bblastBvXor (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvXor (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvXor rule
+axiom bbBvXor : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvXor t₁ t₂) (bblastBvXor t₁ t₂))
+
+
+/- -------
+ BV Nand
+------- -/
+
+-- If terms are well-typed, construct their BV Nand application
+def mkBvNand : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvNand
+
+/-
+If terms are well-typed, construct their bit-blasted BV Nand
+[x₀ x₁ ... xₙ] ¬∧bv [y₀ y₁ ... yₙ]
+---------------------------------
+ [x₀ ¬∧ y₀, x₁ ¬∧ x₂, ... xₙ ¬∧ yₙ]
+-/
+def bblastBvNand : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkNand
+
+-- 0000 ¬∧ 1111
+#eval bblastBvNand (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvNand (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 0111 ¬∧ 1101
+#eval bblastBvNand (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, false, true]) (bv 4))
+#eval termEval (bblastBvNand (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, false, true]) (bv 4)))
+-- Using variables
+#eval bblastBvNand (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvNand (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvNand rule
+axiom bbBvNand : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvNand t₁ t₂) (bblastBvNand t₁ t₂))
+
+
+/- -------
+ BV Nor
+------- -/
+
+-- If terms are well-typed, construct their BV Nor application
+def mkBvNor : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvNor
+
+/-
+If terms are well-typed, construct their bit-blasted BV Nand
+[x₀ x₁ ... xₙ] ¬∨bv [y₀ y₁ ... yₙ]
+---------------------------------
+ [x₀ ¬∨ y₀, x₁ ¬∨ x₂, ... xₙ ¬∨ yₙ]
+-/
+def bblastBvNor : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkNor
+
+-- 0000 ¬∨ 1111
+#eval bblastBvNor (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvNor (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 0111 ¬∨ 1101
+#eval bblastBvNor (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, false, true]) (bv 4))
+#eval termEval (bblastBvNor (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, false, true]) (bv 4)))
+-- Using variables
+#eval bblastBvNor (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvNor (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvNor rule
+axiom bbBvNor : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvNor t₁ t₂) (bblastBvNor t₁ t₂))
+
+
+/- -------
+ BV Xnor
+------- -/
+
+-- If terms are well-typed, construct their BV Xnor application
+def mkBvXnor : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvXnor
+
+/-
+If terms are well-typed, construct their bit-blasted BV Nand
+[x₀ x₁ ... xₙ] ¬⊕ [y₀ y₁ ... yₙ]
+---------------------------------
+ [x₀ ↔ y₀, x₁ ↔ x₂, ... xₙ ↔ yₙ]
+-/
+def bblastBvXnor : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkIff
+
+-- 1111 ¬⊕ 1111
+#eval bblastBvXnor (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvXnor (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 0111 ¬⊕ 1101
+#eval bblastBvXnor (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, false, true]) (bv 4))
+#eval termEval (bblastBvXnor (val (value.bitvec [false, true, true, true]) (bv 4))
+  (val (value.bitvec [true, true, false, true]) (bv 4)))
+-- Using variables
+#eval bblastBvNor (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvNor (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvNor rule
+axiom bbBvXnor : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvXnor t₁ t₂) (bblastBvXnor t₁ t₂))
 
 
 --------------------------------------- Comparison Operators ---------------------------------------

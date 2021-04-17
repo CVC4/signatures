@@ -38,7 +38,11 @@ def bvEqNum : Nat := bvBbTNum + 1
 def bvNotNum : Nat := bvEqNum + 1
 def bvAndNum : Nat := bvNotNum + 1
 def bvOrNum : Nat := bvAndNum + 1
-def bvUltNum : Nat := bvOrNum + 1
+def bvXorNum : Nat := bvOrNum + 1
+def bvNandNum : Nat := bvXorNum + 1
+def bvNorNum : Nat := bvNandNum + 1
+def bvXnorNum : Nat := bvNorNum + 1
+def bvUltNum : Nat := bvXnorNum + 1
 def bvUgtNum : Nat := bvUltNum + 1
 def bvSltNum : Nat := bvUgtNum + 1
 def bvSgtNum : Nat := bvSltNum + 1
@@ -170,6 +174,14 @@ open value
   const bvAndNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvOrConst (n : Nat) :=
   const bvOrNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvXorConst (n : Nat) :=
+  const bvXorNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvNandConst (n : Nat) :=
+  const bvNandNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvNorConst (n : Nat) :=
+  const bvNorNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvXnorConst (n : Nat) :=
+  const bvXnorNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvUltConst (n : Nat) :=
   const bvUltNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvUgtConst (n : Nat) :=
@@ -199,7 +211,11 @@ open value
 @[matchPattern] def and : term → term → term := λ t₁ t₂ => andConst • t₁ • t₂
 @[matchPattern] def implies : term → term → term :=
   λ t₁ t₂ => impliesConst • t₁ • t₂
+@[matchPattern] def iff : term → term → term :=
+  λ t₁ t₂ => andConst • (impliesConst • t₁ • t₂) • (impliesConst • t₂ • t₁)
 @[matchPattern] def xor : term → term → term := λ t₁ t₂ => xorConst • t₁ • t₂
+@[matchPattern] def nand : term → term → term := λ t₁ t₂ => notConst • (andConst • t₁ • t₂)
+@[matchPattern] def nor : term → term → term := λ t₁ t₂ => notConst • (orConst • t₁ • t₂)
 @[matchPattern] def bIte : term → term → term → term :=
   λ c t₁ t₂ => bIteConst • c • t₁ • t₂
 
@@ -227,6 +243,14 @@ open value
   λ n t₁ t₂ => bvAndConst n • t₁ • t₂
 @[matchPattern] def bvOr : Nat → term → term → term :=
   λ n t₁ t₂ => bvAndConst n • t₁ • t₂
+@[matchPattern] def bvXor : Nat → term → term → term :=
+  λ n t₁ t₂ => bvXorConst n • t₁ • t₂
+@[matchPattern] def bvNand : Nat → term → term → term :=
+  λ n t₁ t₂ => bvNandConst n • t₁ • t₂
+@[matchPattern] def bvNor : Nat → term → term → term :=
+  λ n t₁ t₂ => bvNorConst n • t₁ • t₂
+@[matchPattern] def bvXnor : Nat → term → term → term :=
+  λ n t₁ t₂ => bvXnorConst n • t₁ • t₂
 @[matchPattern] def bvUlt : Nat → term → term → term :=
   λ n t₁ t₂ => bvUltConst n • t₁ • t₂
 @[matchPattern] def bvUgt : Nat → term → term → term :=
@@ -274,6 +298,10 @@ def termToString : term → String
 | bvNot _ t => "¬_bv" ++ termToString t
 | bvAnd _ t₁ t₂ => termToString t₁ ++ " ∧_bv " ++ termToString t₂
 | bvOr _ t₁ t₂ => termToString t₁ ++ " ∨_bv " ++ termToString t₂
+| bvXor _ t₁ t₂ => termToString t₁ ++ " ⊕_bv " ++ termToString t₂
+| bvNand _ t₁ t₂ => "BVNand " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvNor _ t₁ t₂ => "BVNor " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvXnor _ t₁ t₂ => "BVXnor " ++ termToString t₁ ++ " " ++ termToString t₂
 | bvUlt _ t₁ t₂ => termToString t₁ ++ " <ᵤ " ++ termToString t₂
 | bvUgt _ t₁ t₂ => termToString t₁ ++ " >ᵤ " ++ termToString t₂
 | bvSlt _ t₁ t₂ => termToString t₁ ++ " <ₛ " ++ termToString t₂
@@ -411,8 +439,17 @@ def mkAndN : List (Option term) → Option term :=
 def mkImplies : Option term → Option term → Option term :=
   constructBinaryTerm implies (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
+def mkIff : Option term → Option term → Option term :=
+  constructBinaryTerm iff (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+
 def mkXor : Option term → Option term → Option term :=
   constructBinaryTerm xor (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+
+def mkNand : Option term → Option term → Option term :=
+  constructBinaryTerm nand (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+
+def mkNor : Option term → Option term → Option term :=
+  constructBinaryTerm nor (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
 def mkForall (v : Nat) (body : Option term) : Option term :=
   body >>= λ body' => (qforall v body')
