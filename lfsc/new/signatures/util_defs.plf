@@ -8,3 +8,12 @@
 
 (declare termPair type)
 (declare pair (! first term (! second term termPair)))
+
+; bits
+(declare bit type)
+(declare b0 bit)
+(declare b1 bit)
+; bit vector type used for constants
+(declare bitvec type)
+(declare bvn bitvec)
+(declare bvc (! b bit (! v bitvec bitvec)))
