@@ -1,18 +1,18 @@
 import Cdclt.Term
 
 open proof
-open proof.sort proof.Term
+open proof.sort proof.term
 
 namespace proof
 
-namespace Term
+namespace term
 
-partial def termEval (ot : Option Term) : Option Term :=
+partial def termEval (ot : Option term) : Option term :=
   ot >>= λ t =>
   match t with
   | top => top
   | bot => bot
-  | Term.not t₁ =>
+  | term.not t₁ =>
     do let t₁' ← termEval t₁
        match t₁' with
        | top => bot
@@ -51,7 +51,7 @@ partial def termEval (ot : Option Term) : Option Term :=
        | top, top => bot
        | bot, bot => bot
        | _, _ => t
-  | eq t₁ t₂ =>
+  | eq t₁ t₂ => 
     do let t₁' ← termEval t₁
        let t₂' ← termEval t₂
        match t₁', t₂' with
@@ -72,9 +72,8 @@ partial def termEval (ot : Option Term) : Option Term :=
        (app t₁' t₂')
   | _ => t
 
--- #check termEval (mkAnd top bot)
--- #eval termEval (mkAnd top bot)
-
-end Term
+#check termEval (mkAnd top bot)
+#eval termEval (mkAnd top bot)
+end term
 
 end proof

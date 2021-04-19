@@ -87,6 +87,12 @@ List of rules for bit-blasting
         \RL{\textsc{BBXor}}
         \UIC{\strut$\mathtt{bbT}\ n\ (bvxor\ x\ y)\ [x_0 \oplus y_0; \ldots; x_{n-1} \oplus y_{n-1}]$}
         \DP\\ \\
+        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
+        	\mathtt{bbT}\ n\ y\ [\enum[n-1]{y}[;][0]]$}
+        \RL{\textsc{BBXnor}}
+        \UIC{\strut$\mathtt{bbT}\ n\ (bvxnor\ x\ y)\ [x_0 \leftrightarrow y_0; \leftrightarrow; x_{n-1} 
+        	\leftrightarrow y_{n-1}]$}
+        \DP\\ \\
         \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]$}
         \RL{\textsc{BBNot}}
         \UIC{\strut$\mathtt{bbT}\ n\ (bvnot\ x)\ [\neg x_0; \ldots; \neg x_{n-1}]$}

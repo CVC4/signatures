@@ -1,46 +1,34 @@
 import Cdclt.Boolean
 
 open proof
-open proof.sort proof.Term
+open proof.sort proof.term
 open rules
 
--- arith
-
-@[matchPattern] def plus : Term → Term → Term := liftBinary plusConst
-@[matchPattern] def minus : Term → Term → Term := liftBinary minusConst
-@[matchPattern] def mult : Term → Term → Term := liftBinary multConst
-@[matchPattern] def gt : Term → Term → Term := liftBinary gtConst
-@[matchPattern] def gte : Term → Term → Term := liftBinary gteConst
-@[matchPattern] def lt : Term → Term → Term := liftBinary ltConst
-@[matchPattern] def lte : Term → Term → Term := liftBinary lteConst
-
-
-
-def mkPlus : Option Term → Option Term → Option Term :=
+def mkPlus : Option term → Option term → Option term :=
   constructBinaryTerm plus (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
-def mkPlusN : List (Option Term) → Option Term :=
+def mkPlusN : List (Option term) → Option term :=
     constructNaryTerm plus (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
-def mkMinus : Option Term → Option Term → Option Term :=
+def mkMinus : Option term → Option term → Option term :=
   constructBinaryTerm minus (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
-def mkMult : Option Term → Option Term → Option Term :=
+def mkMult : Option term → Option term → Option term :=
   constructBinaryTerm mult (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
-def mkMultN : List (Option Term) → Option Term :=
+def mkMultN : List (Option term) → Option term :=
     constructNaryTerm mult (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
-def mkGt : Option Term → Option Term → Option Term :=
+def mkGt : Option term → Option term → Option term :=
   constructBinaryTerm gt (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
-def mkGte : Option Term → Option Term → Option Term :=
+def mkGte : Option term → Option term → Option term :=
   constructBinaryTerm gte (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
-def mkLt : Option Term → Option Term → Option Term :=
+def mkLt : Option term → Option term → Option term :=
   constructBinaryTerm lt (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
-def mkLte : Option Term → Option Term → Option Term :=
+def mkLte : Option term → Option term → Option term :=
   constructBinaryTerm lte (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
 
 namespace arithRules
@@ -55,26 +43,24 @@ namespace arithRules
                   L is (+ L1 L2)
                   R is (+ R1 R2)
 -/
-def sumBounds : Option Term → Option Term → Option Term :=
-| f₁ t₁₁ t₁₂, f₂ t₂₁ t₂₂ =>
+def sumBounds : Option term → Option term → Option term
+| f₁ • t₁₁ • t₁₂, f₂ • t₂₁ • t₂₂ =>
   mkPlus t₁₁ t₂₁ >>= λ l =>
   mkPlus t₁₂ t₂₂ >>= λ r =>
   match f₁, f₂ with
-  | lt, lt => mkLt l r
-  | lt, lte => mkLt l r
-  | lt, eq => mkLt l r
-  | lte, lt => mkLt l r
-  | lte, lte => mkLte l r
-  | lte, eq => mkLte l r
-  | eq, lt => mkLt l r
-  | eq, lte => mkLte l r
-  | eq, eq => mkLte l r
+  | ltConst, ltConst => mkLt l r
+  | ltConst, lteConst => mkLt l r
+  | ltConst, eqConst => mkLt l r
+  | lteConst, ltConst => mkLt l r
+  | lteConst, lteConst => mkLte l r
+  | lteConst, eqConst => mkLte l r
+  | eqConst, ltConst => mkLt l r
+  | eqConst, lteConst => mkLte l r
+  | eqConst, eqConst => mkLte l r
   | _, _ => none
 | _, _ => none
 
-
-
-axiom sumUb : ∀ {t₁ t₂ : Option Term}, thHolds t₁ → thHolds t₂ → thHolds (sumBounds t₁ t₂)
+axiom sumUb : ∀ {t₁ t₂ : Option term}, thHolds t₁ → thHolds t₂ → thHolds (sumBounds t₁ t₂)
 
 /-
 ======= Multiplication with positive factor
@@ -85,11 +71,11 @@ Conclusion: (=> (and (> m 0) (rel lhs rhs)) (rel (* m lhs) (* m rhs)))
 Where rel is a relation symbol.
 -/
 
-def multPosFactorAux (m : Option Term) (t : Option Term) : Option Term :=
+def multPosFactorAux (m : Option term) (t : Option term) : Option term :=
   m >>= λ m' =>
   match t with
   | f • t₁ • t₂ =>
-    mkGt m' (val (Value.integer 0) intSort) >>= λ ph₁ =>
+    mkGt m' (val (value.integer 0) intSort) >>= λ ph₁ =>
     mkAnd ph₁ t >>= λ ph₂ =>
     mkMult m' t₁ >>= λ ph₃ =>
     mkMult m' t₂ >>= λ ph₄ =>
@@ -102,14 +88,14 @@ def multPosFactorAux (m : Option Term) (t : Option Term) : Option Term :=
     | _ => none) >>= λ ph₄ => mkImplies ph₂ ph₄
   | _ => none
 
-axiom multPosFactor : ∀ {t : Option Term} (m : Option Term),
+axiom multPosFactor : ∀ {t : Option term} (m : Option term),
   thHolds (multPosFactorAux m t)
 
-def multNegFactorAux (m : Option Term) (t : Option Term) : Option Term :=
+def multNegFactorAux (m : Option term) (t : Option term) : Option term :=
   m >>= λ m' =>
   match t with
   | f • t₁ • t₂ =>
-    mkLt m' (val (Value.integer 0) intSort) >>= λ ph₁ =>
+    mkLt m' (val (value.integer 0) intSort) >>= λ ph₁ =>
     mkAnd ph₁ t >>= λ ph₂ =>
     mkMult m' t₁ >>= λ ph₃ =>
     mkMult m' t₂ >>= λ ph₄ =>
@@ -122,7 +108,7 @@ def multNegFactorAux (m : Option Term) (t : Option Term) : Option Term :=
     | _ => none) >>= λ ph₄ => mkImplies ph₂ ph₄
   | _ => none
 
-axiom multNegFactor : ∀ {t : Option Term} (m : Option Term),
+axiom multNegFactor : ∀ {t : Option term} (m : Option term),
   thHolds (multNegFactorAux m t)
 
 end arithRules

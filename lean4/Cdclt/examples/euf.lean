@@ -22,7 +22,6 @@ theorem binCong :
 have s2 : thHolds (mkEq f₁ f₁) from refl
 show (thHolds (mkEq (mkApp (mkApp f₁ a₁) b₁) (mkApp (mkApp f₁ a₂) b₂))) from cong (cong s2 s0) s1
 
-
 def a1a2 := mkEq a₁ a₂
 def f3a1 := (mkApp f₃ a₁)
 def f3a2 := (mkApp f₃ a₂)
