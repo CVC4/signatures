@@ -66,6 +66,12 @@ partial def termEval (ot : Option term) : Option term :=
        | top => termEval t₁
        | bot => termEval t₂
        | _ => t
+  | fIte c t₁ t₂ =>
+    do let c' ← termEval c
+       match c' with
+       | top => termEval t₁
+       | bot => termEval t₂
+       | _ => t
   | app t₁ t₂ =>
     do let t₁' ← termEval t₁
        let t₂' ← termEval t₂
