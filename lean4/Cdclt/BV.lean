@@ -451,6 +451,43 @@ axiom bbBvXnor : ∀ {t₁ t₂ : Option term},
 
 --------------------------------------- Comparison Operators ---------------------------------------
 
+/- ------
+BV Comp
+------ -/
+
+-- If terms are well-typed, construct their BV Comp application
+def mkBvComp : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvComp
+
+/-
+If terms are well-typed, construct their bit-blasted 
+bv comp
+bvComp [x₀, x₁, ... , xₙ] [y₀, y₁, ... , yₙ] = 
+  ite ((x₀ = y₀) ∧ (x₁ = x₂) ∧ ... ∧ (xₙ = yₙ)) [true] [false]
+-/
+def bblastBvComp : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => mkIte (bblastBvEq ot₁ ot₂) (mkBbT [some top]) (mkBbT [some bot])
+
+-- bvComp 0000 1111
+#eval bblastBvComp (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvComp (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- bvComp 0010 0010
+#eval bblastBvComp (val (value.bitvec [false, false, true, false]) (bv 4))
+  (val (value.bitvec [false, false, true, false]) (bv 4))
+#eval termEval (bblastBvComp (val (value.bitvec [false, false, true, false]) (bv 4))
+  (val (value.bitvec [false, false, true, false]) (bv 4)))
+-- Using variables
+#eval bblastBvComp (const 21 (bv 4)) 
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvComp (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvComp rule
+axiom bbBvComp : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvComp t₁ t₂) (bblastBvComp t₁ t₂))
+
+
 /- -------------------
  BV unsigned less than
 --------------------- -/

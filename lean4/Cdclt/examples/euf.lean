@@ -138,20 +138,24 @@ show thHolds bot from eqResolve s6 s14
 
 theorem simpleCong :
   thHolds eqab → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → holds [] :=
-λ s0 : thHolds eqab =>
-λ s1 : thHolds ornp₃neqfafb =>
-λ s2 : thHolds p₁ =>
-λ s3 : thHolds ornp₁andp₂p₃ =>
-have s4 : thHolds (mkEq b a) from symm s0
-have s5 : thHolds eqab from symm s4
-have s6 : thHolds eqfafb from cong (@refl f) s5
-have s7 : holds [mkNot eqab, eqfafb] from clOr (scope s0 s6)
-have s8 : holds [eqfafb, mkNot eqab] from reorder [1,0] s7
+fun a0 : thHolds eqab =>
+fun a1 : thHolds ornp₃neqfafb =>
+fun a2 : thHolds p₁ =>
+fun a3 : thHolds ornp₁andp₂p₃ =>
 
-have s9 : holds [andp₂p₃] from R1 (clOr s3) (clAssume s2) p₁
-have s10 : holds [mkNot andp₂p₃, p₃] from @cnfAndPos [p₂, p₃] 1
-have s11 : holds [p₃, mkNot andp₂p₃] from reorder [1,0] s10
-have s12 : holds [p₃] from R1 s11 s9 andp₂p₃
-have s13 : holds [neqfafb] from R1 (clOr s1) s12 p₃
+have s0 : holds [mkNot eqab, eqfafb] from (
+  fun a0 : thHolds eqab =>
+  have s0 : thHolds (mkEq b a) from symm a0
+  have s1 : thHolds eqab from symm s0
+  have s2 : thHolds eqfafb from cong (@refl f) s1
+  show holds [mkNot eqab, eqfafb] from clOr (scope a0 s2)
+  ) a0
+have s1 : holds [eqfafb, mkNot eqab] from reorder [1,0] s0
 
-show holds [] from R1 s13 (R0 (clAssume s0) s8 eqab) eqfafb
+have s2 : holds [andp₂p₃] from R1 (clOr a3) (clAssume a2) p₁
+have s3 : holds [mkNot andp₂p₃, p₃] from @cnfAndPos [p₂, p₃] 1
+have s4 : holds [p₃, mkNot andp₂p₃] from reorder [1,0] s3
+have s5 : holds [p₃] from R1 s4 s2 andp₂p₃
+have s6 : holds [neqfafb] from R1 (clOr a1) s5 p₃
+
+show holds [] from R1 s6 (R0 (clAssume a0) s1 eqab) eqfafb

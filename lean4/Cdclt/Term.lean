@@ -42,7 +42,8 @@ def bvXorNum : Nat := bvOrNum + 1
 def bvNandNum : Nat := bvXorNum + 1
 def bvNorNum : Nat := bvNandNum + 1
 def bvXnorNum : Nat := bvNorNum + 1
-def bvUltNum : Nat := bvXnorNum + 1
+def bvCompNum : Nat := bvXnorNum + 1
+def bvUltNum : Nat := bvCompNum + 1
 def bvUgtNum : Nat := bvUltNum + 1
 def bvSltNum : Nat := bvUgtNum + 1
 def bvSgtNum : Nat := bvSltNum + 1
@@ -182,6 +183,8 @@ open value
   const bvNorNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvXnorConst (n : Nat) :=
   const bvXnorNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvCompConst (n : Nat) :=
+  const bvUltNum (arrow (bv n) (arrow (bv n) (bv 1)))
 @[matchPattern] def bvUltConst (n : Nat) :=
   const bvUltNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvUgtConst (n : Nat) :=
@@ -251,6 +254,8 @@ open value
   λ n t₁ t₂ => bvNorConst n • t₁ • t₂
 @[matchPattern] def bvXnor : Nat → term → term → term :=
   λ n t₁ t₂ => bvXnorConst n • t₁ • t₂
+@[matchPattern] def bvComp : Nat → term → term → term :=
+  λ n t₁ t₂ => bvCompConst n • t₁ • t₂
 @[matchPattern] def bvUlt : Nat → term → term → term :=
   λ n t₁ t₂ => bvUltConst n • t₁ • t₂
 @[matchPattern] def bvUgt : Nat → term → term → term :=
