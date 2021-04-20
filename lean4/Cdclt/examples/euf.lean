@@ -99,7 +99,9 @@ have s5 : thHolds p₃ from andElim s4 1
 have s6 : thHolds neqfafb from thAssume (R1 (clOr s1) (clAssume s5) p₃)
 
 have s7 : thHolds eqfafb from cong refl s0
-have s8 : thHolds eqeqfafbeqfbfb from cong (cong (@refl eqConst) s7) (@refl fb)
+let s8_1 := @refl eqConst
+let s8_2 := (cong s8_1 s7)
+have s8 : thHolds eqeqfafbeqfbfb from cong s8_2 (@refl fb)
 have s9 : thHolds eqneqfafbneqfbfb from cong (@refl notConst) s8
 have s10 : thHolds (mkEq (mkNot top) bot) from thTrustValid
 have s11 : thHolds eqfbfbtop from thTrustValid
@@ -155,11 +157,11 @@ have s0 : holds [mkNot eqab, eqfafb] from (
   have s2 : thHolds eqfafb from cong (@refl f) s1
   show holds [mkNot eqab, eqfafb] from clOr (scope a0 s2)
   ) a0
-have s1 : holds [eqfafb, mkNot eqab] from reorder [1,0] s0
+have s1 : holds [eqfafb, mkNot eqab] from reorder s0 [1,0]
 
 have s2 : holds [andp₂p₃] from R1 (clOr a4) (clAssume a3) p₁
 have s3 : holds ([(mkNot (mkAndN [p₂, p₃])), p₃]) from @cnfAndPos ([p₂, p₃]) 1
-have s4 : holds [p₃, mkNot andp₂p₃] from reorder [1,0] s3
+have s4 : holds [p₃, mkNot andp₂p₃] from reorder s3 [1,0]
 
 have s5 : thHolds (mkEq andp₁t p₁) from thTrustValid
 have s6 : thHolds p₁ from eqResolve a1 s5
