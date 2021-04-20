@@ -235,6 +235,7 @@
 
 ; Sets
 (declare emptyset (! s sort term))
+(declare univset (! s sort term))
 (declare f_singleton term)
 (define singleton (# x term (apply f_singleton x)))
 (declare f_union term)
