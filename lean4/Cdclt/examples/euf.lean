@@ -99,7 +99,9 @@ have s5 : thHolds p₃ from andElim s4 1
 have s6 : thHolds neqfafb from thAssume (R1 (clOr s1) (clAssume s5) p₃)
 
 have s7 : thHolds eqfafb from cong refl s0
-have s8 : thHolds eqeqfafbeqfbfb from cong (cong (@refl eqConst) s7) (@refl fb)
+let s8_1 := @refl eqConst
+let s8_2 := (cong s8_1 s7)
+have s8 : thHolds eqeqfafbeqfbfb from cong s8_2 (@refl fb)
 have s9 : thHolds eqneqfafbneqfbfb from cong (@refl notConst) s8
 have s10 : thHolds (mkEq (mkNot top) bot) from thTrustValid
 have s11 : thHolds eqfbfbtop from thTrustValid
@@ -110,7 +112,7 @@ have s14 : thHolds eqneqfafbbot from trans s9 s13
 show thHolds bot from eqResolve s6 s14
 
 /-
-(SCOPE |:conclusion| (not (and (= a b) (or (not p3) (not (= (f a) (f b)))) p1 (or (not p1) (and p2 p3))))
+(SCOPE |:conclusion| (not (and (= a b) (and p1 true) (or (not p1) (and p2 p3)) (or (not p3) (not (= (f a) (f b))))))
   (CHAIN_RESOLUTION |:conclusion| false
     (REORDERING |:conclusion| (or (= (f a) (f b)) (not (= a b)))
       (IMPLIES_ELIM |:conclusion| (or (not (= a b)) (= (f a) (f b)))
@@ -128,20 +130,25 @@ show thHolds bot from eqResolve s6 s14
           (CNF_AND_POS |:conclusion| (or (not (and p2 p3)) p3) |:args| ((and p2 p3) 1)) |:args| ((or p3 (not (and p2 p3)))))
         (CHAIN_RESOLUTION |:conclusion| (and p2 p3)
           (ASSUME |:conclusion| (or (not p1) (and p2 p3)) |:args| ((or (not p1) (and p2 p3))))
-          (ASSUME |:conclusion| p1 |:args| (p1)) |:args| (false p1))
+          (EQ_RESOLVE |:conclusion| p1
+            (ASSUME |:conclusion| (and p1 true) |:args| ((and p1 true)))
+            (THEORY_REWRITE |:conclusion| (= (and p1 true) p1) |:args| ((= (and p1 true) p1) 1 5)))
+          |:args| (false p1))
         |:args| (false (and p2 p3)))
       |:args| (false p3))
-    (ASSUME |:conclusion| (= a b) |:args| ((= a b)))
-    |:args| (true (= (f a) (f b)) false (= a b)))
-  |:args| ((= a b) (or (not p3) (not (= (f a) (f b)))) p1 (or (not p1) (and p2 p3))))
+    (ASSUME |:conclusion| (= a b) |:args| ((= a b))) |:args| (true (= (f a) (f b)) false (= a b)))
+  |:args| ((= a b) (and p1 true) (or (not p1) (and p2 p3)) (or (not p3) (not (= (f a) (f b))))))
 -/
 
+def andp₁t := mkAnd p₁ (val (value.bool true) boolSort)
+
 theorem simpleCong :
-  thHolds eqab → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → holds [] :=
+  thHolds eqab → thHolds andp₁t → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → holds [] :=
 fun a0 : thHolds eqab =>
-fun a1 : thHolds ornp₃neqfafb =>
-fun a2 : thHolds p₁ =>
-fun a3 : thHolds ornp₁andp₂p₃ =>
+fun a1 : thHolds andp₁t =>
+fun a2 : thHolds ornp₃neqfafb =>
+fun a3 : thHolds p₁ =>
+fun a4 : thHolds ornp₁andp₂p₃ =>
 
 have s0 : holds [mkNot eqab, eqfafb] from (
   fun a0 : thHolds eqab =>
@@ -150,12 +157,17 @@ have s0 : holds [mkNot eqab, eqfafb] from (
   have s2 : thHolds eqfafb from cong (@refl f) s1
   show holds [mkNot eqab, eqfafb] from clOr (scope a0 s2)
   ) a0
-have s1 : holds [eqfafb, mkNot eqab] from reorder [1,0] s0
+have s1 : holds [eqfafb, mkNot eqab] from reorder s0 [1,0]
 
-have s2 : holds [andp₂p₃] from R1 (clOr a3) (clAssume a2) p₁
-have s3 : holds [mkNot andp₂p₃, p₃] from @cnfAndPos [p₂, p₃] 1
-have s4 : holds [p₃, mkNot andp₂p₃] from reorder [1,0] s3
-have s5 : holds [p₃] from R1 s4 s2 andp₂p₃
-have s6 : holds [neqfafb] from R1 (clOr a1) s5 p₃
+have s2 : holds [andp₂p₃] from R1 (clOr a4) (clAssume a3) p₁
+have s3 : holds ([(mkNot (mkAndN [p₂, p₃])), p₃]) from @cnfAndPos ([p₂, p₃]) 1
+have s4 : holds [p₃, mkNot andp₂p₃] from reorder s3 [1,0]
 
-show holds [] from R1 s6 (R0 (clAssume a0) s1 eqab) eqfafb
+have s5 : thHolds (mkEq andp₁t p₁) from thTrustValid
+have s6 : thHolds p₁ from eqResolve a1 s5
+have s7 : holds [andp₂p₃] from R1 (clOr a4) (clAssume s6) p₁
+have s8 : holds [p₃] from R1 s4 s7 andp₂p₃
+
+have s9 : holds [neqfafb] from R1 (clOr a2) s8 p₃
+
+show holds [] from R1 (R0 s1 s9 eqfafb) (clOr a0) eqab
