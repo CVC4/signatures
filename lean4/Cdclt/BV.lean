@@ -1292,6 +1292,57 @@ axiom bbBvSignExt : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvSignExt t₁ t₂) (bblastSignExt t₁ t₂))
 
 
+/- ----------
+ BV Repeat
+----------- -/
+
+-- If terms are well-typed, construct their BV repeat application
+def mkBvRepeat : Option term → Option term → Option term :=
+  λ oi ot => oi >>= λ i => sortOf i >>= λ si =>
+             ot >>= λ t => sortOf t >>= λ s =>
+  match si, s with
+  | intSort, bv n => 
+    match i with
+    | val (value.integer i₁) intSort => bvRepeat n (Int.toNat i₁) i t
+    | _ => none
+  | _, _ => none
+
+def repeatList : Nat → List α → List α
+| (n+1), l => List.append l (repeatList n l)
+| 0, l => []
+/-
+If terms are well-typed, construct their bit-blasted BV repeat
+            i    [x₀ ... xₙ]
+------------------------------------------
+  [x₀ ... xₙ x₀ ... xₙ ...... x₀ ... xₙ]
+where x₀ ... xₙ is repeated i times
+-/
+def bblastRepeat : Option term → Option term → Option term :=
+  λ oi ot => oi >>= λ i => sortOf i >>= λ si =>
+             ot >>= λ t => sortOf t >>= λ s =>
+  match si, s with
+  | intSort, bv n => 
+    match i with
+    | val (value.integer i₁) intSort =>
+      if (i₁ < 0) then none else
+        mkBbT (repeatList (Int.toNat i₁) (bitOfN t n))
+    | _ => none
+  | _, _ => none
+
+#eval bblastRepeat (val (value.integer 2) intSort) 
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastRepeat (val (value.integer (-1)) intSort) 
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastRepeat (val (value.integer 7) intSort) 
+  (val (value.bitvec [true, false]) (bv 2))
+-- Using variables
+#eval bblastRepeat (val (value.integer 2) intSort) (const 21 (bv 2))
+
+-- Bit-blasting BvRepeat rule
+axiom bbBvRepeat : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvRepeat t₁ t₂) (bblastRepeat t₁ t₂))
+
+
 end term
 
 end proof

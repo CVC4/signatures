@@ -222,7 +222,7 @@ open value
 @[matchPattern] def bvSignExtConst (n i : Nat) :=
   const bvSignExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
 @[matchPattern] def bvRepeatConst (n i : Nat) :=
-  const bvRepeatNum (arrow (bv n) (arrow intSort (bv (n * i))))
+  const bvRepeatNum (arrow intSort (arrow (bv n) (bv (n * i))))
 
 
 -- macros for creating terms with interpreted constants
