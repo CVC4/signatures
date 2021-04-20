@@ -44,19 +44,25 @@ def bvNorNum : Nat := bvNandNum + 1
 def bvXnorNum : Nat := bvNorNum + 1
 def bvCompNum : Nat := bvXnorNum + 1
 def bvUltNum : Nat := bvCompNum + 1
-def bvUgtNum : Nat := bvUltNum + 1
-def bvSltNum : Nat := bvUgtNum + 1
-def bvSgtNum : Nat := bvSltNum + 1
-def bvAddNum : Nat := bvSgtNum + 1
+def bvUleNum : Nat := bvUltNum + 1
+def bvUgtNum : Nat := bvUleNum + 1
+def bvUgeNum : Nat := bvUgtNum + 1
+def bvSltNum : Nat := bvUgeNum + 1
+def bvSleNum : Nat := bvSltNum + 1
+def bvSgtNum : Nat := bvSleNum + 1
+def bvSgeNum : Nat := bvSgtNum + 1
+def bvAddNum : Nat := bvSgeNum + 1
 def bvNegNum : Nat := bvAddNum + 1
-def bvMulNum : Nat := bvNegNum + 1
+def bvSubNum : Nat := bvNegNum + 1
+def bvMulNum : Nat := bvSubNum + 1
 def bvUdivNum : Nat := bvMulNum + 1
 def bvUremNum : Nat := bvUdivNum + 1
 def bvExtractNum : Nat := bvUremNum + 1
 def bvConcatNum : Nat := bvExtractNum + 1
 def bvZeroExtNum : Nat := bvConcatNum + 1
 def bvSignExtNum : Nat := bvZeroExtNum + 1
-def plusNum : Nat := bvSignExtNum + 1
+def bvRepeatNum : Nat := bvSignExtNum + 1
+def plusNum : Nat := bvRepeatNum + 1
 def minusNum : Nat := plusNum + 1
 def multNum : Nat := minusNum + 1
 def gtNum : Nat := multNum + 1
@@ -184,19 +190,29 @@ open value
 @[matchPattern] def bvXnorConst (n : Nat) :=
   const bvXnorNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvCompConst (n : Nat) :=
-  const bvUltNum (arrow (bv n) (arrow (bv n) (bv 1)))
+  const bvCompNum (arrow (bv n) (arrow (bv n) (bv 1)))
 @[matchPattern] def bvUltConst (n : Nat) :=
   const bvUltNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvUleConst (n : Nat) :=
+  const bvUleNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvUgtConst (n : Nat) :=
   const bvUgtNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvUgeConst (n : Nat) :=
+  const bvUgeNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvSltConst (n : Nat) :=
   const bvSltNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvSleConst (n : Nat) :=
+  const bvSleNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvSgtConst (n : Nat) :=
   const bvSgtNum (arrow (bv n) (arrow (bv n) boolSort))
+@[matchPattern] def bvSgeConst (n : Nat) :=
+  const bvSgeNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvAddConst (n : Nat) :=
   const bvAddNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvNegConst (n : Nat) :=
   const bvNegNum (arrow (bv n) (bv n))
+@[matchPattern] def bvSubConst (n : Nat) :=
+  const bvSubNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvExtractConst (n i j : Nat) :=
   const bvExtractNum (arrow (bv n) (arrow intSort (arrow intSort (bv (i - j + 1)))))
 @[matchPattern] def bvConcatConst (m n : Nat) :=
@@ -205,6 +221,9 @@ open value
   const bvZeroExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
 @[matchPattern] def bvSignExtConst (n i : Nat) :=
   const bvSignExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
+@[matchPattern] def bvRepeatConst (n i : Nat) :=
+  const bvRepeatNum (arrow (bv n) (arrow intSort (bv (n * i))))
+
 
 -- macros for creating terms with interpreted constants
 @[matchPattern] def bot : term := val (bool false) boolSort
@@ -258,16 +277,26 @@ open value
   λ n t₁ t₂ => bvCompConst n • t₁ • t₂
 @[matchPattern] def bvUlt : Nat → term → term → term :=
   λ n t₁ t₂ => bvUltConst n • t₁ • t₂
+@[matchPattern] def bvUle : Nat → term → term → term :=
+  λ n t₁ t₂ => bvUleConst n • t₁ • t₂
 @[matchPattern] def bvUgt : Nat → term → term → term :=
   λ n t₁ t₂ => bvUgtConst n • t₁ • t₂
+@[matchPattern] def bvUge : Nat → term → term → term :=
+  λ n t₁ t₂ => bvUgeConst n • t₁ • t₂
 @[matchPattern] def bvSlt : Nat → term → term → term :=
   λ n t₁ t₂ => bvSltConst n • t₁ • t₂
+@[matchPattern] def bvSle : Nat → term → term → term :=
+  λ n t₁ t₂ => bvSleConst n • t₁ • t₂
 @[matchPattern] def bvSgt : Nat → term → term → term :=
   λ n t₁ t₂ => bvSgtConst n • t₁ • t₂
+@[matchPattern] def bvSge : Nat → term → term → term :=
+  λ n t₁ t₂ => bvSgeConst n • t₁ • t₂
 @[matchPattern] def bvAdd : Nat → term → term → term :=
   λ n t₁ t₂ => bvAddConst n • t₁ • t₂
 @[matchPattern] def bvNeg : Nat → term → term :=
   λ n t => bvNegConst n • t
+@[matchPattern] def bvSub : Nat → term → term → term :=
+  λ n t₁ t₂ => bvSubConst n • t₁ • t₂
 @[matchPattern] def bvExtract : 
   Nat → Nat → Nat → term → term → term → term :=
   λ n i j t₁ t₂ t₃ => bvExtractConst n i j • t₁ • t₂ • t₃
@@ -276,7 +305,9 @@ open value
 @[matchPattern] def bvZeroExt : Nat → Nat → term → term → term :=
   λ n i t₁ t₂ => bvZeroExtConst n i • t₁ • t₂
 @[matchPattern] def bvSignExt : Nat → Nat → term → term → term :=
-  λ n i t₁ t₂ => bvSignExtConst n i • t₁ • t₂ 
+  λ n i t₁ t₂ => bvSignExtConst n i • t₁ • t₂
+@[matchPattern] def bvRepeat : Nat → Nat → term → term → term :=
+  λ n i t₁ t₂ => bvRepeatConst n i • t₁ • t₂
 
 def termToString : term → String
 | val v s => valueToString v
@@ -309,15 +340,21 @@ def termToString : term → String
 | bvXnor _ t₁ t₂ => "BVXnor " ++ termToString t₁ ++ " " ++ termToString t₂
 | bvComp _ t₁ t₂ => "BVComp " ++ termToString t₁ ++ " " ++ termToString t₂
 | bvUlt _ t₁ t₂ => termToString t₁ ++ " <ᵤ " ++ termToString t₂
+| bvUle _ t₁ t₂ => termToString t₁ ++ " ≤ᵤ " ++ termToString t₂
 | bvUgt _ t₁ t₂ => termToString t₁ ++ " >ᵤ " ++ termToString t₂
+| bvUge _ t₁ t₂ => termToString t₁ ++ " ≥ᵤ " ++ termToString t₂
 | bvSlt _ t₁ t₂ => termToString t₁ ++ " <ₛ " ++ termToString t₂
+| bvSle _ t₁ t₂ => termToString t₁ ++ " ≤ₛ " ++ termToString t₂
 | bvSgt _ t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂
+| bvSge _ t₁ t₂ => termToString t₁ ++ " ≥ₛ " ++ termToString t₂
 | bvAdd _ t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂
-| bvNeg _ t => "-_bv " ++ termToString t-/
+| bvNeg _ t => "-_bv " ++ termToString t
+| bvSub _ t₁ t₂ => termToString t₁ ++ " -_bv " ++ termToString t₂-/
 /-| bvExtract _ _ _ t₁ t₂ t₃ => ((termToString t₁) ++ "[" ++ (termToString t₂) ++ ":" ++ (termToString t₃) ++ "]")
 | bvConcat _ _ t₁ t₂ => termToString t₁ ++ " ++ " ++ termToString t₂
 | bvZeroExt _ _ t₁ t₂ => "zeroExt " ++ termToString t₁ ++ " " ++ termToString t₂
-| bvSignExt _ _ t₁ t₂ => "signExt " ++ termToString t₁ ++ " " ++ termToString t₂-/
+| bvSignExt _ _ t₁ t₂ => "signExt " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvRepeat _ _ t₁ t₂ => "repeat " ++ termToString t₁ ++ " " ++ termToString t₂-/
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
