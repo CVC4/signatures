@@ -15,10 +15,14 @@
 (program sc_arith_sum_rels ((r1 term) (r2 term)) term
   (match r1
     (f_int.< f_int.<)
+    (f_real.< f_real.<)
     (default 
       (match r2
       (f_int.< f_int.<)
-      (default f_int.<=)))))
+      (f_real.< f_real.<)
+      (f_int.<= f_int.<=)
+      (f_real.<= f_real.<=)
+      (f_= r1)))))
 
 (program sc_arith_rel_inv ((r term)) term
   (match r
@@ -26,4 +30,29 @@
     (f_int.< f_int.>)
     (f_int.> f_int.<)
     (f_int.<= f_int.>=)
-    (f_int.>= f_int.<=)))
+    (f_int.>= f_int.<=)
+    (f_real.< f_real.>)
+    (f_real.> f_real.<)
+    (f_real.<= f_real.>=)
+    (f_real.>= f_real.<=)))
+
+; t2 in n-ary form
+(program sc_arith_add_nary ((t1 term) (t2 term)) term
+  (match (type_check t1)
+    (Int (int.+ t1 t2))
+    (Real (real.+ t1 t2))))
+
+(program sc_arith_mult ((t1 term) (t2 term)) term
+  (match (type_check t1)
+    (Int (int.* t1 (int.* t2 (int 1))))
+    (Real (real.* t1 (real.* t2 (real 1/1))))))
+
+(program sc_arith_>_zero ((t term)) term
+  (match (type_check t)
+    (Int (int.> t (int 0)))
+    (Real (real.> t (real 0/1)))))
+
+(program sc_arith_<_zero ((t term)) term
+  (match (type_check t)
+    (Int (int.< t (int 0)))
+    (Real (real.< t (real 0/1)))))
