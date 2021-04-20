@@ -16,7 +16,7 @@
   (let r2 (sc_arith_get_rel f2)
   (let lhs2 (sc_arith_get_lhs f2)
   (let rhs2 (sc_arith_get_rhs f2)
-    (apply (apply (sc_arith_sum_rels r1 r2) (int.+ lhs1 lhs2)) (int.+ rhs1 rhs2)))))))))
+    (apply (apply (sc_arith_sum_rels r1 r2) (sc_arith_add_nary lhs1 lhs2)) (sc_arith_add_nary rhs1 rhs2)))))))))
 
 (declare arith_sum_ub
   (! f1 term
@@ -39,8 +39,8 @@
   (let r (sc_arith_get_rel f)
   (let lhs (sc_arith_get_lhs f)
   (let rhs (sc_arith_get_rhs f)
-    (=> (and (int.> m (int 0)) (and f true))
-        (apply (apply r (int.* m (int.* lhs (int 1)))) (int.* m (int.* rhs (int 1)))))))))
+    (=> (and (sc_arith_>_zero m) (and f true))
+        (apply (apply r (sc_arith_mult m lhs)) (sc_arith_mult m rhs)))))))
 
 (declare arith_mult_pos
   (! res term
@@ -53,8 +53,8 @@
   (let r (sc_arith_get_rel f)
   (let lhs (sc_arith_get_lhs f)
   (let rhs (sc_arith_get_rhs f)
-    (=> (and (int.< m (int 0)) (and f true))
-        (apply (apply (sc_arith_rel_inv r) (int.* m (int.* lhs (int 1)))) (int.* m (int.* rhs (int 1)))))))))
+    (=> (and (sc_arith_<_zero m) (and f true))
+        (apply (apply (sc_arith_rel_inv r) (sc_arith_mult m lhs)) (sc_arith_mult m rhs)))))))
         
 (declare arith_mult_neg
   (! res term
