@@ -169,8 +169,8 @@ def bblastBvEq : Option term → Option term → Option term :=
     |  (bv m, bv n) =>
       if (m = n) then (
             mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq)
-      ) else some top
-    | (_, _) => some bot
+      ) else none
+    | (_, _) => none
 -- 0000 = 1111
 #eval bblastBvEq (val (value.bitvec [false, false, false, false]) (bv 4))
   (val (value.bitvec [true, true, true, true]) (bv 4))
@@ -517,8 +517,8 @@ def bblastBvUlt : Option term → Option term → Option term :=
     |  (bv m, bv n) => 
       if (m = n) then (
             boolListUlt (bitOfN t₁ m) (bitOfN t₂ m)
-      ) else some top
-    | (_, _) => some bot
+      ) else none
+    | (_, _) => none
 
 -- 0000 <ᵤ 1111
 #eval bblastBvUlt (val (value.bitvec [false, false, false, false]) (bv 4))
@@ -543,6 +543,56 @@ def bblastBvUlt : Option term → Option term → Option term :=
 -- Bit-blasting BvUlt rule
 axiom bbBvUlt : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvUlt t₁ t₂) (bblastBvUlt t₁ t₂))
+
+
+/- -----------------------------------
+ BV unsigned less than or equal to
+----------------------------------- -/
+
+-- If terms are well-typed, construct their BV Ule application
+def mkBvUle : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUle
+
+/-
+If terms are well-typed, construct their bit-blasted 
+unsigned less than or equal to comparison
+x ≤ᵤ y = (x <ᵤ y) ∨ (x = y)
+-/
+def bblastBvUle : Option term → Option term → Option term :=
+  λ ot₁ ot₂ =>
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            mkOr (boolListUlt (bitOfN t₁ m) (bitOfN t₂ m)) 
+                 (mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq))
+      ) else none
+    | (_, _) => none
+
+-- 0000 ≤ᵤ 1111
+#eval bblastBvUle (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvUle (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 0010 ≤ᵤ 0010
+#eval bblastBvUle (val (value.bitvec [false, false, true, false]) (bv 4))
+  (val (value.bitvec [false, false, true, false]) (bv 4))
+#eval termEval (bblastBvUle (val (value.bitvec [false, false, true, false]) (bv 4))
+  (val (value.bitvec [false, false, true, false]) (bv 4)))
+-- 10 ≤ᵤ 01
+#eval bblastBvUle (val (value.bitvec [true, false]) (bv 2))
+  (val (value.bitvec [false, true]) (bv 2))
+#eval termEval (bblastBvUle (val (value.bitvec [true, false]) (bv 2))
+  (val (value.bitvec [false, true]) (bv 2)))
+-- Using variables
+#eval bblastBvUle (const 21 (bv 4)) 
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvUlt (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvUle rule
+axiom bbBvUle : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvUle t₁ t₂) (bblastBvUle t₁ t₂))
 
 
 /- ----------------------
@@ -574,8 +624,8 @@ def bblastBvUgt : Option term → Option term → Option term :=
     |  (bv m, bv n) => 
       if (m = n) then (
             boolListUgt (bitOfN t₁ m) (bitOfN t₂ m)
-      ) else some top
-    | (_, _) => some bot
+      ) else none
+    | (_, _) => none
 
 -- 1111 >ᵤ 0000
 #eval bblastBvUgt (val (value.bitvec [true, true, true, true]) (bv 4))
@@ -600,6 +650,57 @@ def bblastBvUgt : Option term → Option term → Option term :=
 -- Bit-blasting BvUgt rule
 axiom bbBvUgt : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvUgt t₁ t₂) (bblastBvUgt t₁ t₂))
+
+
+/- ------------------------------------
+ BV unsigned greater than pr equal to
+------------------------------------- -/
+
+-- If terms are well-typed, construct their BV Uge application
+def mkBvUge : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUge
+
+/-
+If terms are well-typed, construct their bit-blasted 
+unsigned greater than or equal to comparison
+x ≥ᵤ y = (x >ᵤ y) ∨ (x = y)
+-/
+def bblastBvUge : Option term → Option term → Option term :=
+  λ ot₁ ot₂ =>
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            mkOr (boolListUgt (bitOfN t₁ m) (bitOfN t₂ m)) 
+                 (mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq))
+      ) else none
+    | (_, _) => none
+
+
+-- 1111 ≥ᵤ 0000
+#eval bblastBvUge (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval termEval (bblastBvUge (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4)))
+-- 0011 ≥ᵤ 0011
+#eval bblastBvUge (val (value.bitvec [false, false, true, true]) (bv 4))
+  (val (value.bitvec [false, false, true, true]) (bv 4))
+#eval termEval (bblastBvUge (val (value.bitvec [false, false, true, true]) (bv 4))
+  (val (value.bitvec [false, false, true, true]) (bv 4)))
+-- 01 ≥ᵤ 10
+#eval bblastBvUge (val (value.bitvec [false, true]) (bv 2))
+  (val (value.bitvec [true, false]) (bv 2))
+#eval termEval (bblastBvUge (val (value.bitvec [false, true]) (bv 2))
+  (val (value.bitvec [true, false]) (bv 2)))
+-- Using variables
+#eval bblastBvUge (const 21 (bv 4)) 
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvUgt (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvUge rule
+axiom bbBvUge : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvUge t₁ t₂) (bblastBvUge t₁ t₂))
 
 
 /- -------------------
@@ -631,8 +732,8 @@ def bblastBvSlt : Option term → Option term → Option term :=
     |  (bv m, bv n) => 
       if (m = n) then (
             boolListSlt (bitOfN t₁ m) (bitOfN t₂ m)
-      ) else some top
-    | (_, _) => some bot
+      ) else none
+    | (_, _) => none
 
 -- 1111 <ₛ 0000
 #eval bblastBvSlt (val (value.bitvec [true, true, true, true]) (bv 4))
@@ -657,6 +758,56 @@ def bblastBvSlt : Option term → Option term → Option term :=
 -- Bit-blasting BvUgt rule
 axiom bbBvSlt : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvSlt t₁ t₂) (bblastBvSlt t₁ t₂))
+
+
+/- -------------------------------
+ BV signed less than or equal to
+-------------------------------- -/
+
+-- If terms are well-typed, construct their BV Sle application
+def mkBvSle : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSle
+
+/-
+If terms are well-typed, construct their bit-blasted 
+signed less than or equal to comparison
+x ≤ₛ y = (x <ₛ y) ∨ (x = y)
+-/
+def bblastBvSle : Option term → Option term → Option term :=
+  λ ot₁ ot₂ =>
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            mkOr (boolListSlt (bitOfN t₁ m) (bitOfN t₂ m)) 
+                 (mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq))
+      ) else none
+    | (_, _) => none
+
+-- 1111 ≤ₛ 0000
+#eval bblastBvSle (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval termEval (bblastBvSle (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4)))
+-- 1010 ≤ₛ 1010
+#eval bblastBvSle (val (value.bitvec [true, false, true, false]) (bv 4))
+  (val (value.bitvec [true, false, true, false]) (bv 4))
+#eval termEval (bblastBvSle (val (value.bitvec [true, false, true, false]) (bv 4))
+  (val (value.bitvec [true, false, true, false]) (bv 4)))
+-- 01 ≤ₛ 10
+#eval bblastBvSle (val (value.bitvec [false, true]) (bv 2))
+  (val (value.bitvec [true, false]) (bv 2))
+#eval termEval (bblastBvSle (val (value.bitvec [false, true]) (bv 2))
+  (val (value.bitvec [true, false]) (bv 2)))
+-- Using variables
+#eval bblastBvSle (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvSle (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvSle rule
+axiom bbBvSle : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvSle t₁ t₂) (bblastBvSle t₁ t₂))
 
 
 /- ----------------------
@@ -688,8 +839,8 @@ def bblastBvSgt : Option term → Option term → Option term :=
     |  (bv m, bv n) => 
       if (m = n) then (
             boolListSgt (bitOfN t₁ m) (bitOfN t₂ m)
-      ) else some top
-    | (_, _) => some bot
+      ) else none
+    | (_, _) => none
 
 -- 0000 >ₛ 1111
 #eval bblastBvSgt (val (value.bitvec [false, false, false, false]) (bv 4))
@@ -714,6 +865,56 @@ def bblastBvSgt : Option term → Option term → Option term :=
 -- Bit-blasting BvSgt rule
 axiom bbBvSgt : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvSgt t₁ t₂) (bblastBvSgt t₁ t₂))
+
+
+/- ----------------------------------
+ BV signed greater than or equal to
+----------------------------------- -/
+
+-- If terms are well-typed, construct their BV Sge application
+def mkBvSge : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSge
+
+/-
+If terms are well-typed, construct their bit-blasted 
+signed greater than or equal to comparison
+x ≥ₛ y = (x >ₛ y) ∨ (x = y)
+-/
+def bblastBvSge : Option term → Option term → Option term :=
+  λ ot₁ ot₂ =>
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            mkOr (boolListSgt (bitOfN t₁ m) (bitOfN t₂ m)) 
+                 (mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq))
+      ) else none
+    | (_, _) => none
+
+-- 0000 ≥ₛ 1111
+#eval bblastBvSge (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval termEval (bblastBvSge (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [true, true, true, true]) (bv 4)))
+-- 1011 ≥ₛ 1010
+#eval bblastBvSge (val (value.bitvec [true, false, true, true]) (bv 4))
+  (val (value.bitvec [true, false, true, true]) (bv 4))
+#eval termEval (bblastBvSge (val (value.bitvec [true, false, true, true]) (bv 4))
+  (val (value.bitvec [true, false, true, true]) (bv 4)))
+-- 10 ≥ₛ 01
+#eval bblastBvSge (val (value.bitvec [true, false]) (bv 2))
+  (val (value.bitvec [false, true]) (bv 2))
+#eval termEval (bblastBvSge (val (value.bitvec [true, false]) (bv 2))
+  (val (value.bitvec [false, true]) (bv 2)))
+-- Using variables
+#eval bblastBvSge (const 21 (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvSge (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvSge rule
+axiom bbBvSge : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvSge t₁ t₂) (bblastBvSge t₁ t₂))
 
 
 --------------------------------------- Arithmetic Operators ---------------------------------------
@@ -757,8 +958,8 @@ def bblastBvAdd : Option term → Option term → Option term :=
     |  (bv m, bv n) => 
       if (m = n) then (
             boolListAdd (bitOfNRev t₁ m) (bitOfNRev t₂ m)
-      ) else some top
-    | (_, _) => some bot
+      ) else none
+    | (_, _) => none
 
 -- 0000 + 1111
 #eval bblastBvAdd (val (value.bitvec [false, false, false, false]) (bv 4))
@@ -839,6 +1040,52 @@ def bblastBvNeg : Option term → Option term :=
 -- Bit-blasting BvNeg rule
 axiom bbBvNeg : ∀ {t : Option term},
   thHolds (mkEq (mkBvNeg t) (bblastBvNeg t))
+
+
+/- --------------
+ BV Subtraction
+--------------- -/
+
+-- If terms are well-typed, construct their BV minus application
+def mkBvSub : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSub
+
+/-
+If term is well-typed, construct its bit-blasted BV sub
+x -bv y = +(x, ¬y, 1)
+          OR
+bvneg x = bvadd (x, bvnot y, 1)
+-/
+def bblastBvSub : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => 
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            mkBbT (List.reverse (boolListAddAux 
+              top 
+              (bitOfNRev t₁ m) 
+              ((List.map mkNot (bitOfNRev t₂ m)))))
+      ) else none
+    | (_, _) => none
+
+-- 1111-0000
+#eval bblastBvSub (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval termEval (bblastBvSub (val (value.bitvec [true, true, true, true]) (bv 4))
+  (val (value.bitvec [false, false, false, false]) (bv 4)))
+-- 0000-0010
+#eval bblastBvSub (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [false, false, true, false]) (bv 4))
+#eval termEval (bblastBvSub (val (value.bitvec [false, false, false, false]) (bv 4))
+  (val (value.bitvec [false, false, true, false]) (bv 4)))
+-- Using variables
+#eval bblastBvSub (const 21 (bv 4)) (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvSub (const 21 (bv 4)) (const 22 (bv 4))
+-- Bit-blasting BvNeg rule
+axiom bbBvSub : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvSub t₁ t₂) (bblastBvSub t₁ t₂))
 
 
 ---------------------------- BV Length Manipulating Operators ----------------------------
@@ -1043,6 +1290,57 @@ def bblastSignExt : Option term → Option term → Option term :=
 -- Bit-blasting BvSignExt rule
 axiom bbBvSignExt : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvSignExt t₁ t₂) (bblastSignExt t₁ t₂))
+
+
+/- ----------
+ BV Repeat
+----------- -/
+
+-- If terms are well-typed, construct their BV repeat application
+def mkBvRepeat : Option term → Option term → Option term :=
+  λ oi ot => oi >>= λ i => sortOf i >>= λ si =>
+             ot >>= λ t => sortOf t >>= λ s =>
+  match si, s with
+  | intSort, bv n => 
+    match i with
+    | val (value.integer i₁) intSort => bvRepeat n (Int.toNat i₁) i t
+    | _ => none
+  | _, _ => none
+
+def repeatList : Nat → List α → List α
+| (n+1), l => List.append l (repeatList n l)
+| 0, l => []
+/-
+If terms are well-typed, construct their bit-blasted BV repeat
+            i    [x₀ ... xₙ]
+------------------------------------------
+  [x₀ ... xₙ x₀ ... xₙ ...... x₀ ... xₙ]
+where x₀ ... xₙ is repeated i times
+-/
+def bblastRepeat : Option term → Option term → Option term :=
+  λ oi ot => oi >>= λ i => sortOf i >>= λ si =>
+             ot >>= λ t => sortOf t >>= λ s =>
+  match si, s with
+  | intSort, bv n => 
+    match i with
+    | val (value.integer i₁) intSort =>
+      if (i₁ < 0) then none else
+        mkBbT (repeatList (Int.toNat i₁) (bitOfN t n))
+    | _ => none
+  | _, _ => none
+
+#eval bblastRepeat (val (value.integer 2) intSort) 
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastRepeat (val (value.integer (-1)) intSort) 
+  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastRepeat (val (value.integer 7) intSort) 
+  (val (value.bitvec [true, false]) (bv 2))
+-- Using variables
+#eval bblastRepeat (val (value.integer 2) intSort) (const 21 (bv 2))
+
+-- Bit-blasting BvRepeat rule
+axiom bbBvRepeat : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvRepeat t₁ t₂) (bblastRepeat t₁ t₂))
 
 
 end term
