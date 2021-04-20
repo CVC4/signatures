@@ -66,6 +66,8 @@
 (define select (# x term (# y term (apply (apply f_select x) y))))
 (declare f_store term)
 (define store (# x term (# y term (# z term (apply (apply (apply f_store x) y) z)))))
+(declare f_array_const (! s sort term))
+(define array_const (# x sort (# y term (apply (f_array_const x) y)))
 
 ; Strings
 (declare emptystr term)
@@ -160,6 +162,8 @@
 
 ; Bit-vectors
 (declare bv (! b bitvec term))
+(declare f_bvnot term)
+(define bvnot (# x term (apply f_bvnot x)))
 (declare f_bvand term)
 (define bvand (# x term (# y term (apply (apply f_bvand x) y))))
 (declare f_bvor term)
@@ -174,6 +178,8 @@
 (define bvxnor (# x term (# y term (apply (apply f_bvxnor x) y))))
 (declare f_bvmul term)
 (define bvmul (# x term (# y term (apply (apply f_bvmul x) y))))
+(declare f_bvneg term)
+(define bvneg (# x term (apply f_bvneg x)))
 (declare f_bvadd term)
 (define bvadd (# x term (# y term (apply (apply f_bvadd x) y))))
 (declare f_bvsub term)
@@ -210,6 +216,8 @@
 (define bvsgt (# x term (# y term (apply (apply f_bvsgt x) y))))
 (declare f_bvsge term)
 (define bvsge (# x term (# y term (apply (apply f_bvsge x) y))))
+(declare f_bvcomp term)
+(define bvcomp (# x term (# y term (apply (apply f_bvcomp x) y))))
 (declare f_concat term)
 (define concat (# x term (# y term (apply (apply f_concat x) y))))
 (declare f_rotate_left (! v mpz term))
@@ -232,7 +240,7 @@
 (declare f_union term)
 (define union (# x term (# y term (apply (apply f_union x) y))))
 (declare f_intersection term)
-(define intersect (# x term (# y term (apply (apply f_intersection x) y))))
+(define intersection (# x term (# y term (apply (apply f_intersection x) y))))
 (declare f_setminus term)
 (define setminus (# x term (# y term (apply (apply f_setminus x) y))))
 (declare f_member term)
