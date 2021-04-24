@@ -70,6 +70,10 @@
 (declare f_witness (! v mpz (! s sort term)))
 (define witness (# v mpz (# s sort (# t term (apply (f_witness v s) t)))))
 
+; lambda
+(declare f_lambda (! v mpz (! s sort term)))
+(define lambda (# v mpz (# s sort (# t term (apply (f_lambda v s) t)))))
+
 (declare skolem (! w term term))
 
 ;;;; To write (forall ((x Int)) (P x)): (apply (forall v Int) (apply P (bvar v Int)))

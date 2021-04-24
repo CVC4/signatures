@@ -55,8 +55,8 @@ axiom R1 : ∀ {c₁ c₂ : clause},
 
 axiom factoring : ∀ {c : clause}, holds c → holds (removeDuplicates c)
 
-axiom reorder {c₁ : clause} (perm : List Nat) :
-  holds c₁ → holds (List.map (nTh c₁) perm)
+axiom reorder : ∀ {c₁ : clause},
+  holds c₁ → (perm : List Nat) → holds (List.map (nTh c₁) perm)
 
 axiom eqResolve : ∀ {t₁ t₂ : Option term},
   thHolds t₁ → thHolds (mkEq t₁ t₂) → thHolds t₂
