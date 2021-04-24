@@ -157,9 +157,9 @@ def mkBvEq : Option term → Option term → Option term :=
 
 /-
 If terms are well-typed, construct their bit-blasted BV eq
-[x₀, x₁, ... , xₙ] = [y₀, y₁, ... , yₙ]
----------------------------------------
-       x₀ = y₀ ∧ ... ∧ xₙ = yₙ
+  [xₙ ... x₁ x₀] = [yₙ ... y₀ y₁]
+------------------------------------
+    xₙ = yₙ ∧ ... ∧ x₀ = y₀
 -/
 def bblastBvEq : Option term → Option term → Option term :=
   λ ot₁ ot₂ =>
@@ -204,9 +204,9 @@ def mkBvNot : Option term → Option term :=
 
 /-
 If term is a BV, construct its bit-blasted BV not
-¬bv [x₀, x₁, ... , xₙ]
+  ¬bv [xₙ ... x₁ x₀]
 ----------------------
- [¬x₀, ¬x₁, ... , ¬x]
+  [¬xₙ ...  ¬x₁ ¬x₀]
 -/
 def bblastBvNot (ot : Option term) : Option term :=
   ot >>= λ t => sortOf t >>= λ s =>
@@ -237,9 +237,9 @@ def mkBvAnd : Option term → Option term → Option term :=
 
 /-
 If terms are well-typed, construct their bit-blasted BV and
-[x₀ x₁ ... xₙ] ∧bv [y₀ y₁ ... yₙ]
----------------------------------
- [x₀ ∧ y₀, x₁ ∧ x₂, ... xₙ ∧ yₙ]
+    [xₙ ... x₁ x₀] ∧bv [yₙ ... y₀ y₁]
+-----------------------------------------
+    [xₙ ∧ yₙ ... x₁ ∧ y₁  x₀ ∧ y₀]
 -/
 def bblastBvAnd : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkAnd
@@ -274,9 +274,9 @@ def mkBvOr : Option term → Option term → Option term :=
 
 /-
 If terms are well-typed, construct their bit-blasted BV or
-[x₀ x₁ ... xₙ] ∨bv [y₀ y₁ ... yₙ]
----------------------------------
- [x₀ ∨ y₀, x₁ ∨ x₂, ... xₙ ∨ yₙ]
+   [xₙ ... x₁ x₀] ∨bv [yₙ ... y₀ y₁]
+-----------------------------------------
+     [xₙ ∨ yₙ ... x₁ ∨ y₁  x₀ ∨ y₀]
 -/
 def bblastBvOr : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkOr
@@ -311,9 +311,9 @@ def mkBvXor : Option term → Option term → Option term :=
 
 /-
 If terms are well-typed, construct their bit-blasted BV xor
-[x₀ x₁ ... xₙ] ⊕bv [y₀ y₁ ... yₙ]
----------------------------------
- [x₀ ⊕ y₀, x₁ ⊕ x₂, ... xₙ ⊕ yₙ]
+   [xₙ ... x₁ x₀] ⊕bv [yₙ ... y₀ y₁]
+-----------------------------------------
+     [xₙ ⊕ yₙ ... x₁ ⊕ y₁  x₀ ⊕ y₀]
 -/
 def bblastBvXor : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkXor
@@ -348,9 +348,9 @@ def mkBvNand : Option term → Option term → Option term :=
 
 /-
 If terms are well-typed, construct their bit-blasted BV Nand
-[x₀ x₁ ... xₙ] ¬∧bv [y₀ y₁ ... yₙ]
----------------------------------
- [x₀ ¬∧ y₀, x₁ ¬∧ x₂, ... xₙ ¬∧ yₙ]
+    [xₙ ... x₁ x₀] ¬∧bv [yₙ ... y₀ y₁]
+-------------------------------------------
+    [xₙ ¬∧ yₙ ... x₁ ¬∧ y₁  x₀ ¬∧ y₀]
 -/
 def bblastBvNand : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkNand
@@ -385,9 +385,9 @@ def mkBvNor : Option term → Option term → Option term :=
 
 /-
 If terms are well-typed, construct their bit-blasted BV Nand
-[x₀ x₁ ... xₙ] ¬∨bv [y₀ y₁ ... yₙ]
----------------------------------
- [x₀ ¬∨ y₀, x₁ ¬∨ x₂, ... xₙ ¬∨ yₙ]
+    [xₙ ... x₁ x₀] ¬∨bv [yₙ ... y₀ y₁]
+-------------------------------------------
+    [xₙ ¬∨ yₙ ... x₁ ¬∨ y₁  x₀ ¬∨ y₀]
 -/
 def bblastBvNor : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkNor
@@ -422,9 +422,9 @@ def mkBvXnor : Option term → Option term → Option term :=
 
 /-
 If terms are well-typed, construct their bit-blasted BV Nand
-[x₀ x₁ ... xₙ] ¬⊕ [y₀ y₁ ... yₙ]
----------------------------------
- [x₀ ↔ y₀, x₁ ↔ x₂, ... xₙ ↔ yₙ]
+    [xₙ ... x₁ x₀] ¬⊕bv [yₙ ... y₀ y₁]
+-------------------------------------------
+      [xₙ ↔ yₙ ... x₁ ↔ y₁  x₀ ↔ y₀]
 -/
 def bblastBvXnor : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkIff
@@ -462,8 +462,9 @@ def mkBvComp : Option term → Option term → Option term :=
 /-
 If terms are well-typed, construct their bit-blasted 
 bv comp
-bvComp [x₀, x₁, ... , xₙ] [y₀, y₁, ... , yₙ] = 
-  ite ((x₀ = y₀) ∧ (x₁ = x₂) ∧ ... ∧ (xₙ = yₙ)) [true] [false]
+          bvComp [xₙ ... x₁ x₀] [yₙ ... y₀ y₁]
+----------------------------------------------------------------
+  ite ((xₙ = yₙ) ∧ ... ∧ (x₁ = x₂) ∧ (x₀ = y₀)) [true] [false]
 -/
 def bblastBvComp : Option term → Option term → Option term :=
   λ ot₁ ot₂ => mkIte (bblastBvEq ot₁ ot₂) (mkBbT [some top]) (mkBbT [some bot])
@@ -497,8 +498,9 @@ def mkBvUlt : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUlt
 
 /-
-[x₀, x₁, ... , xₙ] <ᵤ [y₀, y₁, ... , yₙ] = 
-  (¬x₀ ∧ y₀) ∨ ((x₀ ↔ y₀) ∧ ([x₁, ... , xₙ] <ᵤ [y₁, ... , yₙ]))
+                  [xₙ ... x₁ x₀] <ᵤ [yₙ ... y₀ y₁]
+-------------------------------------------------------------------------
+    (¬xₙ ∧ yₙ) ∨ ((xₙ ↔ yₙ) ∧ ([x_{n-1} ... x₀] <ᵤ [y_{n-1} ... y₀]))
 -/
 def boolListUlt : List (Option term) → List (Option term) → Option term
 | [h₁], [h₂] => mkAnd (mkNot h₁) h₂
@@ -556,7 +558,9 @@ def mkBvUle : Option term → Option term → Option term :=
 /-
 If terms are well-typed, construct their bit-blasted 
 unsigned less than or equal to comparison
-x ≤ᵤ y = (x <ᵤ y) ∨ (x = y)
+      x ≤ᵤ y 
+------------------
+(x <ᵤ y) ∨ (x = y)
 -/
 def bblastBvUle : Option term → Option term → Option term :=
   λ ot₁ ot₂ =>
@@ -604,8 +608,9 @@ def mkBvUgt : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUgt
 
 /-
-[x₀, x₁, ... , xₙ] >ᵤ [y₀, y₁, ... , yₙ] = 
-  (x₀ ∧ ¬y₀) ∨ ((x₀ ↔ y₀) ∧ ([x₁, ... , xₙ] >ᵤ [y₁, ... , yₙ]))
+                  [xₙ ... x₁ x₀] >ᵤ [yₙ ... y₀ y₁]
+-------------------------------------------------------------------------
+   (xₙ ∧ ¬yₙ) ∨ ((xₙ ↔ yₙ) ∧ ([x_{n-1} ... x₀] >ᵤ [y_{n-1} ... y₀]))
 -/
 def boolListUgt : List (Option term) → List (Option term) → Option term
 | [h₁], [h₂] => mkAnd h₁ (mkNot h₂)
@@ -663,7 +668,9 @@ def mkBvUge : Option term → Option term → Option term :=
 /-
 If terms are well-typed, construct their bit-blasted 
 unsigned greater than or equal to comparison
-x ≥ᵤ y = (x >ᵤ y) ∨ (x = y)
+      x ≥ᵤ y
+------------------
+(x >ᵤ y) ∨ (x = y)
 -/
 def bblastBvUge : Option term → Option term → Option term :=
   λ ot₁ ot₂ =>
@@ -712,8 +719,9 @@ def mkBvSlt : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSlt
 
 /-
-[x₀, x₁, ... , xₙ] <ₛ [y₀, y₁, ... , yₙ] = 
-  (x₀ ∧ ¬y₀) ∨ (x₀ = y₀ ∧ ([x₁, ..., xₙ] <ᵤ [y₁, ..., yₙ]))
+                [xₙ ... x₁ x₀] <ₛ [yₙ ... y₀ y₁]
+---------------------------------------------------------------------
+  (xₙ ∧ ¬yₙ) ∨ (xₙ ↔ yₙ ∧ ([x_{n-1} ... x₀] <ᵤ [y_{n-1} ... y₀]))
 -/
 def boolListSlt : List (Option term) → List (Option term) → Option term
 | [h₁], [h₂] => (mkAnd h₁ (mkNot h₂))
@@ -771,7 +779,9 @@ def mkBvSle : Option term → Option term → Option term :=
 /-
 If terms are well-typed, construct their bit-blasted 
 signed less than or equal to comparison
-x ≤ₛ y = (x <ₛ y) ∨ (x = y)
+       x ≤ₛ y
+------------------
+(x <ₛ y) ∨ (x = y)
 -/
 def bblastBvSle : Option term → Option term → Option term :=
   λ ot₁ ot₂ =>
@@ -819,8 +829,9 @@ def mkBvSgt : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSgt
 
 /-
-[x₀, x₁, ... , xₙ] >ₛ [y₀, y₁, ... , yₙ] = 
-  (¬x₀ ∧ y₀) ∨ (x₀ = y₀ ∧ ([x₁, ..., xₙ] >ᵤ [y₁, ..., yₙ]))
+                [xₙ ... x₁ x₀] >ₛ [yₙ ... y₀ y₁]
+----------------------------------------------------------------------
+  (¬xₙ ∧ yₙ) ∨ (xₙ ↔ yₙ ∧ ([x_{n-1} ... x₀] >ᵤ [y_{n-1} ... y₀]))
 -/
 def boolListSgt : List (Option term) → List (Option term) → Option term
 | [h₁], [h₂] => (mkAnd (mkNot h₁) h₂)
@@ -878,7 +889,9 @@ def mkBvSge : Option term → Option term → Option term :=
 /-
 If terms are well-typed, construct their bit-blasted 
 signed greater than or equal to comparison
-x ≥ₛ y = (x >ₛ y) ∨ (x = y)
+       x ≥ₛ y
+------------------
+(x >ₛ y) ∨ (x = y)
 -/
 def bblastBvSge : Option term → Option term → Option term :=
   λ ot₁ ot₂ =>
@@ -1098,17 +1111,10 @@ axiom bbBvSub : ∀ {t₁ t₂ : Option term},
 def mkBvShl : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvShl
 
-/-
-              a << b
------------------------------------
-ite(b <ᵤ l,
-	  (For each s in (0 to log2(l)-1)
-      ite(b[s], a << 2^s, a)),
-    [00..0]ₗ)
-where len(a) = l and [00..0]ₗ is a BV with l 0's
+/- 
+Single left shift
+[x₀ ... ]
 -/
-
--- Single left shift
 def leftShiftVal : List Bool → List Bool
 | h :: t => t ++ [false]
 | [] => []
@@ -1122,6 +1128,15 @@ def leftShift : Option term → Option term :=
 #eval leftShift (mkValBV [true, true, true])
 #eval leftShift (const 21 (bv 3))
 
+/-
+              a << b
+-----------------------------------
+ite(b <ᵤ l,
+	  (For each s in (0 to log2(l)-1)
+      ite(b[s], a << 2^s, a)),
+    [00..0]ₗ)
+where len(a) = l and [00..0]ₗ is a BV with l 0's
+-/
 
 /-   
 -- If terms are well-typed, construct their bit-blasted BV left shift
@@ -1348,7 +1363,7 @@ def removeLastN : List α → Nat → List α
 
 /-
 If terms are well-typed, construct their bit-blasted BV extraction
-[x₀ ... xₙ]   0 ≤ j ≤ i < n
+[xₙ ... x₀]   0 ≤ j ≤ i < n
 ----------------------------
        [xⱼ ... xᵢ]
 -/
@@ -1399,9 +1414,9 @@ def mkBvConcat : Option term → Option term → Option term :=
 
 /-
 If terms are BVs construct their bit-blasted BV concat
-[x₀ x₁ ... xₙ] ++ [y₀ y₁ ... yₙ]
+[xₙ ... x₁ x₀] ++ [yₙ ... y₁ y₀]
 ---------------------------------
-   [x₀ x₁ ... xₙ y₀ y₁ ... yₙ]
+   [xₙ ... x₁ x₀ yₙ ... y₁ y₀]
 -/
 def bblastBvConcat : Option term → Option term → Option term :=
   λ ot₁ ot₂ => ot₁ >>= λ t₁ => sortOf t₁ >>= λ s₁ => 
@@ -1445,9 +1460,9 @@ def mkBvZeroExt : Option term → Option term → Option term :=
 
 /-
 If terms are well-typed, construct their bit-blasted BV zero extend
-     [x₀ x₁ ... xₙ]    i
+     [xₙ ... x₁ x₀]    i
 -----------------------------
-  [0₁ ... 0ᵢ x₀ x₁ ... xₙ]
+  [0₁ ... 0ᵢ xₙ ... x₁ x₀]
 -/
 def bblastZeroExt : Option term → Option term → Option term :=
   λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
@@ -1492,9 +1507,9 @@ def hd : List α → Option α
 
 /-
 If terms are well-typed, construct their bit-blasted BV sign extend
-     [x₀ x₁ ... xₙ]    i
+     [xₙ ... x₁ x₀]   i
 -----------------------------
-  [x₀ ... x₀ x₀ x₁ ... xₙ]
+  [xₙ ... xₙ xₙ ... x₁ x₀]
 where i x₀'s are prefixed to x
 -/
 def bblastSignExt : Option term → Option term → Option term :=
@@ -1543,9 +1558,9 @@ def repeatList : Nat → List α → List α
 | 0, l => []
 /-
 If terms are well-typed, construct their bit-blasted BV repeat
-            i    [x₀ ... xₙ]
+            i    [xₙ ... x₁ x₀]
 ------------------------------------------
-  [x₀ ... xₙ x₀ ... xₙ ...... x₀ ... xₙ]
+  [xₙ ... x₁ x₀ xₙ ... x₁ x₀ xₙ ... x₁ x₀]
 where x₀ ... xₙ is repeated i times
 -/
 def bblastRepeat : Option term → Option term → Option term :=
