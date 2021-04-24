@@ -221,7 +221,8 @@ List of rules for bit-blasting
        \AXC{\strut$\mathtt{bbT}\ n\ x\ [\enum[n-1]{x}[;][0]]\quad
           \mathtt{bbT}\ m\ y\ [\enum[m-1]{y}[;][0]]$}
        \RL{\textsc{BBConcat}}
-       \UIC{\strut$\mathtt{bbT}\ n+m\ (concat\ x\ y)\ [ \enum[m-1]{y}[;][0]; \enum[n-1]{x}[;][0]]$}
+       \UIC{\strut$\mathtt{bbT}\ n+m\ (concat\ x\ y)\ [ 
+       	\enum[n-1]{x}[;][0]; \enum[m-1]{y}[;][0]]$}
        \DP
      \]
 
