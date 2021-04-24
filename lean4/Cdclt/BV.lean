@@ -1284,13 +1284,13 @@ def mkBvConcat : Option term → Option term → Option term :=
 If terms are BVs construct their bit-blasted BV concat
 [x₀ x₁ ... xₙ] ++ [y₀ y₁ ... yₙ]
 ---------------------------------
-   [y₀ y₁ ... yₙ x₀ x₁ ... xₙ]
+   [x₀ x₁ ... xₙ y₀ y₁ ... yₙ]
 -/
 def bblastBvConcat : Option term → Option term → Option term :=
   λ ot₁ ot₂ => ot₁ >>= λ t₁ => sortOf t₁ >>= λ s₁ => 
                ot₂ >>= λ t₂ => sortOf t₂ >>= λ s₂ => 
     match s₁, s₂ with
-    | bv m, bv n => mkBbT (List.append (bitOfN t₂ n) (bitOfN t₁ m))
+    | bv m, bv n => mkBbT (List.append (bitOfN t₁ m) (bitOfN t₂ n))
     | _, _ => none
 -- 0000 ++ 1111
 #eval bblastBvConcat (mkValBV [false, false, false, false])
