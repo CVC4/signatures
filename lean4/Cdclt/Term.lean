@@ -520,6 +520,16 @@ def mkNor : Option term → Option term → Option term :=
 def mkForall (v : Nat) (body : Option term) : Option term :=
   body >>= λ body' => (qforall v body')
 
+
+/- Aux functions to create values -/
+def mkValInt : Int → term :=
+λ i => val (value.integer i) intSort
+
+def mkValBV : List Bool → term :=
+λ l => val (value.bitvec l) (bv (List.length l))
+#eval (mkValInt 0)
+#eval mkValInt 5
+#eval mkValBV [true, false]
 end term
 
 end proof

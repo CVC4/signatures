@@ -46,12 +46,12 @@ match (s₁, s₂) with
     | _ => bitOf n t₁ t₂) else none
   | _ => none
 | (_, _) => none
-#eval mkBitOf (val (value.bitvec [true, false, true, false]) (bv 4)) (val (value.integer 0) intSort)
-#eval mkBitOf (val (value.bitvec [true, false, true, false]) (bv 4)) (val (value.integer 1) intSort)
-#eval mkBitOf (val (value.bitvec [true, false, true, false]) (bv 4)) (val (value.integer 4) intSort)
-#eval mkBitOf (const 21 (bv 4)) (val (value.integer 0) intSort)
-#eval mkBitOf (const 21 (bv 4)) (val (value.integer 1) intSort)
-#eval mkBitOf (const 21 (bv 4)) (val (value.integer 4) intSort)
+#eval mkBitOf (mkValBV [true, false, true, false]) (mkValInt 0)
+#eval mkBitOf (mkValBV [true, false, true, false]) (mkValInt 1)
+#eval mkBitOf (mkValBV [true, false, true, false]) (mkValInt 4)
+#eval mkBitOf (const 21 (bv 4)) (mkValInt 0)
+#eval mkBitOf (const 21 (bv 4)) (mkValInt 1)
+#eval mkBitOf (const 21 (bv 4)) (mkValInt 4)
 
 /- bitOfN t n
    bit-blasts a BV constant or variable.
@@ -60,38 +60,38 @@ match (s₁, s₂) with
    with option terms representing each bit.
 -/
 def bitOfNAux : term → Nat → List (Option term)
-| t, 0 => (mkBitOf t (val (value.integer (Int.ofNat 0)) intSort)) :: []
-| t, (n + 1) => (mkBitOf t (val (value.integer (Int.ofNat (n + 1))) intSort))
+| t, 0 => (mkBitOf t (mkValInt 0)) :: []
+| t, (n + 1) => (mkBitOf t (mkValInt (Int.ofNat (n + 1))))
                     :: (bitOfNAux t n)
 
 def bitOfN : term → Nat → List (Option term) :=
   λ t n => bitOfNAux t (n-1)
 
 #eval bitOfN (const 21 (bv 4)) 4
-#eval bitOfN (val (value.bitvec [true, true, true, false]) (bv 4)) 4
+#eval bitOfN (mkValBV [true, true, true, false]) 4
 /- The following bad calls create bad bit-blasted terms
    because the nat argument to bitOfN and the length
    of the BV term don't match.-/
 #eval bitOfN (const 21 (bv 3)) 4
-#eval bitOfN (val (value.bitvec [true, true, true, false]) (bv 4)) 3
+#eval bitOfN (mkValBV [true, true, true, false]) 3
 
 
 /- bitOfNRev works like bitOfN but in reverse -/
 def bitOfNRevAux : term → Nat → Nat → List (Option term)
 | t, 0, _ => []
-| t, (n₁+1), n₂ => (mkBitOf t (val (value.integer (Int.ofNat (n₂ - n₁ - 1))) intSort)) 
+| t, (n₁+1), n₂ => (mkBitOf t (mkValInt (Int.ofNat (n₂ - n₁ - 1)))) 
                     :: (bitOfNRevAux t n₁ n₂)
 
 def bitOfNRev : term → Nat → List (Option term) :=
   λ t n => bitOfNRevAux t n n
 
 #eval bitOfNRev (const 21 (bv 4)) 4
-#eval bitOfNRev (val (value.bitvec [true, true, true, false]) (bv 4)) 4
+#eval bitOfNRev (mkValBV [true, true, true, false]) 4
 /- The following bad calls create bad bit-blasted terms
    because the nat argument to bitOfN and the length
    of the BV term don't match.-/
 #eval bitOfNRev (const 21 (bv 3)) 4
-#eval bitOfNRev (val (value.bitvec [true, true, true, false]) (bv 4)) 3
+#eval bitOfNRev (mkValBV [true, true, true, false]) 3
 
 
 --------------------------------------- Bitwise Operators ---------------------------------------
@@ -172,18 +172,18 @@ def bblastBvEq : Option term → Option term → Option term :=
       ) else none
     | (_, _) => none
 -- 0000 = 1111
-#eval bblastBvEq (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvEq (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvEq (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvEq (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 010 = 010
-#eval bblastBvEq (val (value.bitvec [false, true, true]) (bv 3))
-  (val (value.bitvec [false, true, true]) (bv 3))
-#eval termEval (bblastBvEq (val (value.bitvec [false, true, true]) (bv 3))
-  (val (value.bitvec [false, true, true]) (bv 3)))
+#eval bblastBvEq (mkValBV [false, true, true])
+  (mkValBV [false, true, true])
+#eval termEval (bblastBvEq (mkValBV [false, true, true])
+  (mkValBV [false, true, true]))
 -- Using variables
 #eval bblastBvEq (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, true]) (bv 4))
+  (mkValBV [false, false, false, true])
 #eval bblastBvEq (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvEq rule
@@ -214,11 +214,11 @@ def bblastBvNot (ot : Option term) : Option term :=
     | bv n => mkBbT (List.map mkNot (bitOfN t n))
     | _ => none
 -- ¬0000
-#eval bblastBvNot (val (value.bitvec [false, false, false, false]) (bv 4))
-#eval termEval (bblastBvNot (val (value.bitvec [false, false, false, false]) (bv 4)))
+#eval bblastBvNot (mkValBV [false, false, false, false])
+#eval termEval (bblastBvNot (mkValBV [false, false, false, false]))
 -- ¬ 1010
-#eval bblastBvNot (val (value.bitvec [true, false, true, false]) (bv 4))
-#eval termEval (bblastBvNot (val (value.bitvec [true, false, true, false]) (bv 4)))
+#eval bblastBvNot (mkValBV [true, false, true, false])
+#eval termEval (bblastBvNot (mkValBV [true, false, true, false]))
 -- Using variables
 #eval bblastBvNot (const 21 (bv 4))
 
@@ -245,18 +245,18 @@ def bblastBvAnd : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkAnd
 
 -- 0000 ∧ 1111
-#eval bblastBvAnd (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvAnd (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvAnd (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvAnd (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 0111 ∧ 1101
-#eval bblastBvAnd (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, false, true]) (bv 4))
-#eval termEval (bblastBvAnd (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, false, true]) (bv 4)))
+#eval bblastBvAnd (mkValBV [false, true, true, true])
+  (mkValBV [true, true, false, true])
+#eval termEval (bblastBvAnd (mkValBV [false, true, true, true])
+  (mkValBV [true, true, false, true]))
 -- Using variables
 #eval bblastBvAnd (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvAnd (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvAnd rule
@@ -282,18 +282,18 @@ def bblastBvOr : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkOr
 
 -- 0000 ∨ 1111
-#eval bblastBvOr (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvOr (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvOr (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvOr (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 0101 ∨ 1010
-#eval bblastBvOr (val (value.bitvec [false, true, false, true]) (bv 4))
-  (val (value.bitvec [true, false, true, false]) (bv 4))
-#eval termEval (bblastBvOr (val (value.bitvec [false, true, false, true]) (bv 4))
-  (val (value.bitvec [true, false, true, false]) (bv 4)))
+#eval bblastBvOr (mkValBV [false, true, false, true])
+  (mkValBV [true, false, true, false])
+#eval termEval (bblastBvOr (mkValBV [false, true, false, true])
+  (mkValBV [true, false, true, false]))
 -- Using variables
 #eval bblastBvOr (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvOr (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvOr rule
@@ -319,18 +319,18 @@ def bblastBvXor : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkXor
 
 -- 0000 ⊕ 1111
-#eval bblastBvXor (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvXor (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvXor (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvXor (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 1111 ⊕ 1111
-#eval bblastBvXor (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvXor (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvXor (mkValBV [true, true, true, true])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvXor (mkValBV [true, true, true, true])
+  (mkValBV [true, true, true, true]))
 -- Using variables
 #eval bblastBvXor (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvXor (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvXor rule
@@ -356,18 +356,18 @@ def bblastBvNand : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkNand
 
 -- 0000 ¬∧ 1111
-#eval bblastBvNand (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvNand (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvNand (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvNand (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 0111 ¬∧ 1101
-#eval bblastBvNand (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, false, true]) (bv 4))
-#eval termEval (bblastBvNand (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, false, true]) (bv 4)))
+#eval bblastBvNand (mkValBV [false, true, true, true])
+  (mkValBV [true, true, false, true])
+#eval termEval (bblastBvNand (mkValBV [false, true, true, true])
+  (mkValBV [true, true, false, true]))
 -- Using variables
 #eval bblastBvNand (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvNand (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvNand rule
@@ -393,18 +393,18 @@ def bblastBvNor : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkNor
 
 -- 0000 ¬∨ 1111
-#eval bblastBvNor (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvNor (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvNor (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvNor (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 0111 ¬∨ 1101
-#eval bblastBvNor (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, false, true]) (bv 4))
-#eval termEval (bblastBvNor (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, false, true]) (bv 4)))
+#eval bblastBvNor (mkValBV [false, true, true, true])
+  (mkValBV [true, true, false, true])
+#eval termEval (bblastBvNor (mkValBV [false, true, true, true])
+  (mkValBV [true, true, false, true]))
 -- Using variables
 #eval bblastBvNor (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvNor (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvNor rule
@@ -430,18 +430,18 @@ def bblastBvXnor : Option term → Option term → Option term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkIff
 
 -- 1111 ¬⊕ 1111
-#eval bblastBvXnor (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvXnor (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvXnor (mkValBV [true, true, true, true])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvXnor (mkValBV [true, true, true, true])
+  (mkValBV [true, true, true, true]))
 -- 0111 ¬⊕ 1101
-#eval bblastBvXnor (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, false, true]) (bv 4))
-#eval termEval (bblastBvXnor (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, false, true]) (bv 4)))
+#eval bblastBvXnor (mkValBV [false, true, true, true])
+  (mkValBV [true, true, false, true])
+#eval termEval (bblastBvXnor (mkValBV [false, true, true, true])
+  (mkValBV [true, true, false, true]))
 -- Using variables
 #eval bblastBvNor (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvNor (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvNor rule
@@ -469,18 +469,18 @@ def bblastBvComp : Option term → Option term → Option term :=
   λ ot₁ ot₂ => mkIte (bblastBvEq ot₁ ot₂) (mkBbT [some top]) (mkBbT [some bot])
 
 -- bvComp 0000 1111
-#eval bblastBvComp (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvComp (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvComp (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvComp (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- bvComp 0010 0010
-#eval bblastBvComp (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4))
-#eval termEval (bblastBvComp (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4)))
+#eval bblastBvComp (mkValBV [false, false, true, false])
+  (mkValBV [false, false, true, false])
+#eval termEval (bblastBvComp (mkValBV [false, false, true, false])
+  (mkValBV [false, false, true, false]))
 -- Using variables
 #eval bblastBvComp (const 21 (bv 4)) 
-  (val (value.bitvec [true, false, false, false]) (bv 4))
+  (mkValBV [true, false, false, false])
 #eval bblastBvComp (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvComp rule
@@ -521,23 +521,23 @@ def bblastBvUlt : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 0000 <ᵤ 1111
-#eval bblastBvUlt (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvUlt (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvUlt (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvUlt (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 0010 <ᵤ 0011
-#eval bblastBvUlt (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.bitvec [false, false, true, true]) (bv 4))
-#eval termEval (bblastBvUlt (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.bitvec [false, false, true, true]) (bv 4)))
+#eval bblastBvUlt (mkValBV [false, false, true, false])
+  (mkValBV [false, false, true, true])
+#eval termEval (bblastBvUlt (mkValBV [false, false, true, false])
+  (mkValBV [false, false, true, true]))
 -- 10 <ᵤ 01
-#eval bblastBvUlt (val (value.bitvec [true, false]) (bv 2))
-  (val (value.bitvec [false, true]) (bv 2))
-#eval termEval (bblastBvUlt (val (value.bitvec [true, false]) (bv 2))
-  (val (value.bitvec [false, true]) (bv 2)))
+#eval bblastBvUlt (mkValBV [true, false])
+  (mkValBV [false, true])
+#eval termEval (bblastBvUlt (mkValBV [true, false])
+  (mkValBV [false, true]))
 -- Using variables
 #eval bblastBvUlt (const 21 (bv 4)) 
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvUlt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUlt rule
@@ -571,23 +571,23 @@ def bblastBvUle : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 0000 ≤ᵤ 1111
-#eval bblastBvUle (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvUle (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvUle (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvUle (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 0010 ≤ᵤ 0010
-#eval bblastBvUle (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4))
-#eval termEval (bblastBvUle (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4)))
+#eval bblastBvUle (mkValBV [false, false, true, false])
+  (mkValBV [false, false, true, false])
+#eval termEval (bblastBvUle (mkValBV [false, false, true, false])
+  (mkValBV [false, false, true, false]))
 -- 10 ≤ᵤ 01
-#eval bblastBvUle (val (value.bitvec [true, false]) (bv 2))
-  (val (value.bitvec [false, true]) (bv 2))
-#eval termEval (bblastBvUle (val (value.bitvec [true, false]) (bv 2))
-  (val (value.bitvec [false, true]) (bv 2)))
+#eval bblastBvUle (mkValBV [true, false])
+  (mkValBV [false, true])
+#eval termEval (bblastBvUle (mkValBV [true, false])
+  (mkValBV [false, true]))
 -- Using variables
 #eval bblastBvUle (const 21 (bv 4)) 
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvUlt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUle rule
@@ -628,23 +628,23 @@ def bblastBvUgt : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 1111 >ᵤ 0000
-#eval bblastBvUgt (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
-#eval termEval (bblastBvUgt (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4)))
+#eval bblastBvUgt (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, false])
+#eval termEval (bblastBvUgt (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, false]))
 -- 0011 >ᵤ 0010
-#eval bblastBvUgt (val (value.bitvec [false, false, true, true]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4))
-#eval termEval (bblastBvUgt (val (value.bitvec [false, false, true, true]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4)))
+#eval bblastBvUgt (mkValBV [false, false, true, true])
+  (mkValBV [false, false, true, false])
+#eval termEval (bblastBvUgt (mkValBV [false, false, true, true])
+  (mkValBV [false, false, true, false]))
 -- 01 >ᵤ 10
-#eval bblastBvUgt (val (value.bitvec [false, true]) (bv 2))
-  (val (value.bitvec [true, false]) (bv 2))
-#eval termEval (bblastBvUgt (val (value.bitvec [false, true]) (bv 2))
-  (val (value.bitvec [true, false]) (bv 2)))
+#eval bblastBvUgt (mkValBV [false, true])
+  (mkValBV [true, false])
+#eval termEval (bblastBvUgt (mkValBV [false, true])
+  (mkValBV [true, false]))
 -- Using variables
 #eval bblastBvUgt (const 21 (bv 4)) 
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvUgt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUgt rule
@@ -679,23 +679,23 @@ def bblastBvUge : Option term → Option term → Option term :=
 
 
 -- 1111 ≥ᵤ 0000
-#eval bblastBvUge (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
-#eval termEval (bblastBvUge (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4)))
+#eval bblastBvUge (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, false])
+#eval termEval (bblastBvUge (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, false]))
 -- 0011 ≥ᵤ 0011
-#eval bblastBvUge (val (value.bitvec [false, false, true, true]) (bv 4))
-  (val (value.bitvec [false, false, true, true]) (bv 4))
-#eval termEval (bblastBvUge (val (value.bitvec [false, false, true, true]) (bv 4))
-  (val (value.bitvec [false, false, true, true]) (bv 4)))
+#eval bblastBvUge (mkValBV [false, false, true, true])
+  (mkValBV [false, false, true, true])
+#eval termEval (bblastBvUge (mkValBV [false, false, true, true])
+  (mkValBV [false, false, true, true]))
 -- 01 ≥ᵤ 10
-#eval bblastBvUge (val (value.bitvec [false, true]) (bv 2))
-  (val (value.bitvec [true, false]) (bv 2))
-#eval termEval (bblastBvUge (val (value.bitvec [false, true]) (bv 2))
-  (val (value.bitvec [true, false]) (bv 2)))
+#eval bblastBvUge (mkValBV [false, true])
+  (mkValBV [true, false])
+#eval termEval (bblastBvUge (mkValBV [false, true])
+  (mkValBV [true, false]))
 -- Using variables
 #eval bblastBvUge (const 21 (bv 4)) 
-  (val (value.bitvec [false, false, false, true]) (bv 4))
+  (mkValBV [false, false, false, true])
 #eval bblastBvUgt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUge rule
@@ -736,23 +736,23 @@ def bblastBvSlt : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 1111 <ₛ 0000
-#eval bblastBvSlt (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
-#eval termEval (bblastBvSlt (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4)))
+#eval bblastBvSlt (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, false])
+#eval termEval (bblastBvSlt (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, false]))
 -- 1010 <ₛ 1011
-#eval bblastBvSlt (val (value.bitvec [true, false, true, false]) (bv 4))
-  (val (value.bitvec [true, false, true, true]) (bv 4))
-#eval termEval (bblastBvSlt (val (value.bitvec [true, false, true, false]) (bv 4))
-  (val (value.bitvec [true, false, true, true]) (bv 4)))
+#eval bblastBvSlt (mkValBV [true, false, true, false])
+  (mkValBV [true, false, true, true])
+#eval termEval (bblastBvSlt (mkValBV [true, false, true, false])
+  (mkValBV [true, false, true, true]))
 -- 01 <ₛ 10
-#eval bblastBvSlt (val (value.bitvec [false, true]) (bv 2))
-  (val (value.bitvec [true, false]) (bv 2))
-#eval termEval (bblastBvSlt (val (value.bitvec [false, true]) (bv 2))
-  (val (value.bitvec [true, false]) (bv 2)))
+#eval bblastBvSlt (mkValBV [false, true])
+  (mkValBV [true, false])
+#eval termEval (bblastBvSlt (mkValBV [false, true])
+  (mkValBV [true, false]))
 -- Using variables
 #eval bblastBvSlt (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvSlt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUgt rule
@@ -786,23 +786,23 @@ def bblastBvSle : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 1111 ≤ₛ 0000
-#eval bblastBvSle (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
-#eval termEval (bblastBvSle (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4)))
+#eval bblastBvSle (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, false])
+#eval termEval (bblastBvSle (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, false]))
 -- 1010 ≤ₛ 1010
-#eval bblastBvSle (val (value.bitvec [true, false, true, false]) (bv 4))
-  (val (value.bitvec [true, false, true, false]) (bv 4))
-#eval termEval (bblastBvSle (val (value.bitvec [true, false, true, false]) (bv 4))
-  (val (value.bitvec [true, false, true, false]) (bv 4)))
+#eval bblastBvSle (mkValBV [true, false, true, false])
+  (mkValBV [true, false, true, false])
+#eval termEval (bblastBvSle (mkValBV [true, false, true, false])
+  (mkValBV [true, false, true, false]))
 -- 01 ≤ₛ 10
-#eval bblastBvSle (val (value.bitvec [false, true]) (bv 2))
-  (val (value.bitvec [true, false]) (bv 2))
-#eval termEval (bblastBvSle (val (value.bitvec [false, true]) (bv 2))
-  (val (value.bitvec [true, false]) (bv 2)))
+#eval bblastBvSle (mkValBV [false, true])
+  (mkValBV [true, false])
+#eval termEval (bblastBvSle (mkValBV [false, true])
+  (mkValBV [true, false]))
 -- Using variables
 #eval bblastBvSle (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvSle (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvSle rule
@@ -843,23 +843,23 @@ def bblastBvSgt : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 0000 >ₛ 1111
-#eval bblastBvSgt (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvSgt (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvSgt (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvSgt (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 1011 >ₛ 1010
-#eval bblastBvSgt (val (value.bitvec [true, false, true, true]) (bv 4))
-  (val (value.bitvec [true, false, true, false]) (bv 4))
-#eval termEval (bblastBvSgt (val (value.bitvec [true, false, true, true]) (bv 4))
-  (val (value.bitvec [true, false, true, false]) (bv 4)))
+#eval bblastBvSgt (mkValBV [true, false, true, true])
+  (mkValBV [true, false, true, false])
+#eval termEval (bblastBvSgt (mkValBV [true, false, true, true])
+  (mkValBV [true, false, true, false]))
 -- 10 >ₛ 01
-#eval bblastBvSgt (val (value.bitvec [true, false]) (bv 2))
-  (val (value.bitvec [false, true]) (bv 2))
-#eval termEval (bblastBvSgt (val (value.bitvec [true, false]) (bv 2))
-  (val (value.bitvec [false, true]) (bv 2)))
+#eval bblastBvSgt (mkValBV [true, false])
+  (mkValBV [false, true])
+#eval termEval (bblastBvSgt (mkValBV [true, false])
+  (mkValBV [false, true]))
 -- Using variables
 #eval bblastBvSgt (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvSgt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvSgt rule
@@ -893,23 +893,23 @@ def bblastBvSge : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 0000 ≥ₛ 1111
-#eval bblastBvSge (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvSge (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvSge (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvSge (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 1011 ≥ₛ 1010
-#eval bblastBvSge (val (value.bitvec [true, false, true, true]) (bv 4))
-  (val (value.bitvec [true, false, true, true]) (bv 4))
-#eval termEval (bblastBvSge (val (value.bitvec [true, false, true, true]) (bv 4))
-  (val (value.bitvec [true, false, true, true]) (bv 4)))
+#eval bblastBvSge (mkValBV [true, false, true, true])
+  (mkValBV [true, false, true, true])
+#eval termEval (bblastBvSge (mkValBV [true, false, true, true])
+  (mkValBV [true, false, true, true]))
 -- 10 ≥ₛ 01
-#eval bblastBvSge (val (value.bitvec [true, false]) (bv 2))
-  (val (value.bitvec [false, true]) (bv 2))
-#eval termEval (bblastBvSge (val (value.bitvec [true, false]) (bv 2))
-  (val (value.bitvec [false, true]) (bv 2)))
+#eval bblastBvSge (mkValBV [true, false])
+  (mkValBV [false, true])
+#eval termEval (bblastBvSge (mkValBV [true, false])
+  (mkValBV [false, true]))
 -- Using variables
 #eval bblastBvSge (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvSge (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvSge rule
@@ -962,28 +962,28 @@ def bblastBvAdd : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 0000 + 1111
-#eval bblastBvAdd (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvAdd (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvAdd (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvAdd (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 1111 + 1111
-#eval bblastBvAdd (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvAdd (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvAdd (mkValBV [true, true, true, true])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvAdd (mkValBV [true, true, true, true])
+  (mkValBV [true, true, true, true]))
 -- 0101 + 0010
-#eval bblastBvAdd (val (value.bitvec [false, true, false, true]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4))
-#eval termEval (bblastBvAdd (val (value.bitvec [false, true, false, true]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4)))
+#eval bblastBvAdd (mkValBV [false, true, false, true])
+  (mkValBV [false, false, true, false])
+#eval termEval (bblastBvAdd (mkValBV [false, true, false, true])
+  (mkValBV [false, false, true, false]))
 -- 1111 + 0001
-#eval bblastBvAdd (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, true]) (bv 4))
-#eval termEval (bblastBvAdd (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, true]) (bv 4)))
+#eval bblastBvAdd (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, true])
+#eval termEval (bblastBvAdd (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, true]))
 -- Using variables
 #eval bblastBvAdd (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvAdd (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvAdd rule
@@ -1026,14 +1026,14 @@ def bblastBvNeg : Option term → Option term :=
     |  bv m => boolListAdd (List.map mkNot (bitOfNRev t m)) (genRevOne m)
     | _ => some bot
 -- -0000
-#eval bblastBvNeg (val (value.bitvec [false, false, false, false]) (bv 4))
-#eval termEval (bblastBvNeg (val (value.bitvec [false, false, false, false]) (bv 4)))
+#eval bblastBvNeg (mkValBV [false, false, false, false])
+#eval termEval (bblastBvNeg (mkValBV [false, false, false, false]))
 -- -0001
-#eval bblastBvNeg (val (value.bitvec [false, false, false, true]) (bv 4))
-#eval termEval (bblastBvNeg (val (value.bitvec [false, false, false, true]) (bv 4)))
+#eval bblastBvNeg (mkValBV [false, false, false, true])
+#eval termEval (bblastBvNeg (mkValBV [false, false, false, true]))
 -- -1111
-#eval bblastBvNeg (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvNeg (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvNeg (mkValBV [true, true, true, true])
+#eval termEval (bblastBvNeg (mkValBV [true, true, true, true]))
 -- Using variables
 #eval bblastBvNeg (const 21 (bv 4))
 
@@ -1071,17 +1071,17 @@ def bblastBvSub : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 1110-0000
-#eval bblastBvSub (val (value.bitvec [true, true, true, false]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
-#eval termEval (bblastBvSub (val (value.bitvec [true, true, true, false]) (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4)))
+#eval bblastBvSub (mkValBV [true, true, true, false])
+  (mkValBV [false, false, false, false])
+#eval termEval (bblastBvSub (mkValBV [true, true, true, false])
+  (mkValBV [false, false, false, false]))
 -- 0000-0010
-#eval bblastBvSub (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4))
-#eval termEval (bblastBvSub (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [false, false, true, false]) (bv 4)))
+#eval bblastBvSub (mkValBV [false, false, false, false])
+  (mkValBV [false, false, true, false])
+#eval termEval (bblastBvSub (mkValBV [false, false, false, false])
+  (mkValBV [false, false, true, false]))
 -- Using variables
-#eval bblastBvSub (const 21 (bv 4)) (val (value.bitvec [false, false, false, false]) (bv 4))
+#eval bblastBvSub (const 21 (bv 4)) (mkValBV [false, false, false, false])
 #eval bblastBvSub (const 21 (bv 4)) (const 22 (bv 4))
 -- Bit-blasting BvNeg rule
 axiom bbBvSub : ∀ {t₁ t₂ : Option term},
@@ -1108,7 +1108,7 @@ ite(b <ᵤ l,
 where len(a) = l and [00..0]ₗ is a BV with l 0's
 -/
 def leftShiftVal : List Bool → List Bool
-| h :: t => false :: h :: (List.dropLast t)
+| h :: t => t ++ [false]
 | [] => []
 
 def leftShift : Option term → Option term :=
@@ -1116,11 +1116,50 @@ def leftShift : Option term → Option term :=
     match s with 
     | bv n => match t with
               | val (value.bitvec l) _ => val (value.bitvec (leftShiftVal l)) (bv n)
-              -- MSB[t] = 0 /\ ⊥
-              | const n _ => mkAnd (mkEq (bitOf n t (minus (val (value.integer (Int.ofNat n)) intSort) 
-                                                           (val (value.integer 1) intSort))) bot) bot
-              | _ => none
+              | _ => mkBbT (List.append (bitOfNAux t (n-2)) [some bot])
     | _ => none
+#eval leftShift (mkValBV [true, true, true])
+#eval leftShift (const 21 (bv 3))
+
+def rightShiftVal : List Bool → List Bool
+| h :: t => false :: h :: (List.dropLast t)
+| [] => []
+
+def bitOfNRShAux : term → Nat → List (Option term)
+| t, 0 => []
+| t, (n + 1) => (mkBitOf t (mkValInt (Int.ofNat (n + 1))))
+                    :: (bitOfNRShAux t n)
+
+#eval bitOfNRShAux (const 21 (bv 4)) 3
+def rightShift : Option term → Option term :=
+  λ ot => ot >>= λ t => sortOf t >>= λ s => 
+    match s with 
+    | bv n => match t with
+              | val (value.bitvec l) _ => val (value.bitvec (rightShiftVal l)) (bv n)
+              | _ => mkBbT (some bot :: (bitOfNRShAux t (n-1)))
+    | _ => none
+#eval rightShift (mkValBV [true, true, true])
+#eval rightShift (const 21 (bv 3))
+
+def aRightShiftVal : List Bool → Bool → List Bool
+| h :: t, sign => sign :: h :: (List.dropLast t)
+| [], sign  => []
+
+def head : List Bool → Bool 
+| h :: t => h
+| [] => false
+
+def aRightShift : Option term → Option term :=
+  λ ot => ot >>= λ t => sortOf t >>= λ s => 
+    match s with 
+    | bv n => match t with
+              | val (value.bitvec l) _ => val (value.bitvec (aRightShiftVal l (head l))) (bv n)
+              | _ => mkBbT ((mkBitOf t (mkValInt (Int.ofNat (n-1)))) :: 
+                            (bitOfNRShAux t (n-1)))
+    | _ => none
+#eval aRightShift (mkValBV [true, false, true])
+#eval aRightShift (mkValBV [false, true, true])
+#eval aRightShift (const 21 (bv 3))
 /-   
 -- If terms are well-typed, construct their bit-blasted BV add
 def bblastBvAdd : Option term → Option term → Option term :=
@@ -1135,28 +1174,28 @@ def bblastBvAdd : Option term → Option term → Option term :=
     | (_, _) => none
 
 -- 0000 + 1111
-#eval bblastBvAdd (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvAdd (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvAdd (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvAdd (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true]))
 -- 1111 + 1111
-#eval bblastBvAdd (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval termEval (bblastBvAdd (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4)))
+#eval bblastBvAdd (mkValBV [true, true, true, true])
+  (mkValBV [true, true, true, true])
+#eval termEval (bblastBvAdd (mkValBV [true, true, true, true])
+  (mkValBV [true, true, true, true]))
 -- 0101 + 1010
-#eval bblastBvAdd (val (value.bitvec [false, true, false, true]) (bv 4))
-  (val (value.bitvec [true, false, true, false]) (bv 4))
-#eval termEval (bblastBvAdd (val (value.bitvec [false, true, false, true]) (bv 4))
-  (val (value.bitvec [true, false, true, false]) (bv 4)))
+#eval bblastBvAdd (mkValBV [false, true, false, true])
+  (mkValBV [true, false, true, false])
+#eval termEval (bblastBvAdd (mkValBV [false, true, false, true])
+  (mkValBV [true, false, true, false]))
 -- 1111 + 0001
-#eval bblastBvAdd (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, true]) (bv 4))
-#eval termEval (bblastBvAdd (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.bitvec [false, false, false, true]) (bv 4)))
+#eval bblastBvAdd (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, true])
+#eval termEval (bblastBvAdd (mkValBV [true, true, true, true])
+  (mkValBV [false, false, false, true]))
 -- Using variables
 #eval bblastBvAdd (const 21 (bv 4))
-  (val (value.bitvec [false, false, false, false]) (bv 4))
+  (mkValBV [false, false, false, false])
 #eval bblastBvAdd (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvAdd rule
@@ -1211,18 +1250,18 @@ def bblastBvExtract : Option term → Option term → Option term → Option ter
         none
     | _, _ => none
   | _, _, _ => none
-#eval bblastBvExtract (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.integer 3) intSort) (val (value.integer 2) intSort)
-#eval bblastBvExtract (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.integer 1) intSort) (val (value.integer 1) intSort)
-#eval bblastBvExtract (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.integer 3) intSort) (val (value.integer 0) intSort)
+#eval bblastBvExtract (mkValBV [false, false, true, false])
+  (mkValInt 3) (mkValInt 2)
+#eval bblastBvExtract (mkValBV [false, false, true, false])
+  (mkValInt 1) (mkValInt 1)
+#eval bblastBvExtract (mkValBV [false, false, true, false])
+  (mkValInt 3) (mkValInt 0)
 -- Bad call
-#eval bblastBvExtract (val (value.bitvec [false, false, true, false]) (bv 4))
-  (val (value.integer 1) intSort) (val (value.integer 2) intSort)
+#eval bblastBvExtract (mkValBV [false, false, true, false])
+  (mkValInt 1) (mkValInt 2)
 -- Using variables
-#eval bblastBvExtract (const 21 (bv 4)) (val (value.integer 2) intSort) 
-  (val (value.integer 1) intSort)
+#eval bblastBvExtract (const 21 (bv 4)) (mkValInt 2) 
+  (mkValInt 1)
 
 -- Bit-blasting BvExtract rule
 axiom bbBvExtract : ∀ {t₁ t₂ t₃ : Option term},
@@ -1254,17 +1293,17 @@ def bblastBvConcat : Option term → Option term → Option term :=
     | bv m, bv n => mkBbT (List.append (bitOfN t₂ n) (bitOfN t₁ m))
     | _, _ => none
 -- 0000 ++ 1111
-#eval bblastBvConcat (val (value.bitvec [false, false, false, false]) (bv 4))
-  (val (value.bitvec [true, true, true, true]) (bv 4))
+#eval bblastBvConcat (mkValBV [false, false, false, false])
+  (mkValBV [true, true, true, true])
 -- 11 + 111
-#eval bblastBvConcat (val (value.bitvec [true, true]) (bv 2))
-  (val (value.bitvec [true, true, true]) (bv 3))
+#eval bblastBvConcat (mkValBV [true, true])
+  (mkValBV [true, true, true])
 -- 1 + 110
-#eval bblastBvConcat (val (value.bitvec [true]) (bv 1))
-  (val (value.bitvec [true, true, false]) (bv 3))
+#eval bblastBvConcat (mkValBV [true])
+  (mkValBV [true, true, false])
 -- Using variables
 #eval bblastBvConcat (const 21 (bv 2))
-  (val (value.bitvec [false, false]) (bv 2))
+  (mkValBV [false, false])
 #eval bblastBvConcat (const 21 (bv 2)) (const 22 (bv 2))
 
 -- Bit-blasting BvConcat rule
@@ -1303,12 +1342,12 @@ def bblastZeroExt : Option term → Option term → Option term :=
       mkBbT (List.append (List.replicate (Int.toNat i₁) (some bot)) (bitOfN t n))
     | _ => none
   | _, _ => none
-#eval bblastZeroExt (val (value.bitvec [true, true, true, true]) (bv 4))
-  (val (value.integer 2) intSort)
-#eval bblastZeroExt (val (value.bitvec [true, false]) (bv 2))
-  (val (value.integer 0) intSort)
+#eval bblastZeroExt (mkValBV [true, true, true, true])
+  (mkValInt 2)
+#eval bblastZeroExt (mkValBV [true, false])
+  (mkValInt 0)
 -- Using variables
-#eval bblastZeroExt (const 21 (bv 4))  (val (value.integer 2) intSort)
+#eval bblastZeroExt (const 21 (bv 4))  (mkValInt 2)
 
 -- Bit-blasting BvZeroExt rule
 axiom bbBvZeroExt : ∀ {t₁ t₂ : Option term},
@@ -1353,14 +1392,14 @@ def bblastSignExt : Option term → Option term → Option term :=
       | none => none
     | _ => none
   | _, _ => none
-#eval bblastSignExt (val (value.bitvec [true, true, true, false]) (bv 4))
-  (val (value.integer 2) intSort)
-#eval bblastSignExt (val (value.bitvec [false, true, true, true]) (bv 4))
-  (val (value.integer 2) intSort)
-#eval bblastSignExt (val (value.bitvec [true, false]) (bv 2))
-  (val (value.integer 0) intSort)
+#eval bblastSignExt (mkValBV [true, true, true, false])
+  (mkValInt 2)
+#eval bblastSignExt (mkValBV [false, true, true, true])
+  (mkValInt 2)
+#eval bblastSignExt (mkValBV [true, false])
+  (mkValInt 0)
 -- Using variables
-#eval bblastSignExt (const 21 (bv 4)) (val (value.integer 2) intSort)
+#eval bblastSignExt (const 21 (bv 4)) (mkValInt 2)
 
 -- Bit-blasting BvSignExt rule
 axiom bbBvSignExt : ∀ {t₁ t₂ : Option term},
@@ -1404,14 +1443,14 @@ def bblastRepeat : Option term → Option term → Option term :=
     | _ => none
   | _, _ => none
 
-#eval bblastRepeat (val (value.integer 2) intSort) 
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval bblastRepeat (val (value.integer (-1)) intSort) 
-  (val (value.bitvec [true, true, true, true]) (bv 4))
-#eval bblastRepeat (val (value.integer 7) intSort) 
-  (val (value.bitvec [true, false]) (bv 2))
+#eval bblastRepeat (mkValInt 2) 
+  (mkValBV [true, true, true, true])
+#eval bblastRepeat (mkValInt (-1))
+  (mkValBV [true, true, true, true])
+#eval bblastRepeat (mkValInt 7) 
+  (mkValBV [true, false])
 -- Using variables
-#eval bblastRepeat (val (value.integer 2) intSort) (const 21 (bv 2))
+#eval bblastRepeat (mkValInt 2) (const 21 (bv 2))
 
 -- Bit-blasting BvRepeat rule
 axiom bbBvRepeat : ∀ {t₁ t₂ : Option term},
