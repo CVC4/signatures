@@ -1107,10 +1107,11 @@ ite(b <ᵤ l,
     [00..0]ₗ)
 where len(a) = l and [00..0]ₗ is a BV with l 0's
 -/
+
+-- Single left shift
 def leftShiftVal : List Bool → List Bool
 | h :: t => t ++ [false]
 | [] => []
-
 def leftShift : Option term → Option term :=
   λ ot => ot >>= λ t => sortOf t >>= λ s => 
     match s with 
@@ -1121,34 +1122,147 @@ def leftShift : Option term → Option term :=
 #eval leftShift (mkValBV [true, true, true])
 #eval leftShift (const 21 (bv 3))
 
-def rightShiftVal : List Bool → List Bool
+
+/-   
+-- If terms are well-typed, construct their bit-blasted BV left shift
+def bblastBvShl : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => 
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            boolListAdd (bitOfNRev t₁ m) (bitOfNRev t₂ m)
+      ) else none
+    | (_, _) => none
+
+-- 1001 << 0001
+#eval bblastBvShl (mkValBV [true, false, false, true])
+  (mkValBV [false, false, false, true])
+#eval termEval (bblastBvShl (mkValBV [true, false, false, true])
+  (mkValBV [false, false, false, true]))
+-- 1001 << 0100
+#eval bblastBvShl (mkValBV [false, true, true, false])
+  (mkValBV [false, true, false, false])
+#eval termEval (bblastBvShl (mkValBV [false, true, true, false])
+  (mkValBV [false, true, false, false]))
+-- 1110 << 0000
+#eval bblastBvShl (mkValBV [true, true, true, false])
+  (mkValBV [false, false, false, false])
+#eval termEval (bblastBvShl (mkValBV [true, true, true, false])
+  (mkValBV [false, false, false, false]))
+-- Using variables
+#eval bblastBvShl (const 21 (bv 4))
+  (mkValBV [false, false, false, false])
+#eval bblastBvShl (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvShl rule
+axiom bbBvShl : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvShl t₁ t₂) (bblastBvShl t₁ t₂))
+-/
+
+
+/- ----------------------
+ BV Logical Right Shift
+----------------------- -/
+
+-- If terms are well-typed, construct their BV logical right shift application
+def mkBvLShr : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvLShr
+
+/-
+              a >> b
+-----------------------------------
+ite(b <ᵤ l,
+	  (For each s in (0 to log2(l)-1)
+      ite(b[s], a >> 2^s, a)),
+    [00..0]ₗ)
+where len(a) = l and [00..0]ₗ is a BV with l 0's
+-/
+-- Single logical right shift
+def lRightShiftVal : List Bool → List Bool
 | h :: t => false :: h :: (List.dropLast t)
 | [] => []
-
+-- Need a modified bitOfN for right shifts
 def bitOfNRShAux : term → Nat → List (Option term)
 | t, 0 => []
 | t, (n + 1) => (mkBitOf t (mkValInt (Int.ofNat (n + 1))))
                     :: (bitOfNRShAux t n)
-
 #eval bitOfNRShAux (const 21 (bv 4)) 3
-def rightShift : Option term → Option term :=
+def lRightShift : Option term → Option term :=
   λ ot => ot >>= λ t => sortOf t >>= λ s => 
     match s with 
     | bv n => match t with
-              | val (value.bitvec l) _ => val (value.bitvec (rightShiftVal l)) (bv n)
+              | val (value.bitvec l) _ => val (value.bitvec (lRightShiftVal l)) (bv n)
               | _ => mkBbT (some bot :: (bitOfNRShAux t (n-1)))
     | _ => none
-#eval rightShift (mkValBV [true, true, true])
-#eval rightShift (const 21 (bv 3))
+#eval lRightShift (mkValBV [true, true, true])
+#eval lRightShift (const 21 (bv 3))
 
+/-   
+-- If terms are well-typed, construct their bit-blasted BV logical right shift
+def bblastBvLShr : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => 
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    match (s₁, s₂) with
+    |  (bv m, bv n) => 
+      if (m = n) then (
+            boolListAdd (bitOfNRev t₁ m) (bitOfNRev t₂ m)
+      ) else none
+    | (_, _) => none
+
+-- 1001 >> 0001
+#eval bblastBvLShr (mkValBV [true, false, false, true])
+  (mkValBV [false, false, false, true])
+#eval termEval (bblastBvLShr (mkValBV [true, false, false, true])
+  (mkValBV [false, false, false, true]))
+-- 1001 >> 0100
+#eval bblastBvLShr (mkValBV [false, true, true, false])
+  (mkValBV [false, true, false, false])
+#eval termEval (bblastBvLShr (mkValBV [false, true, true, false])
+  (mkValBV [false, true, false, false]))
+-- 1110 >> 0000
+#eval bblastBvLShr (mkValBV [true, true, true, false])
+  (mkValBV [false, false, false, false])
+#eval termEval (bblastBvLShr (mkValBV [true, true, true, false])
+  (mkValBV [false, false, false, false]))
+-- Using variables
+#eval bblastBvLShr (const 21 (bv 4))
+  (mkValBV [false, false, false, false])
+#eval bblastBvLShr (const 21 (bv 4)) (const 22 (bv 4))
+
+-- Bit-blasting BvLShr rule
+axiom bbBvLShr : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvLShr t₁ t₂) (bblastBvLShr t₁ t₂))
+-/
+
+
+/- ------------------------
+ BV Arithmetic Right Shift
+------------------------- -/
+
+-- If terms are well-typed, construct their BV logical right shift application
+def mkBvAShr : Option term → Option term → Option term :=
+  λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvAShr
+
+/-
+              a >>ₐ b
+-----------------------------------
+ite(b <ᵤ l,
+	  (For each s in (0 to log2(l)-1)
+      ite(b[s], a >>ₐ 2^s, a)),
+    [00..0]ₗ)
+where len(a) = l and [00..0]ₗ is a BV with l 0's
+-/
+-- Single arithmetic right shift
 def aRightShiftVal : List Bool → Bool → List Bool
 | h :: t, sign => sign :: h :: (List.dropLast t)
 | [], sign  => []
-
+-- Need a bool list head function (that defaults to false)
 def head : List Bool → Bool 
 | h :: t => h
 | [] => false
-
 def aRightShift : Option term → Option term :=
   λ ot => ot >>= λ t => sortOf t >>= λ s => 
     match s with 
@@ -1160,9 +1274,10 @@ def aRightShift : Option term → Option term :=
 #eval aRightShift (mkValBV [true, false, true])
 #eval aRightShift (mkValBV [false, true, true])
 #eval aRightShift (const 21 (bv 3))
+
 /-   
--- If terms are well-typed, construct their bit-blasted BV add
-def bblastBvAdd : Option term → Option term → Option term :=
+-- If terms are well-typed, construct their bit-blasted BV arithmetic right shift
+def bblastBvAShr : Option term → Option term → Option term :=
   λ ot₁ ot₂ => 
   ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
@@ -1173,35 +1288,37 @@ def bblastBvAdd : Option term → Option term → Option term :=
       ) else none
     | (_, _) => none
 
--- 0000 + 1111
-#eval bblastBvAdd (mkValBV [false, false, false, false])
-  (mkValBV [true, true, true, true])
-#eval termEval (bblastBvAdd (mkValBV [false, false, false, false])
-  (mkValBV [true, true, true, true]))
--- 1111 + 1111
-#eval bblastBvAdd (mkValBV [true, true, true, true])
-  (mkValBV [true, true, true, true])
-#eval termEval (bblastBvAdd (mkValBV [true, true, true, true])
-  (mkValBV [true, true, true, true]))
--- 0101 + 1010
-#eval bblastBvAdd (mkValBV [false, true, false, true])
-  (mkValBV [true, false, true, false])
-#eval termEval (bblastBvAdd (mkValBV [false, true, false, true])
-  (mkValBV [true, false, true, false]))
--- 1111 + 0001
-#eval bblastBvAdd (mkValBV [true, true, true, true])
+-- 1001 >>ₐ 0001
+#eval bblastBvAShr (mkValBV [true, false, false, true])
   (mkValBV [false, false, false, true])
-#eval termEval (bblastBvAdd (mkValBV [true, true, true, true])
+#eval termEval (bblastBvAShr (mkValBV [true, false, false, true])
   (mkValBV [false, false, false, true]))
--- Using variables
-#eval bblastBvAdd (const 21 (bv 4))
+-- 1001 >>ₐ 0100
+#eval bblastBvAShr (mkValBV [false, true, true, false])
+  (mkValBV [false, true, false, false])
+#eval termEval (bblastBvAShr (mkValBV [false, true, true, false])
+  (mkValBV [false, true, false, false]))
+-- 1110 >>ₐ 0000
+#eval bblastBvAShr (mkValBV [true, true, true, false])
   (mkValBV [false, false, false, false])
-#eval bblastBvAdd (const 21 (bv 4)) (const 22 (bv 4))
+#eval termEval (bblastBvAShr (mkValBV [true, true, true, false])
+  (mkValBV [false, false, false, false]))
+-- 0101 >>ₐ 0010
+#eval bblastBvAShr (mkValBV [false, true, false, true])
+  (mkValBV [false, false, true, false])
+#eval termEval (bblastBvAShr (mkValBV [false, true, false, true])
+  (mkValBV [false, false, true, false]))
+-- Using variables
+#eval bblastBvAShr (const 21 (bv 4))
+  (mkValBV [false, false, false, false])
+#eval bblastBvAShr (const 21 (bv 4)) (const 22 (bv 4))
 
--- Bit-blasting BvAdd rule
-axiom bbBvAdd : ∀ {t₁ t₂ : Option term},
-  thHolds (mkEq (mkBvAdd t₁ t₂) (bblastBvAdd t₁ t₂))
+-- Bit-blasting BvAShr rule
+axiom bbBvAShr : ∀ {t₁ t₂ : Option term},
+  thHolds (mkEq (mkBvAShr t₁ t₂) (bblastBvAShr t₁ t₂))
 -/
+
+
 ---------------------------- BV Length Manipulating Operators ----------------------------
 
 /- -----------
