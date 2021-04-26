@@ -22,6 +22,34 @@ MSB ... LSB
 0001 ([false, false, false, true])
 -/
 
+--------------------------------------- Aux Functions ------------------------------------
+
+-- Nat to BV
+def pad : List Bool → Nat → List Bool
+| l, 0 => l
+| l, (n+1) => false :: (pad l n)
+partial def nat2BVAux : Nat → List Bool
+| 0 => []
+| n => List.append (nat2BVAux (n/2)) [if (n % 2 = 1) then true else false]
+def nat2BV : Nat → Nat → Option term :=
+λ n size => do 
+  let res ← (nat2BVAux n) 
+  if (List.length res ≤ size) then 
+    mkValBV (pad res (size - (List.length res))) 
+  else none
+#eval nat2BV 4 4
+
+-- log 2
+partial def log2 : Nat → Nat
+| 0 => 0
+| 1 => 0
+| n => log2 (n/2) + 1
+
+def mkZero : Nat → Option term :=
+λ n => mkValBV (List.replicate n false)
+
+def mkOnes : Nat → Option term :=
+λ n => mkValBV (List.replicate n true)
 
 --------------------------------------- Bit Of ---------------------------------------
 
@@ -59,12 +87,12 @@ match (s₁, s₂) with
    bitOfN t n returns a list of length n
    with option terms representing each bit.
 -/
-def bitOfNAux : term → Nat → List (Option term)
+def bitOfNAux : Option term → Nat → List (Option term)
 | t, 0 => (mkBitOf t (mkValInt 0)) :: []
 | t, (n + 1) => (mkBitOf t (mkValInt (Int.ofNat (n + 1))))
                     :: (bitOfNAux t n)
 
-def bitOfN : term → Nat → List (Option term) :=
+def bitOfN : Option term → Nat → List (Option term) :=
   λ t n => bitOfNAux t (n-1)
 
 #eval bitOfN (const 21 (bv 4)) 4
@@ -1112,8 +1140,8 @@ def mkBvShl : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvShl
 
 /- 
-Single left shift
-[x₀ ... ]
+Single left shift:
+[xₙ ... x₀] → [x_{n-1} ... x₀ 0] 
 -/
 def leftShiftVal : List Bool → List Bool
 | h :: t => t ++ [false]
@@ -1128,7 +1156,32 @@ def leftShift : Option term → Option term :=
 #eval leftShift (mkValBV [true, true, true])
 #eval leftShift (const 21 (bv 3))
 
+-- n left shifts
+def leftShiftNAux : Nat → Option term → Option term
+| 0, t => t
+| (n + 1), t => leftShiftNAux n (leftShift t)
+def leftShiftN : Option term → Nat → Option term :=
+  λ ot i => ot >>= λ t => sortOf t >>= λ s => 
+    match s with 
+    | bv n => leftShiftNAux i t 
+    | _ => none
+
 /-
+bvLeftShift n a b
+for b[n] → b[0], 
+  if b[i], then a << 2^i
+n is expected to be log2(len(b))
+-/
+def bvLeftShift : Nat → Option term → Option term → Option term
+| 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (leftShift a) a
+| (n + 1), a, b => do 
+                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top) 
+                              (leftShiftN a (2^(n+1)))  a)
+                  (bvLeftShift n res b)
+#eval termEval (bvLeftShift 2 (mkValBV [false, false, true]) (mkValBV [false, false, true]))
+
+/-
+If terms are well-typed, construct their bit-blasted BV left shift
               a << b
 -----------------------------------
 ite(b <ᵤ l,
@@ -1138,8 +1191,6 @@ ite(b <ᵤ l,
 where len(a) = l and [00..0]ₗ is a BV with l 0's
 -/
 
-/-   
--- If terms are well-typed, construct their bit-blasted BV left shift
 def bblastBvShl : Option term → Option term → Option term :=
   λ ot₁ ot₂ => 
   ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
@@ -1147,7 +1198,9 @@ def bblastBvShl : Option term → Option term → Option term :=
     match (s₁, s₂) with
     |  (bv m, bv n) => 
       if (m = n) then (
-            boolListAdd (bitOfNRev t₁ m) (bitOfNRev t₂ m)
+            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m)) 
+              (bvLeftShift ((log2 n) - 1) t₁ t₂) 
+              (mkZero m)
       ) else none
     | (_, _) => none
 
@@ -1174,7 +1227,6 @@ def bblastBvShl : Option term → Option term → Option term :=
 -- Bit-blasting BvShl rule
 axiom bbBvShl : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvShl t₁ t₂) (bblastBvShl t₁ t₂))
--/
 
 
 /- ----------------------
@@ -1185,15 +1237,6 @@ axiom bbBvShl : ∀ {t₁ t₂ : Option term},
 def mkBvLShr : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvLShr
 
-/-
-              a >> b
------------------------------------
-ite(b <ᵤ l,
-	  (For each s in (0 to log2(l)-1)
-      ite(b[s], a >> 2^s, a)),
-    [00..0]ₗ)
-where len(a) = l and [00..0]ₗ is a BV with l 0's
--/
 -- Single logical right shift
 def lRightShiftVal : List Bool → List Bool
 | h :: t => false :: h :: (List.dropLast t)
@@ -1214,8 +1257,39 @@ def lRightShift : Option term → Option term :=
 #eval lRightShift (mkValBV [true, true, true])
 #eval lRightShift (const 21 (bv 3))
 
-/-   
--- If terms are well-typed, construct their bit-blasted BV logical right shift
+-- n right shifts
+def lRightShiftNAux : Nat → Option term → Option term
+| 0, t => t
+| (n + 1), t => lRightShiftNAux n (lRightShift t)
+def lRightShiftN : Option term → Nat → Option term :=
+  λ ot i => ot >>= λ t => sortOf t >>= λ s => 
+    match s with 
+    | bv n => lRightShiftNAux i t 
+    | _ => none
+
+/-
+bvLRightShift n a b
+for b[n] → b[0], 
+  if b[i], then a >> 2^i
+n is expected to be log2(len(b))
+-/
+def bvLRightShift : Nat → Option term → Option term → Option term
+| 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (lRightShift a) a
+| (n + 1), a, b => do 
+                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top) 
+                              (lRightShiftN a (2^(n+1)))  a)
+                  (bvLRightShift n res b)
+
+/-
+If terms are well-typed, construct their bit-blasted BV logical right shift
+              a >> b
+-----------------------------------
+ite(b <ᵤ l,
+	  (For each s in (0 to log2(l)-1)
+      ite(b[s], a >> 2^s, a)),
+    [00..0]ₗ)
+where len(a) = l and [00..0]ₗ is a BV with l 0's
+-/
 def bblastBvLShr : Option term → Option term → Option term :=
   λ ot₁ ot₂ => 
   ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
@@ -1223,7 +1297,9 @@ def bblastBvLShr : Option term → Option term → Option term :=
     match (s₁, s₂) with
     |  (bv m, bv n) => 
       if (m = n) then (
-            boolListAdd (bitOfNRev t₁ m) (bitOfNRev t₂ m)
+            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m)) 
+              (bvLRightShift ((log2 n) - 1) t₁ t₂) 
+              (mkZero m)
       ) else none
     | (_, _) => none
 
@@ -1250,7 +1326,6 @@ def bblastBvLShr : Option term → Option term → Option term :=
 -- Bit-blasting BvLShr rule
 axiom bbBvLShr : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvLShr t₁ t₂) (bblastBvLShr t₁ t₂))
--/
 
 
 /- ------------------------
@@ -1261,15 +1336,6 @@ axiom bbBvLShr : ∀ {t₁ t₂ : Option term},
 def mkBvAShr : Option term → Option term → Option term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvAShr
 
-/-
-              a >>ₐ b
------------------------------------
-ite(b <ᵤ l,
-	  (For each s in (0 to log2(l)-1)
-      ite(b[s], a >>ₐ 2^s, a)),
-    [00..0]ₗ)
-where len(a) = l and [00..0]ₗ is a BV with l 0's
--/
 -- Single arithmetic right shift
 def aRightShiftVal : List Bool → Bool → List Bool
 | h :: t, sign => sign :: h :: (List.dropLast t)
@@ -1278,20 +1344,59 @@ def aRightShiftVal : List Bool → Bool → List Bool
 def head : List Bool → Bool 
 | h :: t => h
 | [] => false
-def aRightShift : Option term → Option term :=
-  λ ot => ot >>= λ t => sortOf t >>= λ s => 
+def sign : Option term → Option term := 
+λ ot => ot >>= λ t => sortOf t >>= λ s => 
     match s with 
     | bv n => match t with
+              | val (value.bitvec l) _ => if (head l) then top else bot
+              | _ => (mkBitOf t (mkValInt (Int.ofNat (n-1))))
+    | _ => none
+
+def aRightShift : Option term → Option term :=
+  λ ot => ot >>= λ t => sortOf t >>= λ s => 
+    match s with
+    | bv n => match t with
               | val (value.bitvec l) _ => val (value.bitvec (aRightShiftVal l (head l))) (bv n)
-              | _ => mkBbT ((mkBitOf t (mkValInt (Int.ofNat (n-1)))) :: 
+              | _ => mkBbT ((sign t) :: 
                             (bitOfNRShAux t (n-1)))
     | _ => none
 #eval aRightShift (mkValBV [true, false, true])
 #eval aRightShift (mkValBV [false, true, true])
 #eval aRightShift (const 21 (bv 3))
 
-/-   
--- If terms are well-typed, construct their bit-blasted BV arithmetic right shift
+-- n right shifts
+def aRightShiftNAux : Nat → Option term → Option term
+| 0, t => t
+| (n + 1), t => aRightShiftNAux n (aRightShift t)
+def aRightShiftN : Option term → Nat → Option term :=
+  λ ot i => ot >>= λ t => sortOf t >>= λ s => 
+    match s with 
+    | bv n => aRightShiftNAux i t 
+    | _ => none
+
+/-
+bvARightShift n a b
+for b[n] → b[0], 
+  if b[i], then a >>ₐ 2^i
+n is expected to be log2(len(b))
+-/
+def bvARightShift : Nat → Option term → Option term → Option term
+| 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (aRightShift a) a
+| (n + 1), a, b => do 
+                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top) 
+                              (aRightShiftN a (2^(n+1)))  a)
+                  (bvARightShift n res b)
+
+/-
+If terms are well-typed, construct their bit-blasted BV arithmetic right shift
+              a >>ₐ b
+-----------------------------------
+ite(b <ᵤ l,
+	  (For each s in (0 to log2(l)-1)
+      ite(b[s], a >>ₐ 2^s, a)),
+    [00..0]ₗ)
+where len(a) = l and [00..0]ₗ is a BV with l 0's
+-/
 def bblastBvAShr : Option term → Option term → Option term :=
   λ ot₁ ot₂ => 
   ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
@@ -1299,7 +1404,9 @@ def bblastBvAShr : Option term → Option term → Option term :=
     match (s₁, s₂) with
     |  (bv m, bv n) => 
       if (m = n) then (
-            boolListAdd (bitOfNRev t₁ m) (bitOfNRev t₂ m)
+            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m)) 
+              (bvARightShift ((log2 n) - 1) t₁ t₂) 
+              (mkIte (sign t₁) (mkOnes m) (mkZero m))
       ) else none
     | (_, _) => none
 
@@ -1309,9 +1416,9 @@ def bblastBvAShr : Option term → Option term → Option term :=
 #eval termEval (bblastBvAShr (mkValBV [true, false, false, true])
   (mkValBV [false, false, false, true]))
 -- 1001 >>ₐ 0100
-#eval bblastBvAShr (mkValBV [false, true, true, false])
+#eval bblastBvAShr (mkValBV [true, false, false, true])
   (mkValBV [false, true, false, false])
-#eval termEval (bblastBvAShr (mkValBV [false, true, true, false])
+#eval termEval (bblastBvAShr (mkValBV [true, false, false, true])
   (mkValBV [false, true, false, false]))
 -- 1110 >>ₐ 0000
 #eval bblastBvAShr (mkValBV [true, true, true, false])
@@ -1331,7 +1438,6 @@ def bblastBvAShr : Option term → Option term → Option term :=
 -- Bit-blasting BvAShr rule
 axiom bbBvAShr : ∀ {t₁ t₂ : Option term},
   thHolds (mkEq (mkBvAShr t₁ t₂) (bblastBvAShr t₁ t₂))
--/
 
 
 ---------------------------- BV Length Manipulating Operators ----------------------------

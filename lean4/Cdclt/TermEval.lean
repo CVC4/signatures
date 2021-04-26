@@ -72,6 +72,15 @@ partial def termEval (ot : Option term) : Option term :=
        | top => termEval t₁
        | bot => termEval t₂
        | _ => t
+  | bitOf n b'' i'' =>
+    do let b' ← termEval b''
+       let i' ← termEval i''
+       match b', i' with
+    | val (value.bitvec b) _, val (value.integer i) _ => 
+      match (List.get? (Int.toNat (n - i - 1)) b) with
+        | some bit => if bit then top else bot
+        | none => none
+    | _, _ => t
   | app t₁ t₂ =>
     do let t₁' ← termEval t₁
        let t₂' ← termEval t₂
