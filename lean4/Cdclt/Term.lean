@@ -1,10 +1,4 @@
-import Lean.Elab.Command
-
-open Lean Elab
-
---#eval show TermElabM Unit from do
---  let some d ← pure $ (← getEnv).find? `instMetaEval | throwError ""
---  logInfo d.value!
+import Lean
 
 instance [DecidableEq α] : DecidableEq (OptionM α) :=
   instDecidableEqOption
@@ -18,26 +12,6 @@ instance [Lean.Eval α] [ToString α] : Lean.Eval (OptionM α) :=
 instance [Lean.MetaEval α] [ToString α] : Lean.MetaEval (OptionM α) :=
   Lean.instMetaEval
 
-
-
-section
-open Lean Lean.Elab Lean.Elab.Command
-
-syntax (name := print_prefix) "#print prefix" ident : command
-
-deriving instance Inhabited for ConstantInfo -- required for Array.qsort
-
-@[commandElab print_prefix] def elabPrintPrefix : CommandElab
-  | `(#print prefix%$tk $i) => do
-    let env ← getEnv
-    let matches := env.constants.fold (fun xs name val =>
-      if i.getId.isPrefixOf name then xs.push (name, val) else xs) #[]
-    let matches := matches.qsort (fun p q => p.1.lt q.1)
-    for (name, val) in matches do
-      logInfoAt tk m!"{name} : {val.type}"
-  | _ => throwUnsupportedSyntax
-open List
-end
 
 namespace proof
 
