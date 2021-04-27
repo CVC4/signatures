@@ -4,7 +4,7 @@ import Cdclt.TermEval
 
 open proof
 open proof.sort proof.term
-open rules 
+open rules
 
 namespace proof
 
@@ -31,11 +31,11 @@ def pad : List Bool → Nat → List Bool
 partial def nat2BVAux : Nat → List Bool
 | 0 => []
 | n => List.append (nat2BVAux (n/2)) [if (n % 2 = 1) then true else false]
-def nat2BV : Nat → Nat → Option term :=
-λ n size => do 
-  let res ← (nat2BVAux n) 
-  if (List.length res ≤ size) then 
-    mkValBV (pad res (size - (List.length res))) 
+def nat2BV : Nat → Nat → OptionM term :=
+λ n size => do
+  let res ← (nat2BVAux n)
+  if (List.length res ≤ size) then
+    mkValBV (pad res (size - (List.length res)))
   else none
 #eval nat2BV 4 4
 
@@ -45,19 +45,19 @@ partial def log2 : Nat → Nat
 | 1 => 0
 | n => log2 (n/2) + 1
 
-def mkZero : Nat → Option term :=
+def mkZero : Nat → OptionM term :=
 λ n => mkValBV (List.replicate n false)
 
-def mkOnes : Nat → Option term :=
+def mkOnes : Nat → OptionM term :=
 λ n => mkValBV (List.replicate n true)
 
 --------------------------------------- Bit Of ---------------------------------------
 
 /- mkBitOf bv n returns the nth element
    of bv if it exists; none otherwise -/
-def mkBitOf : Option term → Option term → Option term :=
-λ ot₁ ot₂ => 
-  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+def mkBitOf : OptionM term → OptionM term → OptionM term :=
+λ ot₁ ot₂ =>
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
   sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
 match (s₁, s₂) with
 | (bv n, intSort) =>
@@ -87,12 +87,12 @@ match (s₁, s₂) with
    bitOfN t n returns a list of length n
    with option terms representing each bit.
 -/
-def bitOfNAux : Option term → Nat → List (Option term)
+def bitOfNAux : OptionM term → Nat → List (OptionM term)
 | t, 0 => (mkBitOf t (mkValInt 0)) :: []
 | t, (n + 1) => (mkBitOf t (mkValInt (Int.ofNat (n + 1))))
                     :: (bitOfNAux t n)
 
-def bitOfN : Option term → Nat → List (Option term) :=
+def bitOfN : OptionM term → Nat → List (OptionM term) :=
   λ t n => bitOfNAux t (n-1)
 
 #eval bitOfN (const 21 (bv 4)) 4
@@ -105,12 +105,12 @@ def bitOfN : Option term → Nat → List (Option term) :=
 
 
 /- bitOfNRev works like bitOfN but in reverse -/
-def bitOfNRevAux : term → Nat → Nat → List (Option term)
+def bitOfNRevAux : term → Nat → Nat → List (OptionM term)
 | t, 0, _ => []
-| t, (n₁+1), n₂ => (mkBitOf t (mkValInt (Int.ofNat (n₂ - n₁ - 1)))) 
+| t, (n₁+1), n₂ => (mkBitOf t (mkValInt (Int.ofNat (n₂ - n₁ - 1))))
                     :: (bitOfNRevAux t n₁ n₂)
 
-def bitOfNRev : term → Nat → List (Option term) :=
+def bitOfNRev : term → Nat → List (OptionM term) :=
   λ t n => bitOfNRevAux t n n
 
 #eval bitOfNRev (const 21 (bv 4)) 4
@@ -126,10 +126,10 @@ def bitOfNRev : term → Nat → List (Option term) :=
 
 /-
 mkBbT l
-Construct a BV term that is a bbT (bit-blasted term) 
+Construct a BV term that is a bbT (bit-blasted term)
 of the bools in l
 -/
-@[matchPattern] def mkBbT (l : List (Option term)) : Option term :=
+@[matchPattern] def mkBbT (l : List (OptionM term)) : OptionM term :=
   mkAppN (bbT (List.length l)) l
 
 #eval mkBbT ([some top, some top, some top, some top])
@@ -139,8 +139,8 @@ checkBinaryBV ot₁ ot₂ constr
 If ot₁ and ot₂ are BVs of the same length, then
 construct a bitwise op of (constr ot₁ ot₂)
 -/
-def checkBinaryBV : Option term → Option term →
-  (Nat → term → term → term) → Option term :=
+def checkBinaryBV : OptionM term → OptionM term →
+  (Nat → term → term → term) → OptionM term :=
   λ ot₁ ot₂ constr =>
     ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
@@ -148,8 +148,8 @@ def checkBinaryBV : Option term → Option term →
   | (bv m, bv n) => if (m = n) then (constr m t₁ t₂) else none
   | (_, _) => none
 
-/- Given two lists, and a function that transforms elements of 
-   each list into a third type, apply the function index-wise 
+/- Given two lists, and a function that transforms elements of
+   each list into a third type, apply the function index-wise
    on the lists -/
 def zip {α β γ : Type} : List α → List β →  (α → β → γ) → List γ
    | (h₁ :: t₁), (h₂ :: t₂), p => (p h₁ h₂) :: (zip t₁ t₂ p)
@@ -159,13 +159,13 @@ def zip {α β γ : Type} : List α → List β →  (α → β → γ) → List
 /-
 bblastBvBitwise ot₁ ot₂ const
 checks that ot₁ and ot₂ are BVs of the same length
-and returns an Option List of Option terms that
+and returns an OptionM List of OptionM terms that
 has the bitwise application of const to the
 respective elements of ot₁ and ot₂
 -/
-def bblastBvBitwise (ot₁ ot₂ : Option term)
- (constructor : Option term → Option term → Option term) : Option term :=
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+def bblastBvBitwise (ot₁ ot₂ : OptionM term)
+ (constructor : OptionM term → OptionM term → OptionM term) : OptionM term :=
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
       match (s₁, s₂) with
       |  (bv m, bv n) =>
@@ -180,7 +180,7 @@ def bblastBvBitwise (ot₁ ot₂ : Option term)
 ----------- -/
 
 -- If terms are well-typed, construct their BV Eq application
-def mkBvEq : Option term → Option term → Option term :=
+def mkBvEq : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvEq
 
 /-
@@ -189,10 +189,10 @@ If terms are well-typed, construct their bit-blasted BV eq
 ------------------------------------
     xₙ = yₙ ∧ ... ∧ x₀ = y₀
 -/
-def bblastBvEq : Option term → Option term → Option term :=
+def bblastBvEq : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
     ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
-    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ => 
+    sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
     |  (bv m, bv n) =>
       if (m = n) then (
@@ -215,7 +215,7 @@ def bblastBvEq : Option term → Option term → Option term :=
 #eval bblastBvEq (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvEq rule
-axiom bbBvEq : ∀ {t₁ t₂ : Option term},
+axiom bbBvEq : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvEq t₁ t₂) (bblastBvEq t₁ t₂))
 
 
@@ -224,11 +224,11 @@ axiom bbBvEq : ∀ {t₁ t₂ : Option term},
 ------- -/
 
 -- If term is a BV, construct its BV Not application
-def mkBvNot : Option term → Option term :=
+def mkBvNot : OptionM term → OptionM term :=
   λ ot => ot >>= λ t => sortOf t >>= λ s =>
   match s with
   | bv n => bvNot n t
-  | _ => none 
+  | _ => none
 
 /-
 If term is a BV, construct its bit-blasted BV not
@@ -236,7 +236,7 @@ If term is a BV, construct its bit-blasted BV not
 ----------------------
   [¬xₙ ...  ¬x₁ ¬x₀]
 -/
-def bblastBvNot (ot : Option term) : Option term :=
+def bblastBvNot (ot : OptionM term) : OptionM term :=
   ot >>= λ t => sortOf t >>= λ s =>
     match s with
     | bv n => mkBbT (List.map mkNot (bitOfN t n))
@@ -251,7 +251,7 @@ def bblastBvNot (ot : Option term) : Option term :=
 #eval bblastBvNot (const 21 (bv 4))
 
 -- Bit-blasting BvNot rule
-axiom bbBvNot : ∀ {t : Option term},
+axiom bbBvNot : ∀ {t : OptionM term},
   thHolds (mkEq (mkBvNot t) (bblastBvNot t))
 
 
@@ -260,7 +260,7 @@ axiom bbBvNot : ∀ {t : Option term},
 -------- -/
 
 -- If terms are well-typed, construct their BV And application
-def mkBvAnd : Option term → Option term → Option term :=
+def mkBvAnd : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvAnd
 
 /-
@@ -269,7 +269,7 @@ If terms are well-typed, construct their bit-blasted BV and
 -----------------------------------------
     [xₙ ∧ yₙ ... x₁ ∧ y₁  x₀ ∧ y₀]
 -/
-def bblastBvAnd : Option term → Option term → Option term :=
+def bblastBvAnd : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkAnd
 
 -- 0000 ∧ 1111
@@ -288,7 +288,7 @@ def bblastBvAnd : Option term → Option term → Option term :=
 #eval bblastBvAnd (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvAnd rule
-axiom bbBvAnd : ∀ {t₁ t₂ : Option term},
+axiom bbBvAnd : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvAnd t₁ t₂) (bblastBvAnd t₁ t₂))
 
 
@@ -297,7 +297,7 @@ axiom bbBvAnd : ∀ {t₁ t₂ : Option term},
 ----- -/
 
 -- If terms are well-typed, construct their BV Or application
-def mkBvOr : Option term → Option term → Option term :=
+def mkBvOr : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvOr
 
 /-
@@ -306,7 +306,7 @@ If terms are well-typed, construct their bit-blasted BV or
 -----------------------------------------
      [xₙ ∨ yₙ ... x₁ ∨ y₁  x₀ ∨ y₀]
 -/
-def bblastBvOr : Option term → Option term → Option term :=
+def bblastBvOr : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkOr
 
 -- 0000 ∨ 1111
@@ -325,7 +325,7 @@ def bblastBvOr : Option term → Option term → Option term :=
 #eval bblastBvOr (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvOr rule
-axiom bbBvOr : ∀ {t₁ t₂ : Option term},
+axiom bbBvOr : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvOr t₁ t₂) (bblastBvOr t₁ t₂))
 
 
@@ -334,7 +334,7 @@ axiom bbBvOr : ∀ {t₁ t₂ : Option term},
 ------ -/
 
 -- If terms are well-typed, construct their BV Xor application
-def mkBvXor : Option term → Option term → Option term :=
+def mkBvXor : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvXor
 
 /-
@@ -343,7 +343,7 @@ If terms are well-typed, construct their bit-blasted BV xor
 -----------------------------------------
      [xₙ ⊕ yₙ ... x₁ ⊕ y₁  x₀ ⊕ y₀]
 -/
-def bblastBvXor : Option term → Option term → Option term :=
+def bblastBvXor : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkXor
 
 -- 0000 ⊕ 1111
@@ -362,7 +362,7 @@ def bblastBvXor : Option term → Option term → Option term :=
 #eval bblastBvXor (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvXor rule
-axiom bbBvXor : ∀ {t₁ t₂ : Option term},
+axiom bbBvXor : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvXor t₁ t₂) (bblastBvXor t₁ t₂))
 
 
@@ -371,7 +371,7 @@ axiom bbBvXor : ∀ {t₁ t₂ : Option term},
 ------- -/
 
 -- If terms are well-typed, construct their BV Nand application
-def mkBvNand : Option term → Option term → Option term :=
+def mkBvNand : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvNand
 
 /-
@@ -380,7 +380,7 @@ If terms are well-typed, construct their bit-blasted BV Nand
 -------------------------------------------
     [xₙ ¬∧ yₙ ... x₁ ¬∧ y₁  x₀ ¬∧ y₀]
 -/
-def bblastBvNand : Option term → Option term → Option term :=
+def bblastBvNand : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkNand
 
 -- 0000 ¬∧ 1111
@@ -399,7 +399,7 @@ def bblastBvNand : Option term → Option term → Option term :=
 #eval bblastBvNand (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvNand rule
-axiom bbBvNand : ∀ {t₁ t₂ : Option term},
+axiom bbBvNand : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvNand t₁ t₂) (bblastBvNand t₁ t₂))
 
 
@@ -408,7 +408,7 @@ axiom bbBvNand : ∀ {t₁ t₂ : Option term},
 ------- -/
 
 -- If terms are well-typed, construct their BV Nor application
-def mkBvNor : Option term → Option term → Option term :=
+def mkBvNor : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvNor
 
 /-
@@ -417,7 +417,7 @@ If terms are well-typed, construct their bit-blasted BV Nand
 -------------------------------------------
     [xₙ ¬∨ yₙ ... x₁ ¬∨ y₁  x₀ ¬∨ y₀]
 -/
-def bblastBvNor : Option term → Option term → Option term :=
+def bblastBvNor : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkNor
 
 -- 0000 ¬∨ 1111
@@ -436,7 +436,7 @@ def bblastBvNor : Option term → Option term → Option term :=
 #eval bblastBvNor (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvNor rule
-axiom bbBvNor : ∀ {t₁ t₂ : Option term},
+axiom bbBvNor : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvNor t₁ t₂) (bblastBvNor t₁ t₂))
 
 
@@ -445,7 +445,7 @@ axiom bbBvNor : ∀ {t₁ t₂ : Option term},
 ------- -/
 
 -- If terms are well-typed, construct their BV Xnor application
-def mkBvXnor : Option term → Option term → Option term :=
+def mkBvXnor : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvXnor
 
 /-
@@ -454,7 +454,7 @@ If terms are well-typed, construct their bit-blasted BV Nand
 -------------------------------------------
       [xₙ ↔ yₙ ... x₁ ↔ y₁  x₀ ↔ y₀]
 -/
-def bblastBvXnor : Option term → Option term → Option term :=
+def bblastBvXnor : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => bblastBvBitwise ot₁ ot₂ mkIff
 
 -- 1111 ¬⊕ 1111
@@ -473,7 +473,7 @@ def bblastBvXnor : Option term → Option term → Option term :=
 #eval bblastBvNor (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvNor rule
-axiom bbBvXnor : ∀ {t₁ t₂ : Option term},
+axiom bbBvXnor : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvXnor t₁ t₂) (bblastBvXnor t₁ t₂))
 
 
@@ -484,17 +484,17 @@ BV Comp
 ------ -/
 
 -- If terms are well-typed, construct their BV Comp application
-def mkBvComp : Option term → Option term → Option term :=
+def mkBvComp : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvComp
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 bv comp
           bvComp [xₙ ... x₁ x₀] [yₙ ... y₀ y₁]
 ----------------------------------------------------------------
   ite ((xₙ = yₙ) ∧ ... ∧ (x₁ = x₂) ∧ (x₀ = y₀)) [true] [false]
 -/
-def bblastBvComp : Option term → Option term → Option term :=
+def bblastBvComp : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => mkIte (bblastBvEq ot₁ ot₂) (mkBbT [some top]) (mkBbT [some bot])
 
 -- bvComp 0000 1111
@@ -508,12 +508,12 @@ def bblastBvComp : Option term → Option term → Option term :=
 #eval termEval (bblastBvComp (mkValBV [false, false, true, false])
   (mkValBV [false, false, true, false]))
 -- Using variables
-#eval bblastBvComp (const 21 (bv 4)) 
+#eval bblastBvComp (const 21 (bv 4))
   (mkValBV [true, false, false, false])
 #eval bblastBvComp (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvComp rule
-axiom bbBvComp : ∀ {t₁ t₂ : Option term},
+axiom bbBvComp : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvComp t₁ t₂) (bblastBvComp t₁ t₂))
 
 
@@ -522,7 +522,7 @@ axiom bbBvComp : ∀ {t₁ t₂ : Option term},
 --------------------- -/
 
 -- If terms are well-typed, construct their BV Ult application
-def mkBvUlt : Option term → Option term → Option term :=
+def mkBvUlt : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUlt
 
 /-
@@ -530,21 +530,21 @@ def mkBvUlt : Option term → Option term → Option term :=
 -------------------------------------------------------------------------
     (¬xₙ ∧ yₙ) ∨ ((xₙ ↔ yₙ) ∧ ([x_{n-1} ... x₀] <ᵤ [y_{n-1} ... y₀]))
 -/
-def boolListUlt : List (Option term) → List (Option term) → Option term
+def boolListUlt : List (OptionM term) → List (OptionM term) → OptionM term
 | [h₁], [h₂] => mkAnd (mkNot h₁) h₂
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)))
 | _, _ => none
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 unsigned less than comparison
 -/
-def bblastBvUlt : Option term → Option term → Option term :=
+def bblastBvUlt : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
             boolListUlt (bitOfN t₁ m) (bitOfN t₂ m)
       ) else none
@@ -566,12 +566,12 @@ def bblastBvUlt : Option term → Option term → Option term :=
 #eval termEval (bblastBvUlt (mkValBV [true, false])
   (mkValBV [false, true]))
 -- Using variables
-#eval bblastBvUlt (const 21 (bv 4)) 
+#eval bblastBvUlt (const 21 (bv 4))
   (mkValBV [false, false, false, false])
 #eval bblastBvUlt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUlt rule
-axiom bbBvUlt : ∀ {t₁ t₂ : Option term},
+axiom bbBvUlt : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvUlt t₁ t₂) (bblastBvUlt t₁ t₂))
 
 
@@ -580,24 +580,24 @@ axiom bbBvUlt : ∀ {t₁ t₂ : Option term},
 ----------------------------------- -/
 
 -- If terms are well-typed, construct their BV Ule application
-def mkBvUle : Option term → Option term → Option term :=
+def mkBvUle : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUle
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 unsigned less than or equal to comparison
-      x ≤ᵤ y 
+      x ≤ᵤ y
 ------------------
 (x <ᵤ y) ∨ (x = y)
 -/
-def bblastBvUle : Option term → Option term → Option term :=
+def bblastBvUle : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
-            mkOr (boolListUlt (bitOfN t₁ m) (bitOfN t₂ m)) 
+            mkOr (boolListUlt (bitOfN t₁ m) (bitOfN t₂ m))
                  (mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq))
       ) else none
     | (_, _) => none
@@ -618,12 +618,12 @@ def bblastBvUle : Option term → Option term → Option term :=
 #eval termEval (bblastBvUle (mkValBV [true, false])
   (mkValBV [false, true]))
 -- Using variables
-#eval bblastBvUle (const 21 (bv 4)) 
+#eval bblastBvUle (const 21 (bv 4))
   (mkValBV [false, false, false, false])
 #eval bblastBvUlt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUle rule
-axiom bbBvUle : ∀ {t₁ t₂ : Option term},
+axiom bbBvUle : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvUle t₁ t₂) (bblastBvUle t₁ t₂))
 
 
@@ -632,7 +632,7 @@ axiom bbBvUle : ∀ {t₁ t₂ : Option term},
 ----------------------- -/
 
 -- If terms are well-typed, construct their BV Ugt application
-def mkBvUgt : Option term → Option term → Option term :=
+def mkBvUgt : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUgt
 
 /-
@@ -640,21 +640,21 @@ def mkBvUgt : Option term → Option term → Option term :=
 -------------------------------------------------------------------------
    (xₙ ∧ ¬yₙ) ∨ ((xₙ ↔ yₙ) ∧ ([x_{n-1} ... x₀] >ᵤ [y_{n-1} ... y₀]))
 -/
-def boolListUgt : List (Option term) → List (Option term) → Option term
+def boolListUgt : List (OptionM term) → List (OptionM term) → OptionM term
 | [h₁], [h₂] => mkAnd h₁ (mkNot h₂)
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd h₁ (mkNot h₂)) (mkAnd (mkEq h₁ h₂) (boolListUgt t₁ t₂)))
 | _, _ => none
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 unsigned greater than comparison
 -/
-def bblastBvUgt : Option term → Option term → Option term :=
+def bblastBvUgt : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
             boolListUgt (bitOfN t₁ m) (bitOfN t₂ m)
       ) else none
@@ -676,12 +676,12 @@ def bblastBvUgt : Option term → Option term → Option term :=
 #eval termEval (bblastBvUgt (mkValBV [false, true])
   (mkValBV [true, false]))
 -- Using variables
-#eval bblastBvUgt (const 21 (bv 4)) 
+#eval bblastBvUgt (const 21 (bv 4))
   (mkValBV [false, false, false, false])
 #eval bblastBvUgt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUgt rule
-axiom bbBvUgt : ∀ {t₁ t₂ : Option term},
+axiom bbBvUgt : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvUgt t₁ t₂) (bblastBvUgt t₁ t₂))
 
 
@@ -690,24 +690,24 @@ axiom bbBvUgt : ∀ {t₁ t₂ : Option term},
 ------------------------------------- -/
 
 -- If terms are well-typed, construct their BV Uge application
-def mkBvUge : Option term → Option term → Option term :=
+def mkBvUge : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUge
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 unsigned greater than or equal to comparison
       x ≥ᵤ y
 ------------------
 (x >ᵤ y) ∨ (x = y)
 -/
-def bblastBvUge : Option term → Option term → Option term :=
+def bblastBvUge : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
-            mkOr (boolListUgt (bitOfN t₁ m) (bitOfN t₂ m)) 
+            mkOr (boolListUgt (bitOfN t₁ m) (bitOfN t₂ m))
                  (mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq))
       ) else none
     | (_, _) => none
@@ -729,12 +729,12 @@ def bblastBvUge : Option term → Option term → Option term :=
 #eval termEval (bblastBvUge (mkValBV [false, true])
   (mkValBV [true, false]))
 -- Using variables
-#eval bblastBvUge (const 21 (bv 4)) 
+#eval bblastBvUge (const 21 (bv 4))
   (mkValBV [false, false, false, true])
 #eval bblastBvUgt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUge rule
-axiom bbBvUge : ∀ {t₁ t₂ : Option term},
+axiom bbBvUge : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvUge t₁ t₂) (bblastBvUge t₁ t₂))
 
 
@@ -743,7 +743,7 @@ axiom bbBvUge : ∀ {t₁ t₂ : Option term},
 ------------------- -/
 
 -- If terms are well-typed, construct their BV Slt application
-def mkBvSlt : Option term → Option term → Option term :=
+def mkBvSlt : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSlt
 
 /-
@@ -751,21 +751,21 @@ def mkBvSlt : Option term → Option term → Option term :=
 ---------------------------------------------------------------------
   (xₙ ∧ ¬yₙ) ∨ (xₙ ↔ yₙ ∧ ([x_{n-1} ... x₀] <ᵤ [y_{n-1} ... y₀]))
 -/
-def boolListSlt : List (Option term) → List (Option term) → Option term
+def boolListSlt : List (OptionM term) → List (OptionM term) → OptionM term
 | [h₁], [h₂] => (mkAnd h₁ (mkNot h₂))
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd h₁ (mkNot h₂)) (mkAnd (mkEq h₁ h₂) (boolListUlt t₁ t₂)))
 | _, _ => none
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 signed less than comparison
 -/
-def bblastBvSlt : Option term → Option term → Option term :=
+def bblastBvSlt : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
             boolListSlt (bitOfN t₁ m) (bitOfN t₂ m)
       ) else none
@@ -792,7 +792,7 @@ def bblastBvSlt : Option term → Option term → Option term :=
 #eval bblastBvSlt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvUgt rule
-axiom bbBvSlt : ∀ {t₁ t₂ : Option term},
+axiom bbBvSlt : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvSlt t₁ t₂) (bblastBvSlt t₁ t₂))
 
 
@@ -801,24 +801,24 @@ axiom bbBvSlt : ∀ {t₁ t₂ : Option term},
 -------------------------------- -/
 
 -- If terms are well-typed, construct their BV Sle application
-def mkBvSle : Option term → Option term → Option term :=
+def mkBvSle : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSle
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 signed less than or equal to comparison
        x ≤ₛ y
 ------------------
 (x <ₛ y) ∨ (x = y)
 -/
-def bblastBvSle : Option term → Option term → Option term :=
+def bblastBvSle : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
-            mkOr (boolListSlt (bitOfN t₁ m) (bitOfN t₂ m)) 
+            mkOr (boolListSlt (bitOfN t₁ m) (bitOfN t₂ m))
                  (mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq))
       ) else none
     | (_, _) => none
@@ -844,7 +844,7 @@ def bblastBvSle : Option term → Option term → Option term :=
 #eval bblastBvSle (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvSle rule
-axiom bbBvSle : ∀ {t₁ t₂ : Option term},
+axiom bbBvSle : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvSle t₁ t₂) (bblastBvSle t₁ t₂))
 
 
@@ -853,7 +853,7 @@ axiom bbBvSle : ∀ {t₁ t₂ : Option term},
 ----------------------- -/
 
 -- If terms are well-typed, construct their BV Sgt application
-def mkBvSgt : Option term → Option term → Option term :=
+def mkBvSgt : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSgt
 
 /-
@@ -861,21 +861,21 @@ def mkBvSgt : Option term → Option term → Option term :=
 ----------------------------------------------------------------------
   (¬xₙ ∧ yₙ) ∨ (xₙ ↔ yₙ ∧ ([x_{n-1} ... x₀] >ᵤ [y_{n-1} ... y₀]))
 -/
-def boolListSgt : List (Option term) → List (Option term) → Option term
+def boolListSgt : List (OptionM term) → List (OptionM term) → OptionM term
 | [h₁], [h₂] => (mkAnd (mkNot h₁) h₂)
 | (h₁ :: t₁), (h₂ :: t₂) => (mkOr (mkAnd (mkNot h₁) h₂) (mkAnd (mkEq h₁ h₂) (boolListUgt t₁ t₂)))
 | _, _ => none
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 signed greater than comparison
 -/
-def bblastBvSgt : Option term → Option term → Option term :=
+def bblastBvSgt : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
             boolListSgt (bitOfN t₁ m) (bitOfN t₂ m)
       ) else none
@@ -902,7 +902,7 @@ def bblastBvSgt : Option term → Option term → Option term :=
 #eval bblastBvSgt (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvSgt rule
-axiom bbBvSgt : ∀ {t₁ t₂ : Option term},
+axiom bbBvSgt : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvSgt t₁ t₂) (bblastBvSgt t₁ t₂))
 
 
@@ -911,24 +911,24 @@ axiom bbBvSgt : ∀ {t₁ t₂ : Option term},
 ----------------------------------- -/
 
 -- If terms are well-typed, construct their BV Sge application
-def mkBvSge : Option term → Option term → Option term :=
+def mkBvSge : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSge
 
 /-
-If terms are well-typed, construct their bit-blasted 
+If terms are well-typed, construct their bit-blasted
 signed greater than or equal to comparison
        x ≥ₛ y
 ------------------
 (x >ₛ y) ∨ (x = y)
 -/
-def bblastBvSge : Option term → Option term → Option term :=
+def bblastBvSge : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ =>
-    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+    ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
-            mkOr (boolListSgt (bitOfN t₁ m) (bitOfN t₂ m)) 
+            mkOr (boolListSgt (bitOfN t₁ m) (bitOfN t₂ m))
                  (mkAndN (zip (bitOfN t₁ m) (bitOfN t₂ m) mkEq))
       ) else none
     | (_, _) => none
@@ -954,7 +954,7 @@ def bblastBvSge : Option term → Option term → Option term :=
 #eval bblastBvSge (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvSge rule
-axiom bbBvSge : ∀ {t₁ t₂ : Option term},
+axiom bbBvSge : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvSge t₁ t₂) (bblastBvSge t₁ t₂))
 
 
@@ -965,7 +965,7 @@ axiom bbBvSge : ∀ {t₁ t₂ : Option term},
 ----------- -/
 
 -- If terms are well-typed, construct their BV plus application
-def mkBvAdd : Option term → Option term → Option term :=
+def mkBvAdd : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvAdd
 
 /-
@@ -977,26 +977,26 @@ where car₀ = ⊥
       car_{i+1} = (xᵢ ∧ yᵢ) ∨ ((xᵢ ⊕ yᵢ) ∧ carᵢ)
 Then reverse again
 -/
-def bitAdder : Option term → Option term → Option term → Option term × Option term
-| x, y, carry => (mkXor (mkXor x y) carry, 
+def bitAdder : OptionM term → OptionM term → OptionM term → OptionM term × OptionM term
+| x, y, carry => (mkXor (mkXor x y) carry,
   mkOr (mkAnd x y) (mkAnd (mkXor x y) carry))
 #eval (bitAdder top top top)
 #eval termEval (bitAdder top top top).1
 #eval termEval (bitAdder top top top).2
-def boolListAddAux : Option term → List (Option term) → List (Option term) → List (Option term)
+def boolListAddAux : OptionM term → List (OptionM term) → List (OptionM term) → List (OptionM term)
 | c, (h₁ :: t₁), (h₂ :: t₂) => (bitAdder h₁ h₂ c).1 :: (boolListAddAux (bitAdder h₁ h₂ c).2 t₁ t₂)
 | c, [], [] => []
 | _, _, _ => []
-def boolListAdd : List (Option term) → List (Option term) → Option term
+def boolListAdd : List (OptionM term) → List (OptionM term) → OptionM term
 | l₁, l₂ => mkBbT (List.reverse (boolListAddAux bot l₁ l₂))
 
 -- If terms are well-typed, construct their bit-blasted BV add
-def bblastBvAdd : Option term → Option term → Option term :=
-  λ ot₁ ot₂ => 
-  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+def bblastBvAdd : OptionM term → OptionM term → OptionM term :=
+  λ ot₁ ot₂ =>
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
             boolListAdd (bitOfNRev t₁ m) (bitOfNRev t₂ m)
       ) else none
@@ -1028,7 +1028,7 @@ def bblastBvAdd : Option term → Option term → Option term :=
 #eval bblastBvAdd (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvAdd rule
-axiom bbBvAdd : ∀ {t₁ t₂ : Option term},
+axiom bbBvAdd : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvAdd t₁ t₂) (bblastBvAdd t₁ t₂))
 
 
@@ -1037,19 +1037,19 @@ axiom bbBvAdd : ∀ {t₁ t₂ : Option term},
 ------------ -/
 
 -- If term is a BV, construct its BV Neg application
-def mkBvNeg : Option term → Option term :=
+def mkBvNeg : OptionM term → OptionM term :=
   λ ot => ot >>= λ t => sortOf t >>= λ s =>
   match s with
   | bv n => bvNot n t
-  | _ => none 
+  | _ => none
 
-/- genRevOne n generates the list 
+/- genRevOne n generates the list
    [(some top) (some bot) ... (some bot)]
    where there are n-1 (some bot) elements -/
-def genZeros : Nat → List (Option term)
+def genZeros : Nat → List (OptionM term)
 | 0 => []
 | n + 1 => (some bot) :: genZeros n
-def genRevOne : Nat → List (Option term) :=
+def genRevOne : Nat → List (OptionM term) :=
   λ n => (some top) :: genZeros (n - 1)
 #eval genZeros 3
 #eval genRevOne 4
@@ -1060,9 +1060,9 @@ If term is well-typed, construct its bit-blasted BV neg
           OR
 bvneg x = bvadd (bvnot x) 1
 -/
-def bblastBvNeg : Option term → Option term :=
-  λ ot => 
-  ot >>= λ t => sortOf t >>= λ s => 
+def bblastBvNeg : OptionM term → OptionM term :=
+  λ ot =>
+  ot >>= λ t => sortOf t >>= λ s =>
     match s with
     |  bv m => boolListAdd (List.map mkNot (bitOfNRev t m)) (genRevOne m)
     | _ => some bot
@@ -1079,7 +1079,7 @@ def bblastBvNeg : Option term → Option term :=
 #eval bblastBvNeg (const 21 (bv 4))
 
 -- Bit-blasting BvNeg rule
-axiom bbBvNeg : ∀ {t : Option term},
+axiom bbBvNeg : ∀ {t : OptionM term},
   thHolds (mkEq (mkBvNeg t) (bblastBvNeg t))
 
 
@@ -1088,7 +1088,7 @@ axiom bbBvNeg : ∀ {t : Option term},
 --------------- -/
 
 -- If terms are well-typed, construct their BV minus application
-def mkBvSub : Option term → Option term → Option term :=
+def mkBvSub : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvSub
 
 /-
@@ -1097,16 +1097,16 @@ x -bv y = +(x, ¬y, 1)
           OR
 bvneg x = bvadd (x, bvnot y, 1)
 -/
-def bblastBvSub : Option term → Option term → Option term :=
-  λ ot₁ ot₂ => 
-  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+def bblastBvSub : OptionM term → OptionM term → OptionM term :=
+  λ ot₁ ot₂ =>
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
-            mkBbT (List.reverse (boolListAddAux 
-              top 
-              (bitOfNRev t₁ m) 
+            mkBbT (List.reverse (boolListAddAux
+              top
+              (bitOfNRev t₁ m)
               ((List.map mkNot (bitOfNRev t₂ m)))))
       ) else none
     | (_, _) => none
@@ -1125,7 +1125,7 @@ def bblastBvSub : Option term → Option term → Option term :=
 #eval bblastBvSub (const 21 (bv 4)) (mkValBV [false, false, false, false])
 #eval bblastBvSub (const 21 (bv 4)) (const 22 (bv 4))
 -- Bit-blasting BvNeg rule
-axiom bbBvSub : ∀ {t₁ t₂ : Option term},
+axiom bbBvSub : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvSub t₁ t₂) (bblastBvSub t₁ t₂))
 
 
@@ -1136,19 +1136,19 @@ axiom bbBvSub : ∀ {t₁ t₂ : Option term},
 ----------- -/
 
 -- If terms are well-typed, construct their BV left shift application
-def mkBvShl : Option term → Option term → Option term :=
+def mkBvShl : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvShl
 
-/- 
+/-
 Single left shift:
-[xₙ ... x₀] → [x_{n-1} ... x₀ 0] 
+[xₙ ... x₀] → [x_{n-1} ... x₀ 0]
 -/
 def leftShiftVal : List Bool → List Bool
 | h :: t => t ++ [false]
 | [] => []
-def leftShift : Option term → Option term :=
-  λ ot => ot >>= λ t => sortOf t >>= λ s => 
-    match s with 
+def leftShift : OptionM term → OptionM term :=
+  λ ot => ot >>= λ t => sortOf t >>= λ s =>
+    match s with
     | bv n => match t with
               | val (value.bitvec l) _ => val (value.bitvec (leftShiftVal l)) (bv n)
               | _ => mkBbT (List.append (bitOfNAux t (n-2)) [some bot])
@@ -1157,25 +1157,25 @@ def leftShift : Option term → Option term :=
 #eval leftShift (const 21 (bv 3))
 
 -- n left shifts
-def leftShiftNAux : Nat → Option term → Option term
+def leftShiftNAux : Nat → OptionM term → OptionM term
 | 0, t => t
 | (n + 1), t => leftShiftNAux n (leftShift t)
-def leftShiftN : Option term → Nat → Option term :=
-  λ ot i => ot >>= λ t => sortOf t >>= λ s => 
-    match s with 
-    | bv n => leftShiftNAux i t 
+def leftShiftN : OptionM term → Nat → OptionM term :=
+  λ ot i => ot >>= λ t => sortOf t >>= λ s =>
+    match s with
+    | bv n => leftShiftNAux i t
     | _ => none
 
 /-
 bvLeftShift n a b
-for b[n] → b[0], 
+for b[n] → b[0],
   if b[i], then a << 2^i
 n is expected to be log2(len(b))
 -/
-def bvLeftShift : Nat → Option term → Option term → Option term
+def bvLeftShift : Nat → OptionM term → OptionM term → OptionM term
 | 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (leftShift a) a
-| (n + 1), a, b => do 
-                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top) 
+| (n + 1), a, b => do
+                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
                               (leftShiftN a (2^(n+1)))  a)
                   (bvLeftShift n res b)
 #eval termEval (bvLeftShift 2 (mkValBV [false, false, true]) (mkValBV [false, false, true]))
@@ -1191,15 +1191,15 @@ ite(b <ᵤ l,
 where len(a) = l and [00..0]ₗ is a BV with l 0's
 -/
 
-def bblastBvShl : Option term → Option term → Option term :=
-  λ ot₁ ot₂ => 
-  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+def bblastBvShl : OptionM term → OptionM term → OptionM term :=
+  λ ot₁ ot₂ =>
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
-            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m)) 
-              (bvLeftShift ((log2 n) - 1) t₁ t₂) 
+            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m))
+              (bvLeftShift ((log2 n) - 1) t₁ t₂)
               (mkZero m)
       ) else none
     | (_, _) => none
@@ -1225,7 +1225,7 @@ def bblastBvShl : Option term → Option term → Option term :=
 #eval bblastBvShl (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvShl rule
-axiom bbBvShl : ∀ {t₁ t₂ : Option term},
+axiom bbBvShl : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvShl t₁ t₂) (bblastBvShl t₁ t₂))
 
 
@@ -1234,7 +1234,7 @@ axiom bbBvShl : ∀ {t₁ t₂ : Option term},
 ----------------------- -/
 
 -- If terms are well-typed, construct their BV logical right shift application
-def mkBvLShr : Option term → Option term → Option term :=
+def mkBvLShr : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvLShr
 
 -- Single logical right shift
@@ -1242,14 +1242,14 @@ def lRightShiftVal : List Bool → List Bool
 | h :: t => false :: h :: (List.dropLast t)
 | [] => []
 -- Need a modified bitOfN for right shifts
-def bitOfNRShAux : term → Nat → List (Option term)
+def bitOfNRShAux : term → Nat → List (OptionM term)
 | t, 0 => []
 | t, (n + 1) => (mkBitOf t (mkValInt (Int.ofNat (n + 1))))
                     :: (bitOfNRShAux t n)
 #eval bitOfNRShAux (const 21 (bv 4)) 3
-def lRightShift : Option term → Option term :=
-  λ ot => ot >>= λ t => sortOf t >>= λ s => 
-    match s with 
+def lRightShift : OptionM term → OptionM term :=
+  λ ot => ot >>= λ t => sortOf t >>= λ s =>
+    match s with
     | bv n => match t with
               | val (value.bitvec l) _ => val (value.bitvec (lRightShiftVal l)) (bv n)
               | _ => mkBbT (some bot :: (bitOfNRShAux t (n-1)))
@@ -1258,25 +1258,25 @@ def lRightShift : Option term → Option term :=
 #eval lRightShift (const 21 (bv 3))
 
 -- n right shifts
-def lRightShiftNAux : Nat → Option term → Option term
+def lRightShiftNAux : Nat → OptionM term → OptionM term
 | 0, t => t
 | (n + 1), t => lRightShiftNAux n (lRightShift t)
-def lRightShiftN : Option term → Nat → Option term :=
-  λ ot i => ot >>= λ t => sortOf t >>= λ s => 
-    match s with 
-    | bv n => lRightShiftNAux i t 
+def lRightShiftN : OptionM term → Nat → OptionM term :=
+  λ ot i => ot >>= λ t => sortOf t >>= λ s =>
+    match s with
+    | bv n => lRightShiftNAux i t
     | _ => none
 
 /-
 bvLRightShift n a b
-for b[n] → b[0], 
+for b[n] → b[0],
   if b[i], then a >> 2^i
 n is expected to be log2(len(b))
 -/
-def bvLRightShift : Nat → Option term → Option term → Option term
+def bvLRightShift : Nat → OptionM term → OptionM term → OptionM term
 | 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (lRightShift a) a
-| (n + 1), a, b => do 
-                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top) 
+| (n + 1), a, b => do
+                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
                               (lRightShiftN a (2^(n+1)))  a)
                   (bvLRightShift n res b)
 
@@ -1290,15 +1290,15 @@ ite(b <ᵤ l,
     [00..0]ₗ)
 where len(a) = l and [00..0]ₗ is a BV with l 0's
 -/
-def bblastBvLShr : Option term → Option term → Option term :=
-  λ ot₁ ot₂ => 
-  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+def bblastBvLShr : OptionM term → OptionM term → OptionM term :=
+  λ ot₁ ot₂ =>
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
-            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m)) 
-              (bvLRightShift ((log2 n) - 1) t₁ t₂) 
+            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m))
+              (bvLRightShift ((log2 n) - 1) t₁ t₂)
               (mkZero m)
       ) else none
     | (_, _) => none
@@ -1324,7 +1324,7 @@ def bblastBvLShr : Option term → Option term → Option term :=
 #eval bblastBvLShr (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvLShr rule
-axiom bbBvLShr : ∀ {t₁ t₂ : Option term},
+axiom bbBvLShr : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvLShr t₁ t₂) (bblastBvLShr t₁ t₂))
 
 
@@ -1333,7 +1333,7 @@ axiom bbBvLShr : ∀ {t₁ t₂ : Option term},
 ------------------------- -/
 
 -- If terms are well-typed, construct their BV logical right shift application
-def mkBvAShr : Option term → Option term → Option term :=
+def mkBvAShr : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvAShr
 
 -- Single arithmetic right shift
@@ -1341,23 +1341,23 @@ def aRightShiftVal : List Bool → Bool → List Bool
 | h :: t, sign => sign :: h :: (List.dropLast t)
 | [], sign  => []
 -- Need a bool list head function (that defaults to false)
-def head : List Bool → Bool 
+def head : List Bool → Bool
 | h :: t => h
 | [] => false
-def sign : Option term → Option term := 
-λ ot => ot >>= λ t => sortOf t >>= λ s => 
-    match s with 
+def sign : OptionM term → OptionM term :=
+λ ot => ot >>= λ t => sortOf t >>= λ s =>
+    match s with
     | bv n => match t with
               | val (value.bitvec l) _ => if (head l) then top else bot
               | _ => (mkBitOf t (mkValInt (Int.ofNat (n-1))))
     | _ => none
 
-def aRightShift : Option term → Option term :=
-  λ ot => ot >>= λ t => sortOf t >>= λ s => 
+def aRightShift : OptionM term → OptionM term :=
+  λ ot => ot >>= λ t => sortOf t >>= λ s =>
     match s with
     | bv n => match t with
               | val (value.bitvec l) _ => val (value.bitvec (aRightShiftVal l (head l))) (bv n)
-              | _ => mkBbT ((sign t) :: 
+              | _ => mkBbT ((sign t) ::
                             (bitOfNRShAux t (n-1)))
     | _ => none
 #eval aRightShift (mkValBV [true, false, true])
@@ -1365,25 +1365,25 @@ def aRightShift : Option term → Option term :=
 #eval aRightShift (const 21 (bv 3))
 
 -- n right shifts
-def aRightShiftNAux : Nat → Option term → Option term
+def aRightShiftNAux : Nat → OptionM term → OptionM term
 | 0, t => t
 | (n + 1), t => aRightShiftNAux n (aRightShift t)
-def aRightShiftN : Option term → Nat → Option term :=
-  λ ot i => ot >>= λ t => sortOf t >>= λ s => 
-    match s with 
-    | bv n => aRightShiftNAux i t 
+def aRightShiftN : OptionM term → Nat → OptionM term :=
+  λ ot i => ot >>= λ t => sortOf t >>= λ s =>
+    match s with
+    | bv n => aRightShiftNAux i t
     | _ => none
 
 /-
 bvARightShift n a b
-for b[n] → b[0], 
+for b[n] → b[0],
   if b[i], then a >>ₐ 2^i
 n is expected to be log2(len(b))
 -/
-def bvARightShift : Nat → Option term → Option term → Option term
+def bvARightShift : Nat → OptionM term → OptionM term → OptionM term
 | 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (aRightShift a) a
-| (n + 1), a, b => do 
-                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top) 
+| (n + 1), a, b => do
+                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
                               (aRightShiftN a (2^(n+1)))  a)
                   (bvARightShift n res b)
 
@@ -1397,15 +1397,15 @@ ite(b <ᵤ l,
     [00..0]ₗ)
 where len(a) = l and [00..0]ₗ is a BV with l 0's
 -/
-def bblastBvAShr : Option term → Option term → Option term :=
-  λ ot₁ ot₂ => 
-  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ => 
+def bblastBvAShr : OptionM term → OptionM term → OptionM term :=
+  λ ot₁ ot₂ =>
+  ot₁ >>= λ t₁ => ot₂ >>= λ t₂ =>
     sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
     match (s₁, s₂) with
-    |  (bv m, bv n) => 
+    |  (bv m, bv n) =>
       if (m = n) then (
-            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m)) 
-              (bvARightShift ((log2 n) - 1) t₁ t₂) 
+            mkIte (boolListUlt (bitOfN t₂ m) (bitOfN (nat2BV m m) m))
+              (bvARightShift ((log2 n) - 1) t₁ t₂)
               (mkIte (sign t₁) (mkOnes m) (mkZero m))
       ) else none
     | (_, _) => none
@@ -1436,7 +1436,7 @@ def bblastBvAShr : Option term → Option term → Option term :=
 #eval bblastBvAShr (const 21 (bv 4)) (const 22 (bv 4))
 
 -- Bit-blasting BvAShr rule
-axiom bbBvAShr : ∀ {t₁ t₂ : Option term},
+axiom bbBvAShr : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvAShr t₁ t₂) (bblastBvAShr t₁ t₂))
 
 
@@ -1447,8 +1447,8 @@ axiom bbBvAShr : ∀ {t₁ t₂ : Option term},
 ------------ -/
 
 -- If terms are well-typed, construct their BV Extraction application
-def mkBvExtract : Option term → Option term → Option term → Option term :=
-  λ ot oi oj => 
+def mkBvExtract : OptionM term → OptionM term → OptionM term → OptionM term :=
+  λ ot oi oj =>
     ot >>= λ t => sortOf t >>= λ s =>
     oi >>= λ i => sortOf i >>= λ si =>
     oj >>= λ j => sortOf i >>= λ sj =>
@@ -1473,8 +1473,8 @@ If terms are well-typed, construct their bit-blasted BV extraction
 ----------------------------
        [xⱼ ... xᵢ]
 -/
-def bblastBvExtract : Option term → Option term → Option term → Option term :=
-  λ ot oi oj => 
+def bblastBvExtract : OptionM term → OptionM term → OptionM term → OptionM term :=
+  λ ot oi oj =>
     ot >>= λ t => sortOf t >>= λ s =>
     oi >>= λ i => sortOf i >>= λ si =>
     oj >>= λ j => sortOf i >>= λ sj =>
@@ -1482,7 +1482,7 @@ def bblastBvExtract : Option term → Option term → Option term → Option ter
   | bv n, intSort, intSort =>
     match i, j with
     | (val (value.integer i₁) intSort), (val (value.integer j₁) intSort) =>
-      if (0 ≤ j₁ ∧ j₁ ≤ i₁ ∧ i₁ < n) then 
+      if (0 ≤ j₁ ∧ j₁ ≤ i₁ ∧ i₁ < n) then
          mkBbT (removeLastN (List.drop (n - (Int.toNat i₁) - 1) (bitOfN t n)) (Int.toNat j₁))
       else
         none
@@ -1498,11 +1498,11 @@ def bblastBvExtract : Option term → Option term → Option term → Option ter
 #eval bblastBvExtract (mkValBV [false, false, true, false])
   (mkValInt 1) (mkValInt 2)
 -- Using variables
-#eval bblastBvExtract (const 21 (bv 4)) (mkValInt 2) 
+#eval bblastBvExtract (const 21 (bv 4)) (mkValInt 2)
   (mkValInt 1)
 
 -- Bit-blasting BvExtract rule
-axiom bbBvExtract : ∀ {t₁ t₂ t₃ : Option term},
+axiom bbBvExtract : ∀ {t₁ t₂ t₃ : OptionM term},
   thHolds (mkEq (mkBvExtract t₁ t₂ t₃) (bblastBvExtract t₁ t₂ t₃))
 
 
@@ -1511,7 +1511,7 @@ axiom bbBvExtract : ∀ {t₁ t₂ t₃ : Option term},
 ---------------- -/
 
 -- If terms are well-typed, construct their BV concat application
-def mkBvConcat : Option term → Option term → Option term :=
+def mkBvConcat : OptionM term → OptionM term → OptionM term :=
   λ ot₁ ot₂ => ot₁ >>= λ t₁ => sortOf t₁ >>= λ s₁ =>
                ot₂ >>= λ t₂ => sortOf t₂ >>= λ s₂ =>
   match s₁, s₂ with
@@ -1524,9 +1524,9 @@ If terms are BVs construct their bit-blasted BV concat
 ---------------------------------
    [xₙ ... x₁ x₀ yₙ ... y₁ y₀]
 -/
-def bblastBvConcat : Option term → Option term → Option term :=
-  λ ot₁ ot₂ => ot₁ >>= λ t₁ => sortOf t₁ >>= λ s₁ => 
-               ot₂ >>= λ t₂ => sortOf t₂ >>= λ s₂ => 
+def bblastBvConcat : OptionM term → OptionM term → OptionM term :=
+  λ ot₁ ot₂ => ot₁ >>= λ t₁ => sortOf t₁ >>= λ s₁ =>
+               ot₂ >>= λ t₂ => sortOf t₂ >>= λ s₂ =>
     match s₁, s₂ with
     | bv m, bv n => mkBbT (List.append (bitOfN t₁ m) (bitOfN t₂ n))
     | _, _ => none
@@ -1545,7 +1545,7 @@ def bblastBvConcat : Option term → Option term → Option term :=
 #eval bblastBvConcat (const 21 (bv 2)) (const 22 (bv 2))
 
 -- Bit-blasting BvConcat rule
-axiom bbBvConcat : ∀ {t₁ t₂ : Option term},
+axiom bbBvConcat : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvConcat t₁ t₂) (bblastBvAdd t₁ t₂))
 
 
@@ -1554,11 +1554,11 @@ axiom bbBvConcat : ∀ {t₁ t₂ : Option term},
 ---------------- -/
 
 -- If terms are well-typed, construct their BV zero extend application
-def mkBvZeroExt : Option term → Option term → Option term :=
+def mkBvZeroExt : OptionM term → OptionM term → OptionM term :=
   λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
              oi >>= λ i => sortOf i >>= λ si =>
   match s, si with
-  | bv n, intSort => 
+  | bv n, intSort =>
     match i with
     | val (value.integer i₁) intSort => bvZeroExt n (Int.toNat i₁) t i
     | _ => none
@@ -1570,13 +1570,13 @@ If terms are well-typed, construct their bit-blasted BV zero extend
 -----------------------------
   [0₁ ... 0ᵢ xₙ ... x₁ x₀]
 -/
-def bblastZeroExt : Option term → Option term → Option term :=
+def bblastZeroExt : OptionM term → OptionM term → OptionM term :=
   λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
              oi >>= λ i => sortOf i >>= λ si =>
   match s, si with
-  | bv n, intSort => 
+  | bv n, intSort =>
     match i with
-    | val (value.integer i₁) intSort => 
+    | val (value.integer i₁) intSort =>
       mkBbT (List.append (List.replicate (Int.toNat i₁) (some bot)) (bitOfN t n))
     | _ => none
   | _, _ => none
@@ -1588,7 +1588,7 @@ def bblastZeroExt : Option term → Option term → Option term :=
 #eval bblastZeroExt (const 21 (bv 4))  (mkValInt 2)
 
 -- Bit-blasting BvZeroExt rule
-axiom bbBvZeroExt : ∀ {t₁ t₂ : Option term},
+axiom bbBvZeroExt : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvZeroExt t₁ t₂) (bblastZeroExt t₁ t₂))
 
 
@@ -1597,17 +1597,17 @@ axiom bbBvZeroExt : ∀ {t₁ t₂ : Option term},
 ---------------- -/
 
 -- If terms are well-typed, construct their BV sign extend application
-def mkBvSignExt : Option term → Option term → Option term :=
+def mkBvSignExt : OptionM term → OptionM term → OptionM term :=
   λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
              oi >>= λ i => sortOf i >>= λ si =>
   match s, si with
-  | bv n, intSort => 
+  | bv n, intSort =>
     match i with
     | val (value.integer i₁) intSort => bvSignExt n (Int.toNat i₁) t i
     | _ => none
   | _, _ => none
 
-def hd : List α → Option α
+def hd : List α → OptionM α
 | h :: t => some h
 | [] => none
 
@@ -1618,11 +1618,11 @@ If terms are well-typed, construct their bit-blasted BV sign extend
   [xₙ ... xₙ xₙ ... x₁ x₀]
 where i x₀'s are prefixed to x
 -/
-def bblastSignExt : Option term → Option term → Option term :=
+def bblastSignExt : OptionM term → OptionM term → OptionM term :=
   λ ot oi => ot >>= λ t => sortOf t >>= λ s =>
              oi >>= λ i => sortOf i >>= λ si =>
   match s, si with
-  | bv n, intSort => 
+  | bv n, intSort =>
     match i with
     | val (value.integer i₁) intSort =>
       match hd (bitOfN t n) with
@@ -1640,7 +1640,7 @@ def bblastSignExt : Option term → Option term → Option term :=
 #eval bblastSignExt (const 21 (bv 4)) (mkValInt 2)
 
 -- Bit-blasting BvSignExt rule
-axiom bbBvSignExt : ∀ {t₁ t₂ : Option term},
+axiom bbBvSignExt : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvSignExt t₁ t₂) (bblastSignExt t₁ t₂))
 
 
@@ -1649,11 +1649,11 @@ axiom bbBvSignExt : ∀ {t₁ t₂ : Option term},
 ----------- -/
 
 -- If terms are well-typed, construct their BV repeat application
-def mkBvRepeat : Option term → Option term → Option term :=
+def mkBvRepeat : OptionM term → OptionM term → OptionM term :=
   λ oi ot => oi >>= λ i => sortOf i >>= λ si =>
              ot >>= λ t => sortOf t >>= λ s =>
   match si, s with
-  | intSort, bv n => 
+  | intSort, bv n =>
     match i with
     | val (value.integer i₁) intSort => bvRepeat n (Int.toNat i₁) i t
     | _ => none
@@ -1669,11 +1669,11 @@ If terms are well-typed, construct their bit-blasted BV repeat
   [xₙ ... x₁ x₀ xₙ ... x₁ x₀ xₙ ... x₁ x₀]
 where x₀ ... xₙ is repeated i times
 -/
-def bblastRepeat : Option term → Option term → Option term :=
+def bblastRepeat : OptionM term → OptionM term → OptionM term :=
   λ oi ot => oi >>= λ i => sortOf i >>= λ si =>
              ot >>= λ t => sortOf t >>= λ s =>
   match si, s with
-  | intSort, bv n => 
+  | intSort, bv n =>
     match i with
     | val (value.integer i₁) intSort =>
       if (i₁ < 0) then none else
@@ -1681,17 +1681,17 @@ def bblastRepeat : Option term → Option term → Option term :=
     | _ => none
   | _, _ => none
 
-#eval bblastRepeat (mkValInt 2) 
+#eval bblastRepeat (mkValInt 2)
   (mkValBV [true, true, true, true])
 #eval bblastRepeat (mkValInt (-1))
   (mkValBV [true, true, true, true])
-#eval bblastRepeat (mkValInt 7) 
+#eval bblastRepeat (mkValInt 7)
   (mkValBV [true, false])
 -- Using variables
 #eval bblastRepeat (mkValInt 2) (const 21 (bv 2))
 
 -- Bit-blasting BvRepeat rule
-axiom bbBvRepeat : ∀ {t₁ t₂ : Option term},
+axiom bbBvRepeat : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkEq (mkBvRepeat t₁ t₂) (bblastRepeat t₁ t₂))
 
 
