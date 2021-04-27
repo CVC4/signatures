@@ -108,7 +108,6 @@ have s11 : thHolds eqfbfbtop from thTrustValid
 have s12 : thHolds ((mkEq neqfbfb) (mkNot top)) from cong (@refl notConst) s11
 have s13 : thHolds (mkEq neqfbfb bot) from trans s12 s10
 have s14 : thHolds eqneqfafbbot from trans s9 s13
-
 show thHolds bot from eqResolve s6 s14
 
 /-

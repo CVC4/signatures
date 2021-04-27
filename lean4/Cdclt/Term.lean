@@ -55,9 +55,12 @@ def bvAddNum : Nat := bvSgeNum + 1
 def bvNegNum : Nat := bvAddNum + 1
 def bvSubNum : Nat := bvNegNum + 1
 def bvMulNum : Nat := bvSubNum + 1
-def bvUdivNum : Nat := bvMulNum + 1
-def bvUremNum : Nat := bvUdivNum + 1
-def bvExtractNum : Nat := bvUremNum + 1
+def bvUDivNum : Nat := bvMulNum + 1
+def bvURemNum : Nat := bvUDivNum + 1
+def bvShlNum : Nat := bvURemNum + 1
+def bvLShrNum : Nat := bvShlNum + 1
+def bvAShrNum : Nat := bvLShrNum + 1
+def bvExtractNum : Nat := bvAShrNum + 1
 def bvConcatNum : Nat := bvExtractNum + 1
 def bvZeroExtNum : Nat := bvConcatNum + 1
 def bvSignExtNum : Nat := bvZeroExtNum + 1
@@ -213,6 +216,14 @@ open value
   const bvNegNum (arrow (bv n) (bv n))
 @[matchPattern] def bvSubConst (n : Nat) :=
   const bvSubNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvMulConst (n : Nat) :=
+  const bvMulNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvShlConst (n : Nat) :=
+  const bvShlNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvLShrConst (n : Nat) :=
+  const bvLShrNum (arrow (bv n) (arrow (bv n) (bv n)))
+@[matchPattern] def bvAShrConst (n : Nat) :=
+  const bvAShrNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvExtractConst (n i j : Nat) :=
   const bvExtractNum (arrow (bv n) (arrow intSort (arrow intSort (bv (i - j + 1)))))
 @[matchPattern] def bvConcatConst (m n : Nat) :=
@@ -297,7 +308,15 @@ open value
   λ n t => bvNegConst n • t
 @[matchPattern] def bvSub : Nat → term → term → term :=
   λ n t₁ t₂ => bvSubConst n • t₁ • t₂
-@[matchPattern] def bvExtract : 
+@[matchPattern] def bvMul : Nat → term → term → term :=
+  λ n t₁ t₂ => bvMulConst n • t₁ • t₂
+@[matchPattern] def bvShl : Nat → term → term → term :=
+  λ n t₁ t₂ => bvShlConst n • t₁ • t₂
+@[matchPattern] def bvLShr : Nat → term → term → term :=
+  λ n t₁ t₂ => bvLShrConst n • t₁ • t₂
+@[matchPattern] def bvAShr : Nat → term → term → term :=
+  λ n t₁ t₂ => bvAShrConst n • t₁ • t₂
+@[matchPattern] def bvExtract :
   Nat → Nat → Nat → term → term → term → term :=
   λ n i j t₁ t₂ t₃ => bvExtractConst n i j • t₁ • t₂ • t₃
 @[matchPattern] def bvConcat : Nat → Nat → term → term → term :=
@@ -349,7 +368,11 @@ def termToString : term → String
 | bvSge _ t₁ t₂ => termToString t₁ ++ " ≥ₛ " ++ termToString t₂
 | bvAdd _ t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂
 | bvNeg _ t => "-_bv " ++ termToString t
-| bvSub _ t₁ t₂ => termToString t₁ ++ " -_bv " ++ termToString t₂-/
+| bvSub _ t₁ t₂ => termToString t₁ ++ " -_bv " ++ termToString t₂
+| bvMul _ t₁ t₂ => termToString t₁ ++ " *_bv " ++ termToString t₂
+| bvShl _ t₁ t₂ => termToString t₁ ++ " << " ++ termToString t₂
+| bvLShr _ t₁ t₂ => termToString t₁ ++ " >> " ++ termToString t₂
+| bvAShr _ t₁ t₂ => termToString t₁ ++ " >>ₐ " ++ termToString t₂-/
 /-| bvExtract _ _ _ t₁ t₂ t₃ => ((termToString t₁) ++ "[" ++ (termToString t₂) ++ ":" ++ (termToString t₃) ++ "]")
 | bvConcat _ _ t₁ t₂ => termToString t₁ ++ " ++ " ++ termToString t₂
 | bvZeroExt _ _ t₁ t₂ => "zeroExt " ++ termToString t₁ ++ " " ++ termToString t₂
@@ -418,14 +441,23 @@ def constructBinaryTerm (constructor : term → term → term)
   bind2 $ λ t₁ t₂ => sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
           if test s₁ s₂ then constructor t₁ t₂ else none
 
+/- A right fold that should run on lists that have at least two
+   elements. It is so that no initial term is required -/
+def binFoldr : (f : term → term → Option term) → List term → Option term
+  | f, []      => none
+  | f, a₁ :: a₂ :: [] => f a₁ a₂
+  | f, a :: as =>
+    binFoldr f as >>= λ s' =>
+    f a s'
+
 def constructNaryTerm (constructor : term → term → term)
   (test : sort → sort → Bool) (l : List (Option term)) : Option term :=
       bindN l >>= λ l' =>
       match l' with
       | h₁ :: h₂ :: t =>
-        List.foldlM (λ t₁ t₂ : term =>
+        binFoldr (λ t₁ t₂ : term =>
            sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-             if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
+             if test s₁ s₂ then constructor t₁ t₂ else none) l'
       | _ => none
 
 -- application of term to term
@@ -497,6 +529,16 @@ def mkNor : Option term → Option term → Option term :=
 def mkForall (v : Nat) (body : Option term) : Option term :=
   body >>= λ body' => (qforall v body')
 
+
+/- Aux functions to create values -/
+def mkValInt : Int → term :=
+λ i => val (value.integer i) intSort
+
+def mkValBV : List Bool → term :=
+λ l => val (value.bitvec l) (bv (List.length l))
+#eval (mkValInt 0)
+#eval mkValInt 5
+#eval mkValBV [true, false]
 end term
 
 end proof

@@ -123,7 +123,7 @@ axiom notImplies1 : ∀ {t₁ t₂ : Option term},
   thHolds (mkNot $ mkImplies t₁ t₂) → thHolds t₁
 
 axiom notImplies2 : ∀ {t₁ t₂ : Option term},
-  thHolds (mkNot $ mkImplies t₁ t₂) → thHolds (mkNot t₁)
+  thHolds (mkNot $ mkImplies t₁ t₂) → thHolds (mkNot t₂)
 
 axiom equivElim1 : ∀ {t₁ t₂},
   thHolds (mkEq t₁ t₂) → holds [mkNot t₁, t₂]
