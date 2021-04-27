@@ -1,5 +1,25 @@
 import Lean.Elab.Command
 
+open Lean Elab
+
+--#eval show TermElabM Unit from do
+--  let some d ← pure $ (← getEnv).find? `instMetaEval | throwError ""
+--  logInfo d.value!
+
+instance [DecidableEq α] : DecidableEq (OptionM α) :=
+  instDecidableEqOption
+
+instance [ToString α] : ToString (OptionM α) :=
+  instToStringOption
+
+instance [Lean.Eval α] [ToString α] : Lean.Eval (OptionM α) :=
+  Lean.instEval
+
+instance [Lean.MetaEval α] [ToString α] : Lean.MetaEval (OptionM α) :=
+  Lean.instMetaEval
+
+
+
 section
 open Lean Lean.Elab Lean.Elab.Command
 
@@ -135,10 +155,6 @@ def valueToString : value → String
 
 instance: ToString value where toString := valueToString
 
-
-
-instance [DecidableEq α] : DecidableEq (OptionM α) :=
-  instDecidableEqOption
 
 /- terms are values (interpreted constants),
    constants of a sort, applications,
