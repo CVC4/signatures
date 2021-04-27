@@ -446,7 +446,7 @@ def constructNaryTerm (constructor : term → term → term)
       bindN l >>= λ l' =>
       match l' with
       | h₁ :: h₂ :: t =>
-        List.foldlM (λ t₁ t₂ : term =>
+        List.foldrM (λ t₁ t₂ : term =>
            sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
              if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
       | _ => none
