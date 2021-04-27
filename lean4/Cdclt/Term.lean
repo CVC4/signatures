@@ -425,8 +425,7 @@ def sortOfAux : term → OptionM sort
     sortOfAux t >>= λ st => if st = boolSort then st else none
 | const _ s => s
 
--- def sortOf (t : OptionM term) : OptionM sort := t >>= λ t' => sortOfAux t'
-def sortOf (t : OptionM term) : OptionM sort := t >>= λ t' => dep
+def sortOf (t : OptionM term) : OptionM sort := t >>= λ t' => sortOfAux t'
 
 /- bind : (x : m α) → (f : (α → m α))
    unpacks the term from the monad x and applies
@@ -453,9 +452,10 @@ def bindN {m : Type u → Type v} [Monad m] {α : Type u}
    predicate on the sort of the arguments that needs to be satisfied -/
 def constructBinaryTerm (constructor : term → term → term)
   (test : sort → sort → Bool) : OptionM term → OptionM term → OptionM term :=
-  bind2 $ λ t₁ t₂ => sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-          -- if test s₁ s₂ then constructor t₁ t₂ else none
-          constructor t₁ t₂
+  bind2 $ λ t₁ t₂ =>
+    -- sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+    -- if test s₁ s₂ then constructor t₁ t₂ else none
+    constructor t₁ t₂
 
 def constructNaryTerm (constructor : term → term → term)
   (test : sort → sort → Bool) (l : List (OptionM term)) : OptionM term :=
@@ -463,8 +463,8 @@ def constructNaryTerm (constructor : term → term → term)
       match l' with
       | h₁ :: h₂ :: t =>
         List.foldlM (λ t₁ t₂ : term =>
-           sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-             -- if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
+           -- sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
+           -- if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
              constructor t₁ t₂) h₁ (h₂ :: t)
       | _ => none
 
@@ -490,12 +490,13 @@ def mkEq : OptionM term → OptionM term → OptionM term :=
 
 -- if-then-else
 def mkIteAux (c t₁ t₂ : term) : OptionM term :=
-  match sortOf c with
-  | some boolSort => match sortOf t₁, sortOf t₂ with
-                     | some boolSort, some boolSort => bIte c t₁ t₂
-                     | some s₁, some s₂ => if s₁ = s₂ then fIte c t₁ t₂ else none
-                     | _, _ => none
-  | _ => none
+  sortOf t₁ >>= λ s₁ => if s₁ = boolSort then bIte c t₁ t₂ else fIte c t₁ t₂
+  -- match sortOf c with
+  -- | some boolSort => match sortOf t₁, sortOf t₂ with
+  --                    | some boolSort, some boolSort => bIte c t₁ t₂
+  --                    | some s₁, some s₂ => if s₁ = s₂ then fIte c t₁ t₂ else none
+  --                    | _, _ => none
+  -- | _ => none
 
 def mkIte : OptionM term → OptionM term → OptionM term → OptionM term :=
   bind3 mkIteAux
@@ -503,7 +504,6 @@ def mkIte : OptionM term → OptionM term → OptionM term → OptionM term :=
 -- negation
 def mkNot (t : OptionM term) : OptionM term :=
   t >>= λ t' => not t'
-
   -- t >>= λ t' => match sortOf t' with
   --                 | some boolSort => not t'
   --                 | _ => none
@@ -546,9 +546,7 @@ def mkValInt : Int → term :=
 
 def mkValBV : List Bool → term :=
 λ l => val (value.bitvec l) (bv (List.length l))
-#eval (mkValInt 0)
-#eval mkValInt 5
-#eval mkValBV [true, false]
+
 end term
 
 end proof
