@@ -316,7 +316,7 @@ open value
   λ n t₁ t₂ => bvLShrConst n • t₁ • t₂
 @[matchPattern] def bvAShr : Nat → term → term → term :=
   λ n t₁ t₂ => bvAShrConst n • t₁ • t₂
-@[matchPattern] def bvExtract : 
+@[matchPattern] def bvExtract :
   Nat → Nat → Nat → term → term → term → term :=
   λ n i j t₁ t₂ t₃ => bvExtractConst n i j • t₁ • t₂ • t₃
 @[matchPattern] def bvConcat : Nat → Nat → term → term → term :=
@@ -441,14 +441,23 @@ def constructBinaryTerm (constructor : term → term → term)
   bind2 $ λ t₁ t₂ => sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
           if test s₁ s₂ then constructor t₁ t₂ else none
 
+/- A right fold that should run on lists that have at least two
+   elements. It is so that no initial term is required -/
+def binFoldr : (f : term → term → Option term) → List term → Option term
+  | f, []      => none
+  | f, a₁ :: a₂ :: [] => f a₁ a₂
+  | f, a :: as =>
+    binFoldr f as >>= λ s' =>
+    f a s'
+
 def constructNaryTerm (constructor : term → term → term)
   (test : sort → sort → Bool) (l : List (Option term)) : Option term :=
       bindN l >>= λ l' =>
       match l' with
       | h₁ :: h₂ :: t =>
-        List.foldrM (λ t₁ t₂ : term =>
+        binFoldr (λ t₁ t₂ : term =>
            sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-             if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
+             if test s₁ s₂ then constructor t₁ t₂ else none) l'
       | _ => none
 
 -- application of term to term
