@@ -21,4 +21,10 @@ axiom cong : ∀ {f₁ t₁ : Option term} {f₂ t₂ : Option term},
   thHolds (mkEq f₁ f₂) → thHolds (mkEq t₁ t₂) →
         thHolds (mkEq (mkApp f₁ t₁) (mkApp f₂ t₂))
 
+axiom trueIntro : ∀ {t : Option term}, thHolds t → thHolds (mkEq t top)
+axiom trueElim : ∀ {t : Option term}, thHolds (mkEq t top) → thHolds t
+
+axiom falseIntro : ∀ {t : Option term}, thHolds (mkNot t) → thHolds (mkEq t bot)
+axiom falseElim : ∀ {t : Option term}, thHolds (mkEq t bot) → thHolds (mkNot t)
+
 end eufRules

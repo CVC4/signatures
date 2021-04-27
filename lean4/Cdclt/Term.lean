@@ -457,15 +457,23 @@ def constructBinaryTerm (constructor : term → term → term)
     -- if test s₁ s₂ then constructor t₁ t₂ else none
     constructor t₁ t₂
 
+/- A right fold that should run on lists that have at least two
+   elements. It is so that no initial term is required -/
+def binFoldr : (f : term → term → OptionM term) → List term → OptionM term
+  | f, []      => none
+  | f, a₁ :: a₂ :: [] => f a₁ a₂
+  | f, a :: as =>
+    binFoldr f as >>= λ s' =>
+    f a s'
+
 def constructNaryTerm (constructor : term → term → term)
   (test : sort → sort → Bool) (l : List (OptionM term)) : OptionM term :=
       bindN l >>= λ l' =>
       match l' with
       | h₁ :: h₂ :: t =>
-        List.foldlM (λ t₁ t₂ : term =>
+        binFoldr (λ t₁ t₂ : term => constructor t₁ t₂) l'
            -- sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-           -- if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
-             constructor t₁ t₂) h₁ (h₂ :: t)
+           --   if test s₁ s₂ then constructor t₁ t₂ else none) l'
       | _ => none
 
 -- application of term to term
