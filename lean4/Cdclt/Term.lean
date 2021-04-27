@@ -425,7 +425,8 @@ def sortOfAux : term → OptionM sort
     sortOfAux t >>= λ st => if st = boolSort then st else none
 | const _ s => s
 
-def sortOf (t : OptionM term) : OptionM sort := t >>= λ t' => sortOfAux t'
+-- def sortOf (t : OptionM term) : OptionM sort := t >>= λ t' => sortOfAux t'
+def sortOf (t : OptionM term) : OptionM sort := t >>= λ t' => dep
 
 /- bind : (x : m α) → (f : (α → m α))
    unpacks the term from the monad x and applies
@@ -453,7 +454,8 @@ def bindN {m : Type u → Type v} [Monad m] {α : Type u}
 def constructBinaryTerm (constructor : term → term → term)
   (test : sort → sort → Bool) : OptionM term → OptionM term → OptionM term :=
   bind2 $ λ t₁ t₂ => sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-          if test s₁ s₂ then constructor t₁ t₂ else none
+          -- if test s₁ s₂ then constructor t₁ t₂ else none
+          constructor t₁ t₂
 
 def constructNaryTerm (constructor : term → term → term)
   (test : sort → sort → Bool) (l : List (OptionM term)) : OptionM term :=
@@ -462,18 +464,19 @@ def constructNaryTerm (constructor : term → term → term)
       | h₁ :: h₂ :: t =>
         List.foldlM (λ t₁ t₂ : term =>
            sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-             if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
+             -- if test s₁ s₂ then constructor t₁ t₂ else none) h₁ (h₂ :: t)
+             constructor t₁ t₂) h₁ (h₂ :: t)
       | _ => none
 
 -- application of term to term
 def mkAppAux : term → term → OptionM term :=
-  λ t₁ t₂ =>
-    sortOf t₁ >>= λ s₁ =>
-    sortOf t₂ >>= λ s₂ =>
-    match s₁ with
-    | arrow s₂ _ => t₁ • t₂
-    | dep => t₁ • t₂
-    | _ => none
+  λ t₁ t₂ => t₁ • t₂
+    -- sortOf t₁ >>= λ s₁ =>
+    -- sortOf t₂ >>= λ s₂ =>
+    -- match s₁ with
+    -- | arrow s₂ _ => t₁ • t₂
+    -- | dep => t₁ • t₂
+    -- | _ => none
 
 -- binary and n-ary application
 def mkApp : OptionM term → OptionM term → OptionM term := bind2 mkAppAux
@@ -499,9 +502,11 @@ def mkIte : OptionM term → OptionM term → OptionM term → OptionM term :=
 
 -- negation
 def mkNot (t : OptionM term) : OptionM term :=
-  t >>= λ t' => match sortOf t' with
-                  | some boolSort => not t'
-                  | _ => none
+  t >>= λ t' => not t'
+
+  -- t >>= λ t' => match sortOf t' with
+  --                 | some boolSort => not t'
+  --                 | _ => none
 
 -- Boolean ops
 def mkOr : OptionM term → OptionM term → OptionM term :=
