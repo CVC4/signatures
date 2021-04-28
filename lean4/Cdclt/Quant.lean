@@ -6,7 +6,7 @@ open rules
 
 namespace quantRules
 
-def substitute (v : Nat) (t : term) : term → Option term
+def substitute (v : Nat) (t : term) : term → OptionM term
 -- replace each term in application
 | f • t₁ => substitute v t f >>= λ fs =>
             substitute v t t₁ >>= λ t₁s => fs • t₁s
@@ -14,9 +14,9 @@ def substitute (v : Nat) (t : term) : term → Option term
 -- otherwise fail
 | body@(const v' s) => if v ≠ v' then body
                 else
-                  s >>= λ s' =>
-                  sortOf t >>= λ st =>
-                  if s' = st then t else none
+                  s >>= λ s' => t
+                  -- sortOf t >>= λ st =>
+                  -- if s' = st then t else none
 -- if finds shadowing, break
 | qforall v' body' => if v = v' then none
                       else mkForall v' (substitute v t body')

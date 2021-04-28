@@ -7,7 +7,8 @@ namespace proof
 
 namespace term
 
-partial def termEval (ot : Option term) : Option term :=
+
+partial def termEval (ot : OptionM term) : OptionM term :=
   ot >>= λ t =>
   match t with
   | top => top
@@ -51,7 +52,7 @@ partial def termEval (ot : Option term) : Option term :=
        | top, top => bot
        | bot, bot => bot
        | _, _ => t
-  | eq t₁ t₂ => 
+  | eq t₁ t₂ =>
     do let t₁' ← termEval t₁
        let t₂' ← termEval t₂
        match t₁', t₂' with
@@ -76,7 +77,7 @@ partial def termEval (ot : Option term) : Option term :=
     do let b' ← termEval b''
        let i' ← termEval i''
        match b', i' with
-    | val (value.bitvec b) _, val (value.integer i) _ => 
+    | val (value.bitvec b) _, val (value.integer i) _ =>
       match (List.get? (Int.toNat (n - i - 1)) b) with
         | some bit => if bit then top else bot
         | none => none
