@@ -96,8 +96,8 @@
   (let t (str.to_code s)
   (ite Bool
     (= (str.len s) (int 1))
-    (and (int.>= t (int 0)) (and (str.< t (int 196608)) true))
-    (= (str.len t) (int (~ 1)))))
+    (and (int.>= t (int 0)) (and (int.< t (int 196608)) true))
+    (= t (int (~ 1)))))
 )
 
 ; (and (>= (str.indexof x y n) (- 1)) (<= (str.indexof x y n) (str.len x)))
