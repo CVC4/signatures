@@ -129,7 +129,7 @@
                      (= thead
                       (ifequal rev ff
                           (str.++ s12 (str.++ (skolem (sc_skolem_suffix_rem thead (int 1))) emptystr))
-                          (str.++ (skolem (sc_skolem_prefix thead (int.- (str.len thead) (int 1)))) (str.++ s12 emptystr))))))))))
+                          (str.++ (skolem (sc_skolem_prefix thead (a.- (str.len thead) (int 1)))) (str.++ s12 emptystr))))))))))
            (fail term))))))
 )
   
@@ -146,7 +146,7 @@
 
   
 (declare string_length_pos (! t term 
-  (holds (or (and (= (str.len t) (int 0)) (and (= t emptystr) true)) (or (int.> (str.len t) (int 0)) false)))))
+  (holds (or (and (= (str.len t) (int 0)) (and (= t emptystr) true)) (or (a.> (str.len t) (int 0)) false)))))
 
 (declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) 
   (holds (str.in_re x (re.inter s t)))))))))

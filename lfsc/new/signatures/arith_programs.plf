@@ -14,45 +14,30 @@
 ; handles lower bounds only
 (program sc_arith_sum_rels ((r1 term) (r2 term)) term
   (match r1
-    (f_int.< f_int.<)
-    (f_real.< f_real.<)
+    (f_a.< f_a.<)
     (default 
       (match r2
-      (f_int.< f_int.<)
-      (f_real.< f_real.<)
-      (f_int.<= f_int.<=)
-      (f_real.<= f_real.<=)
+      (f_a.< f_a.<)
+      (f_a.<= f_a.<=)
       (f_= r1)))))
 
 (program sc_arith_rel_inv ((r term)) term
   (match r
     (f_= f_=)
-    (f_int.< f_int.>)
-    (f_int.> f_int.<)
-    (f_int.<= f_int.>=)
-    (f_int.>= f_int.<=)
-    (f_real.< f_real.>)
-    (f_real.> f_real.<)
-    (f_real.<= f_real.>=)
-    (f_real.>= f_real.<=)))
+    (f_a.< f_a.>)
+    (f_a.> f_a.<)
+    (f_a.<= f_a.>=)
+    (f_a.>= f_a.<=)))
 
 ; t2 in n-ary form
-(program sc_arith_add_nary ((s sort) (t1 term) (t2 term)) term
-  (match s
-    (Int (int.+ t1 t2))
-    (Real (real.+ t1 t2))))
+(program sc_arith_add_nary ((t1 term) (t2 term)) term
+  (a.+ t1 t2))
 
-(program sc_arith_mult ((s sort) (t1 term) (t2 term)) term
-  (match s
-    (Int (int.* t1 (int.* t2 (int 1))))
-    (Real (real.* t1 (real.* t2 (real 1/1))))))
+(program sc_arith_mult ((t1 term) (t2 term)) term
+  (a.* t1 (a.* t2 (int 1))))
 
-(program sc_arith_>_zero ((s sort) (t term)) term
-  (match s
-    (Int (int.> t (int 0)))
-    (Real (real.> t (real 0/1)))))
+(program sc_arith_>_zero ((t term)) term
+  (a.> t (int 0)))
 
-(program sc_arith_<_zero ((s sort) (t term)) term
-  (match s
-    (Int (int.< t (int 0)))
-    (Real (real.< t (real 0/1)))))
+(program sc_arith_<_zero ((t term)) term
+  (a.< t (int 0)))

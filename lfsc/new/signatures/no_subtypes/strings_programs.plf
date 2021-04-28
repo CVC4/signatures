@@ -4,10 +4,10 @@
   (sc_to_original (str.substr s (int 0) n))
 )
 (program sc_skolem_suffix_rem ((s term) (n term)) term
-  (sc_to_original (str.substr s n (a.- (str.len s) n)))
+  (sc_to_original (str.substr s n (int.- (str.len s) n)))
 )
 (program sc_skolem_first_ctn_pre ((s term) (t term)) term (sc_skolem_prefix s (str.indexof s t (int 0))))
-(program sc_skolem_first_ctn_post ((s term) (t term)) term (sc_skolem_suffix_rem s (a.+ (str.len (sc_skolem_first_ctn_pre s t)) (a.+ (str.len t) (int 0)))))
+(program sc_skolem_first_ctn_post ((s term) (t term)) term (sc_skolem_suffix_rem s (int.+ (str.len (sc_skolem_first_ctn_pre s t)) (int.+ (str.len t) (int 0)))))
 
 ; head and tail for n-ary operators with null terminators
 (program sc_string_head ((t term)) term (nary_head f_str.++ t))
@@ -33,22 +33,22 @@
 ; ELSE: k = ""
 (program sc_string_reduction_substr ((s term) (n term) (m term)) term
   (let k (skolem (str.substr s n m))
-  (let npm (a.+ n (a.+ m (int 0)))
+  (let npm (int.+ n (int.+ m (int 0)))
   (let k1 (skolem (sc_skolem_prefix s n))
   (let k2 (skolem (sc_skolem_suffix_rem s npm))
   (ite Bool
     ; condition
-    (and (a.>= n (int 0))
-      (and (a.> (str.len s) n)
-        (and (a.> m (int 0))
+    (and (int.>= n (int 0))
+      (and (int.> (str.len s) n)
+        (and (int.> m (int 0))
           true)))
     ; if branch
     (and (= s (str.++ k1 (str.++ k (str.++ k2 emptystr))))
       (and (= (str.len k1) n)
-        (and (or (= (str.len k2) (a.- (str.len s) npm))
+        (and (or (= (str.len k2) (int.- (str.len s) npm))
                 (or (= (str.len k2) (int 0))
                   false))
-          (and (a.<= (str.len k) m)
+          (and (int.<= (str.len k) m)
             true))))
     ; else branch
     (= k emptystr)
@@ -96,15 +96,15 @@
   (let t (str.to_code s)
   (ite Bool
     (= (str.len s) (int 1))
-    (and (a.>= t (int 0)) (and (a.< t (int 196608)) true))
+    (and (int.>= t (int 0)) (and (int.< t (int 196608)) true))
     (= t (int (~ 1)))))
 )
 
 ; (and (>= (str.indexof x y n) (- 1)) (<= (str.indexof x y n) (str.len x)))
 (program sc_string_eager_reduction_indexof ((x term) (y term) (n term)) term
   (let t (str.indexof x y n)
-  (and (a.>= t (int (~ 1)))
-    (and (a.<= t (str.len x))
+  (and (int.>= t (int (~ 1)))
+    (and (int.<= t (str.len x))
       true)))
 )
 

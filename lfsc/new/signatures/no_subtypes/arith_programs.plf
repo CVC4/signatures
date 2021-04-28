@@ -1,0 +1,58 @@
+
+; get the relation symbol
+(program sc_arith_get_rel ((f term)) term
+  (match f ((apply f1 f2) (match f1 ((apply f11 f12) f11)))))
+
+; get the left hand side of a relation
+(program sc_arith_get_lhs ((f term)) term
+  (match f ((apply f1 f2) (match f1 ((apply f11 f12) f12)))))
+
+; get the right hand side of a relation
+(program sc_arith_get_rhs ((f term)) term
+  (match f ((apply f1 f2) (match f1 ((apply f11 f12) f2)))))
+
+; handles lower bounds only
+(program sc_arith_sum_rels ((r1 term) (r2 term)) term
+  (match r1
+    (f_int.< f_int.<)
+    (f_real.< f_real.<)
+    (default 
+      (match r2
+      (f_int.< f_int.<)
+      (f_real.< f_real.<)
+      (f_int.<= f_int.<=)
+      (f_real.<= f_real.<=)
+      (f_= r1)))))
+
+(program sc_arith_rel_inv ((r term)) term
+  (match r
+    (f_= f_=)
+    (f_int.< f_int.>)
+    (f_int.> f_int.<)
+    (f_int.<= f_int.>=)
+    (f_int.>= f_int.<=)
+    (f_real.< f_real.>)
+    (f_real.> f_real.<)
+    (f_real.<= f_real.>=)
+    (f_real.>= f_real.<=)))
+
+; t2 in n-ary form
+(program sc_arith_add_nary ((s sort) (t1 term) (t2 term)) term
+  (match s
+    (Int (int.+ t1 t2))
+    (Real (real.+ t1 t2))))
+
+(program sc_arith_mult ((s sort) (t1 term) (t2 term)) term
+  (match s
+    (Int (int.* t1 (int.* t2 (int 1))))
+    (Real (real.* t1 (real.* t2 (real 1/1))))))
+
+(program sc_arith_>_zero ((s sort) (t term)) term
+  (match s
+    (Int (int.> t (int 0)))
+    (Real (real.> t (real 0/1)))))
+
+(program sc_arith_<_zero ((s sort) (t term)) term
+  (match s
+    (Int (int.< t (int 0)))
+    (Real (real.< t (real 0/1)))))
