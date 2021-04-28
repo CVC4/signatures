@@ -84,21 +84,41 @@
 (program sc_string_eager_reduction_contains ((s term) (t term)) term
   (let k1 (skolem (sc_skolem_first_ctn_pre s t))
   (let k2 (skolem (sc_skolem_first_ctn_post s t))
-  (ite Bool 
+  (ite Bool
     (str.contains s t)
     (= s (str.++ k1 (str.++ t (str.++ k2 emptystr))))
     (not (= s t)))
   ))
 )
 
+; ite( str.len(s)==1, 0 <= str.code(s) < |A|, str.code(s)=-1 )
+(program sc_string_eager_reduction_to_code ((s term)) term
+  (let t (str.to_code s)
+  (ite Bool
+    (= (str.len s) (int 1))
+    (and (int.>= t (int 0)) (and (str.< t (int 196608)) true))
+    (= (str.len t) (int (~ 1)))))
+)
+
+; (and (>= (str.indexof x y n) (- 1)) (<= (str.indexof x y n) (str.len x)))
+(program sc_string_eager_reduction_indexof ((x term) (y term) (n term)) term
+  (let t (str.indexof x y n)
+  (and (int.>= t (int (~ 1)))
+    (and (int.<= t (str.len x))
+      true)))
+)
+
 (program sc_string_eager_reduction ((t term)) term
   (match t 
     ((apply t1 t2)
       (match t1
+        (f_str.to_code (sc_string_eager_reduction_to_code t2))
         ((apply t11 t12)
           (match t11
             (f_str.contains (sc_string_eager_reduction_contains t12 t2))
-  )))))
+            ((apply t111 t112)
+              (match t111
+                (f_str.indexof (sc_string_eager_reduction_indexof t112 t12 t2)))))))))
 )
 
 (program sc_re_unfold_pos ((t term) (r term)) term
