@@ -1175,9 +1175,10 @@ n is expected to be log2(len(b))
 def bvLeftShift : Nat → OptionM term → OptionM term → OptionM term
 | 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (leftShift a) a
 | (n + 1), a, b => do
-                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
-                              (leftShiftN a (2^(n+1)))  a)
-                  (bvLeftShift n res b)
+                  let res ← (bvLeftShift n a b)
+                  (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
+                              (leftShiftN res (2^(n+1))) res)
+                  
 #eval termEval (bvLeftShift 2 (mkValBV [false, false, true]) (mkValBV [false, false, true]))
 
 /-
@@ -1276,9 +1277,9 @@ n is expected to be log2(len(b))
 def bvLRightShift : Nat → OptionM term → OptionM term → OptionM term
 | 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (lRightShift a) a
 | (n + 1), a, b => do
-                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
-                              (lRightShiftN a (2^(n+1)))  a)
-                  (bvLRightShift n res b)
+                  let res ← (bvLRightShift n a b)
+                  (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
+                              (lRightShiftN res (2^(n+1))) res)
 
 /-
 If terms are well-typed, construct their bit-blasted BV logical right shift
@@ -1383,9 +1384,9 @@ n is expected to be log2(len(b))
 def bvARightShift : Nat → OptionM term → OptionM term → OptionM term
 | 0, a, b => mkIte (mkEq (mkBitOf b (mkValInt 0)) top) (aRightShift a) a
 | (n + 1), a, b => do
-                  let res ← (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
-                              (aRightShiftN a (2^(n+1)))  a)
-                  (bvARightShift n res b)
+                  let res ← (bvARightShift n a b)
+                  (mkIte (mkEq (mkBitOf b (mkValInt (Int.ofNat (n+1)))) top)
+                              (aRightShiftN res (2^(n+1))) res)
 
 /-
 If terms are well-typed, construct their bit-blasted BV arithmetic right shift
