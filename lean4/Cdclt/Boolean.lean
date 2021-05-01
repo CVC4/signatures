@@ -293,7 +293,7 @@ axiom clAssume : ∀ {t : OptionM term}, thHolds t → holds [t]
 axiom clOr : ∀ {t : OptionM term} (p : thHolds t), holds (reduceOr t)
 
 axiom scope : ∀ {t₁ t₂ : OptionM term},
-  thHolds t₁ → thHolds t₂ → thHolds (mkOr (mkNot t₁) t₂)
+  (thHolds t₁ → thHolds t₂) → thHolds (mkOr (mkNot t₁) t₂)
 
 ------------------------------------ Holes ------------------------------------
 
