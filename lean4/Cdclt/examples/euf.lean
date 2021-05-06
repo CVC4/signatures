@@ -22,20 +22,6 @@ theorem binCong :
 have s2 : thHolds (mkEq f₁ f₁) from refl
 show (thHolds (mkEq (mkApp (mkApp f₁ a₁) b₁) (mkApp (mkApp f₁ a₂) b₂))) from cong (cong s2 s0) s1
 
-def a1a2 := mkEq a₁ a₂
-def f3a1 := (mkApp f₃ a₁)
-def f3a2 := (mkApp f₃ a₂)
-def f3a1f3a2 := mkEq f3a1 f3a2
-def nf3a1f3a2 := mkNot f3a1f3a2
-
-theorem test1 : thHolds a1a2 → thHolds nf3a1f3a2 → holds [] :=
-λ s0 : thHolds a1a2 =>
-λ s1 : thHolds nf3a1f3a2 =>
-have s2 : thHolds (mkEq f₃ f₃) from refl
-have s3 : thHolds f3a1f3a2 from cong s2 s0
-have s4 : holds [mkNot a1a2, f3a1f3a2] from clOr (scope s0 s3)
-show holds [] from R0 (R0 (clAssume s0) s4 a1a2) (clAssume s1) f3a1f3a2
-
 /-
 (SCOPE |:conclusion| (not (and (= a b) (or (not p3) (not (= (f a) (f b)))) p1 (or (not p1) (and p2 p3))))
   (EQ_RESOLVE |:conclusion| false
@@ -143,19 +129,19 @@ def andp₁t := mkAnd p₁ (val (value.bool true) boolSort)
 
 theorem simpleCong :
   thHolds eqab → thHolds andp₁t → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → holds [] :=
+  -- thHolds eqab → thHolds andp₁t → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → thHolds (mkOr (mkNot eqab) eqfafb) :=
 fun a0 : thHolds eqab =>
 fun a1 : thHolds andp₁t =>
 fun a2 : thHolds ornp₃neqfafb =>
 fun a3 : thHolds p₁ =>
 fun a4 : thHolds ornp₁andp₂p₃ =>
 
-have s0 : holds [mkNot eqab, eqfafb] from (
+have s0 : holds [mkNot eqab, eqfafb] from clOr (scope (
   fun a0 : thHolds eqab =>
   have s0 : thHolds (mkEq b a) from symm a0
   have s1 : thHolds eqab from symm s0
-  have s2 : thHolds eqfafb from cong (@refl f) s1
-  show holds [mkNot eqab, eqfafb] from clOr (scope a0 s2)
-  ) a0
+  show thHolds eqfafb from cong (@refl f) s1
+  ))
 have s1 : holds [eqfafb, mkNot eqab] from reorder s0 [1,0]
 
 have s2 : holds [andp₂p₃] from R1 (clOr a4) (clAssume a3) p₁
