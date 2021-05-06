@@ -13,10 +13,8 @@
     ((apply s1 s2)
       (match s1
         ((apply f_str.++ s12)
-          (match s12
-            ; nested concatenation
-            ((apply f_str.++ s122) (sc_string_concat s12 (sc_string_flatten s2)))
-            (default (apply s1 (sc_string_flatten s2)))))))
+          ; must handle nested concatenation
+          (sc_string_concat (sc_string_nary_intro s12) (sc_string_flatten s2)))))
     (emptystr s))
 )
 
