@@ -13,7 +13,8 @@
     ((apply s1 s2)
       (match s1
         ((apply f_str.++ s12)
-          ; must handle nested concatenation
+          ; Must handle nested concatenation for word constant. We know there is no nested concatenation within s12, so we don't need to flatten it.
+          ; Since s12 may not be a concat term, we must use n-ary intro to ensure it is in n-ary form
           (sc_string_concat (sc_string_nary_intro s12) (sc_string_flatten s2)))))
     (emptystr s))
 )
