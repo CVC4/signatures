@@ -7,6 +7,7 @@
 (declare Array (! i sort (! e sort sort)))
 (declare BitVec (! w mpz sort))
 (declare FloatingPoint (! e mpz (! s mpz sort)))
+(declare RoundingMode sort)
 (declare Set (! e sort sort))
 (declare Bag (! e sort sort))
 (declare Seq (! e sort sort))
@@ -80,6 +81,8 @@
 (define to_real (# x term (apply f_to_real x)))
 (declare f_to_int term)
 (define to_int (# x term (apply f_to_int x)))
+(declare f_is_int term)
+(define is_int (# x term (apply f_is_int x)))
 
 ; Arrays
 (declare f_select term)
@@ -88,6 +91,8 @@
 (define store (# x term (# y term (# z term (apply (apply (apply f_store x) y) z)))))
 (declare f_array_const (! s sort term))
 (define array_const (# x sort (# y term (apply (f_array_const x) y)))
+(declare f_eqrange term)
+(define eqrange (# x term (# y term (# z term (# w term (apply (apply (apply (apply f_eqrange x) y) z) w))))))
 
 ; Strings
 (declare emptystr term)
@@ -104,6 +109,8 @@
 (define str.replace (# x term (# y term (# z term (apply (apply (apply f_str.replace x) y) z)))))
 (declare f_str.indexof term)
 (define str.indexof (# x term (# y term (# z term (apply (apply (apply f_str.indexof x) y) z)))))
+(declare f_str.at term)
+(define str.at (# x term (# y term (apply (apply f_str.at x) y))))
 (declare f_str.prefixof term)
 (define str.prefixof (# x term (# y term (apply (apply f_str.prefixof x) y))))
 (declare f_str.suffixof term)
@@ -317,3 +324,5 @@
 (declare f_pto term)
 (define pto (# x term (apply f_pto x)))
 (declare emp term)
+
+; UF + cardinality
