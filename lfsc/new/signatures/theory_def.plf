@@ -256,6 +256,7 @@
 (define bv2nat (# x term (apply f_bv2nat x)))
 (declare f_int2bv (! i mpz term))
 (define int2bv (# x mpz (# y term (apply (f_int2bv x) y))))
+(declare emptybv term)
 
 ; Sets
 (declare emptyset (! s sort term))
