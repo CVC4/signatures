@@ -168,10 +168,11 @@
 (declare f_str.in_re term)
 (define str.in_re (# x term (# y term (apply (apply f_str.in_re x) y))))
 ; Sequences
+(declare seq.empty (! s sort term))
 (declare f_seq.unit term)
 (define seq.unit (# x term (apply f_seq.unit x)))
 (declare f_seq.nth term)
-(define seq.nth (# x term (apply f_seq.nth x)))
+(define seq.nth (# x term (# y term (apply (apply f_seq.nth x) y))))
 (declare f_seq.len term)
 (define seq.len (# x term (apply f_seq.len x)))
 (declare f_seq.++ term)
@@ -319,6 +320,8 @@
 (define bag.count (# x term (# y term (apply (apply f_bag.count x) y))))
 (declare f_bag term)
 (define bag (# x term (# y term (apply (apply f_bag x) y))))
+(declare f_duplicate_removal term)
+(define duplicate_removal (# x term (apply f_duplicate_removal x)))
 
 ; Separation Logic
 (declare sep.nil term)
