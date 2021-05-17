@@ -55,16 +55,47 @@
     )))))
 )
 
+;    // assert:
+;    // IF:   ~contains( substr( x, n, len( x ) - n ), y ) OR n > len(x) OR 0 > n
+;    // THEN: k = -1
+;    // ELIF: y = ""
+;    // THEN: k = n
+;    // ELSE: substr( x, n, len( x ) - n ) = str.++( k1, y, k2 ) ^
+;    //       ~contains( str.++( k1, substr( y, 0, len( y ) - 1) ), y ) ^
+;    //       k = n + len( k1 )
+;    // for k1, k2.
+(program sc_string_reduction_indexof ((x term) (y term) (n term)) term
+  (let k (skolem (str.indexof x y n))
+  (let xn (str.substr x n (a.- (str.len x) n))
+  (let k1 (skolem (sc_skolem_first_ctn_pre xn y))
+  (let k2 (skolem (sc_skolem_first_ctn_post xn y))
+  (ite Bool
+    (or (not (str.contains xn y))
+      (or (a.> n (str.len x))
+        (or (a.> (int 0) n)
+          false)))
+    (= k (int (~ 1)))
+    (ite Bool
+      (= y emptystr)
+      (= k n)
+      (and (= xn (str.++ k1 (str.++ y (str.++ k2 emptystr))))
+        (and (not (str.contains (str.++ k1 (str.++ (str.substr y (int 0) (a.- (str.len y) (int 1))) emptystr)) y))
+          (and (= k (a.+ n (a.+ (str.len k1) (int 0))))
+            true)))
+)))))))
+
 (program sc_string_reduction ((t term)) term
   (match t 
     ((apply t1 t2)
       (match t1
         ((apply t11 t12)
           (match t11
-            ((apply f_str.substr t112) (sc_string_reduction_substr t112 t12 t2))
-            (f_str.contains true)  ; TODO
-            ((apply f_str.indexof t112) true)
-            ((apply f_str.replace t112) true)
+            ;(f_str.contains true)  ; TODO
+            ((apply t111 t112) 
+              (match t111
+                (f_str.substr (sc_string_reduction_substr t112 t12 t2))
+                (f_str.indexof (sc_string_reduction_indexof t112 t12 t2))
+                ;(f_str.replace true)
             ; str.update
             ; str.from_int
             ; str.to_int
@@ -76,8 +107,7 @@
             ; str.toupper
             ; str.rev
             ; str.leq
-  )))))
-)
+))))))))
 
 
 ; ite( (str.contains s r), (= s (str.++ sk1 t sk2)), (not (= s t)))

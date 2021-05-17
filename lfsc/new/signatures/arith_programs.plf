@@ -12,6 +12,7 @@
   (match f ((apply f1 f2) (match f1 ((apply f11 f12) f2)))))
 
 ; handles lower bounds only
+; note that = summed with = is <= to match internal calculus, although it could be =
 (program sc_arith_sum_rels ((r1 term) (r2 term)) term
   (match r1
     (f_a.< f_a.<)
@@ -19,7 +20,7 @@
       (match r2
       (f_a.< f_a.<)
       (f_a.<= f_a.<=)
-      (f_= r1)))))
+      (f_= f_a.<=)))))
 
 (program sc_arith_rel_inv ((r term)) term
   (match r

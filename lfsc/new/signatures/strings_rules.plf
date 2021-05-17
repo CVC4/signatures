@@ -127,8 +127,8 @@
                     ((char n) 
                      (= thead
                       (ifequal rev ff
-                          (str.++ s12 (str.++ (skolem (sc_skolem_suffix_rem thead (int 1))) emptystr))
-                          (str.++ (skolem (sc_skolem_prefix thead (a.- (str.len thead) (int 1)))) (str.++ s12 emptystr))))))))))
+                        (str.++ s12 (str.++ (skolem (sc_skolem_suffix_rem thead (int 1))) emptystr))
+                        (str.++ (skolem (sc_skolem_prefix thead (a.- (str.len thead) (int 1)))) (str.++ s12 emptystr))))))))))
            (fail term))))))
 )
   
