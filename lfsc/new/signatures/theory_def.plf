@@ -83,6 +83,8 @@
 (define to_int (# x term (apply f_to_int x)))
 (declare f_is_int term)
 (define is_int (# x term (apply f_is_int x)))
+(declare f_abs term)
+(define abs (# x term (apply f_abs x)))
 (declare f_iand (! x mpz term))
 (define iand (# x mpz (# y term (# z term (apply (apply (f_iand x) y) z)))))
 
@@ -284,6 +286,8 @@
 (define intersection (# x term (# y term (apply (apply f_intersection x) y))))
 (declare f_setminus term)
 (define setminus (# x term (# y term (apply (apply f_setminus x) y))))
+(declare f_complement term)
+(define complement (# x term (apply f_complement x)))
 (declare f_member term)
 (define member (# x term (# y term (apply (apply f_member x) y))))
 (declare f_subset term)
