@@ -302,8 +302,11 @@
 (define transpose (# x term (apply f_transpose x)))
 (declare f_tclosure term)
 (define tclosure (# x term (apply f_tclosure x)))
+(declare f_insert term)
+(define insert (# x term (# y term (apply (apply f_insert x) y))))
 
 ; Bags
+(declare emptybag (! s sort term))
 (declare f_union_max term)
 (define union_max (# x term (# y term (apply (apply f_union_max x) y))))
 (declare f_union_disjoint term)
