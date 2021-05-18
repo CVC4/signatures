@@ -11,17 +11,17 @@
 
 ; head and tail for n-ary operators with null terminators
 (program nary_head ((f term) (t term)) term
-  (match t ((apply t1 t2) (match t1 ((apply f t12) t12)))))
+  (match t ((apply t1 t2) (getarg f t1))))
 (program nary_tail ((f term) (t term)) term
-  (match t ((apply t1 t2) (match t1 ((apply f t12) t2)))))
+  (match t ((apply t1 t2) (let t12 (getarg f t1) t2))))
 
 
 ; remove the first occurrence of l from t, where t is an n-ary, null-terminated chain
 (program nary_rm_first ((f term) (t term) (l term)) term
   (match t
     ((apply t1 t2)  ; otherwise at end, l not found
-      (match t1
-        ((apply f t12) (ifequal t12 l t2 (apply t1 (nary_rm_first f t2 l)))))))   ; otherwise not in n-ary form (for f)
+      (let t12 (getarg f t1)
+        (ifequal t12 l t2 (apply t1 (nary_rm_first f t2 l))))))   ; otherwise not in n-ary form (for f)
 )
 
 ; also checks t == l, return null if so, where null is a null terminator
@@ -33,8 +33,8 @@
 (program nary_ctn ((f term) (t term) (l term)) flag
   (match t
     ((apply t1 t2)
-      (match t1
-        ((apply f t12) (ifequal t12 l tt (nary_ctn f t2 l)))))   ; otherwise not in n-ary form
+      (let t12 (getarg f t1)
+        (ifequal t12 l tt (nary_ctn f t2 l))))   ; otherwise not in n-ary form
     (default ff))
 )
 
@@ -47,16 +47,16 @@
 (program nary_is_subset ((f term) (t term) (s term)) flag
   (match t
     ((apply t1 t2) 
-      (match t1
-        ((apply f t12) (ifequal (nary_ctn_or_self f s t12) tt (nary_is_subset f t2 s) ff)))) ; otherwise not in n-ary form
+      (let t12 (getarg f t1)
+        (ifequal (nary_ctn_or_self f s t12) tt (nary_is_subset f t2 s) ff))) ; otherwise not in n-ary form
     (default tt))
 )
 
 (program nary_concat ((f term) (t1 term) (t2 term) (null term)) term
   (match t1
     ((apply t11 t12) 
-      (match t11
-        ((apply f t112) (apply t11 (nary_concat f t12 t2 null)))))
+      (let t112 (getarg f t11)
+        (apply t11 (nary_concat f t12 t2 null))))
     (default t2))    ; any non-application term is interpreted as the end marker TODO: use null
 )
 
@@ -65,7 +65,7 @@
   (match t
     ((apply t1 t2) 
       (match t1
-        ((apply f t12) (pair t12 t2))
+        ((apply t11 t12) (ifequal t11 f (pair t12 t2) (pair null t)))
         (default (pair null t))))
     (default (pair null t)))
 )
@@ -78,7 +78,7 @@
   (match t
     ((apply t1 t2) 
       ; if null terminated at this level, then we return the head, otherwise not in n-ary form
-      (ifequal t2 null (match t1 ((apply f t12) t12)) t))
+      (ifequal t2 null (getarg f t1) t))
     (default (ifequal t null t (fail term))))
 )
 
@@ -97,19 +97,17 @@
   (match t
     ((apply t1 t2)
       (mp_ifzero n 
-        (match t1 ((apply f t12) t12))
-        (nary_extract f t2 (mp_add n (mp_neg 1)))
-      )))
+        (getarg f t1)
+        (nary_extract f t2 (mp_add n (mp_neg 1))))))
 )
 
 ; helper for dropping duplicates
 (program nary_drop_dups_rec ((f term) (t term)) term
   (match t
     ((apply t1 t2)
-      (match t1
-        ((apply f t12) 
-          (let t2d (nary_drop_dups_rec f t2) 
-            (ifequal (nary_ctn f t2d t12) tt t2d (apply t1 t2d))))))
+      (let t12 (getarg f t1)
+      (let t2d (nary_drop_dups_rec f t2)
+         (ifequal (nary_ctn f t2d t12) tt t2d (apply t1 t2d)))))
     (default t))
 )
 
@@ -123,15 +121,16 @@
   (ifequal t c null
     (match t
       ((apply t1 t2)
-        (match t1 ((apply f t12) (apply t1 (nary_truncate f t2 c null)))))))
+        (let t12 (getarg f t1)
+          (apply t1 (nary_truncate f t2 c null))))))
 )
 
 ; helper for reverse
 (program nary_reverse_rec ((f term) (t term) (acc term) (null term)) term
   (match t
     ((apply t1 t2)
-      (match t1
-        ((apply f t12) (nary_reverse_rec f t2 (apply t1 acc) null))))
+      (let t12 (getarg f t1)
+        (nary_reverse_rec f t2 (apply t1 acc) null)))
     (default (ifequal t null acc (fail term))))
 )
 

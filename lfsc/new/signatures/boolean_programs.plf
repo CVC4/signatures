@@ -14,8 +14,8 @@
 (program sc_not_and_rec ((t term)) term
   (match t
     ((apply t1 t2)
-      (match t1
-        ((apply f_and t12) (apply (apply f_or (apply f_not t12)) (sc_not_and_rec t2)))))   ; otherwise not in n-ary form
+      (let t12 (getarg f_and t1)
+        (apply (apply f_or (apply f_not t12)) (sc_not_and_rec t2))))   ; otherwise not in n-ary form
     (true false))    ; note we must flip true to false
 )
 
@@ -27,10 +27,9 @@
 (program sc_not_and_rev_rec ((t term)) term
   (match t
     ((apply t1 t2)
-      (match t1
-        ((apply f_or t12) 
-          (match t12 
-            ((apply f_not t122) (apply (apply f_and t122) (sc_not_and_rev_rec t2)))))))   ; otherwise not in n-ary form
+      (let t12 (getarg f_or t1)
+      (let t122 (getarg f_not t12) 
+        (apply (apply f_and t122) (sc_not_and_rev_rec t2)))))   ; otherwise not in n-ary form
     (false true))    ; note we must flip true to false
 )
 

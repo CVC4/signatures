@@ -6,8 +6,7 @@
 
 (program sc_substitute ((t term) (v mpz) (s term)) term
   (match t
-    ((bvar v1 u1) 
-       (mpz_ifequal v v1 s t))
+    ((bvar v1 u1) (mpz_ifequal v v1 s t))
     ((apply t1 t2) (apply (sc_substitute t1 v s) (sc_substitute t2 v s)))
     (default t)
   ))

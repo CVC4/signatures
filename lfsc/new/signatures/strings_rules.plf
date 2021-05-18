@@ -1,4 +1,4 @@
-
+; TODO: update match patterns
 
 
 (declare string_length_non_empty (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) (int 0)))))))
