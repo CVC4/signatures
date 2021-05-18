@@ -1,3 +1,5 @@
+; depends: util_defs.plf
+
 ; ------------TEMPORARY, for debugging
 (program is_nary_form ((f term) (t term) (null term)) flag
   (match t

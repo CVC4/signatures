@@ -1,3 +1,5 @@
+; depends: core_defs.plf
+
 (declare flag type)
 (declare tt flag)
 (declare ff flag)

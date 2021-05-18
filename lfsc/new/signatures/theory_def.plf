@@ -1,3 +1,5 @@
+; depends: core_defs.plf
+
 ; sorts :
 (declare Bool sort)
 (declare Int sort)

@@ -1,5 +1,4 @@
-; TODO: update match patterns
-
+; depends: strings_programs.plf
 
 (declare string_length_non_empty (! s term (! p (holds (not (= s emptystr))) (holds (not (= (str.len s) (int 0)))))))
 
@@ -11,11 +10,10 @@
 (program sc_string_flatten ((s term)) term
   (match s
     ((apply s1 s2)
-      (match s1
-        ((apply f_str.++ s12)
-          ; Must handle nested concatenation for word constant. We know there is no nested concatenation within s12, so we don't need to flatten it.
-          ; Since s12 may not be a concat term, we must use n-ary intro to ensure it is in n-ary form
-          (sc_string_concat (sc_string_nary_intro s12) (sc_string_flatten s2)))))
+      (let s12 (getarg f_str.++ s1)
+        ; Must handle nested concatenation for word constant. We know there is no nested concatenation within s12, so we don't need to flatten it.
+        ; Since s12 may not be a concat term, we must use n-ary intro to ensure it is in n-ary form
+        (sc_string_concat (sc_string_nary_intro s12) (sc_string_flatten s2))))
     (emptystr s))
 )
 
@@ -23,13 +21,11 @@
 (program sc_string_collect_acc ((s term)) termPair
   (match s
     ((apply s1 s2)
-      (match s1
-        ((apply f_str.++ s12)
-          (match s12
-            ((char n)
-              (match (sc_string_collect_acc s2)
-                ((pair ssc1 ssc2) (pair (apply s1 ssc1) ssc2))))
-            (default (pair emptystr s))))))
+      (match (getarg f_str.++ s1)
+        ((char n)
+          (match (sc_string_collect_acc s2)
+            ((pair ssc1 ssc2) (pair (apply s1 ssc1) ssc2))))
+        (default (pair emptystr s))))
     (emptystr (pair emptystr s)))
 )
 
@@ -53,16 +49,14 @@
 (program sc_strip_prefix ((s term) (t term)) termPair
   (match s
     ((apply s1 s2)
-      (match s1
-        ((apply f_str.++ s12)
+      (let s12 (getarg f_str.++ s1)
         (match t
           ((apply t1 t2)
-          (match t1
-            ((apply f_str.++ t12)
-            (ifequal s12 t12
-              (sc_strip_prefix s2 t2) 
-              (pair s t)))))
-          (emptystr (pair s t))))))
+            (let t12 (getarg f_str.++ t1)
+              (ifequal s12 t12
+                (sc_strip_prefix s2 t2)
+                (pair s t))))
+          (emptystr (pair s t)))))
     (emptystr (pair s t)))
 )
 
@@ -116,22 +110,19 @@
 (program sc_concat_csplit ((thead term) (t term) (s term) (rev flag)) term
   (match (sc_string_to_flat_form t rev)
     ((apply t1 t2)
-      (match t1
-        ((apply f_str.++ t12)
-          (ifequal t12 thead
-          (match (sc_string_to_flat_form s rev)
-            ((apply s1 s2)
-              (match s1
-                ((apply f_str.++ s12)
-                  (match s12
-                    ((char n) 
-                     (= thead
-                      (ifequal rev ff
-                        (str.++ s12 (str.++ (skolem (sc_skolem_suffix_rem thead (int 1))) emptystr))
-                        (str.++ (skolem (sc_skolem_prefix thead (a.- (str.len thead) (int 1)))) (str.++ s12 emptystr))))))))))
-           (fail term))))))
+      (ifequal (getarg f_str.++ t1) thead
+        (match (sc_string_to_flat_form s rev)
+          ((apply s1 s2)
+            (let s12 (getarg f_str.++ s1)
+            (match s12
+              ((char n)
+                (= thead
+                (ifequal rev ff
+                  (str.++ s12 (str.++ (skolem (sc_skolem_suffix_rem thead (int 1))) emptystr))
+                  (str.++ (skolem (sc_skolem_prefix thead (a.- (str.len thead) (int 1)))) (str.++ s12 emptystr)))))))))
+          (fail term))))
 )
-  
+
 (declare concat_csplit 
   (! t1 term
   (! t term

@@ -1,3 +1,4 @@
+; depends: nary_programs.plf
 
 ; note we must convert to original form recursively
 (program sc_skolem_prefix ((s term) (n term)) term 
