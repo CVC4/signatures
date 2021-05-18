@@ -339,7 +339,7 @@
 (declare f_wand term)
 (define wand (# x term (# y term (apply (apply f_wand x) y))))
 (declare f_pto term)
-(define pto (# x term (apply f_pto x)))
+(define pto (# x term (# y term (apply (apply f_pto x) y))))
 (declare emp term)
 
 ; UF + cardinality
