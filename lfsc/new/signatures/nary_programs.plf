@@ -104,18 +104,22 @@
 )
 
 ; helper for dropping duplicates
-(program nary_drop_dups_rec ((f term) (t term)) term
+; we maintain an accumulator tacc which tracks which terms we are adding to the
+; chain, which is required to ensure propering ordering for cases like
+; (or A B B A), where (or A B) should be returned.
+(program nary_drop_dups_rec ((f term) (t term) (tacc term)) term
   (match t
     ((apply t1 t2)
       (let t12 (getarg f t1)
-      (let t2d (nary_drop_dups_rec f t2)
-         (ifequal (nary_ctn f t2d t12) tt t2d (apply t1 t2d)))))
+      (let c (nary_ctn f tacc t12)
+      (let t2d (nary_drop_dups_rec f t2 (ifequal c tt tacc (apply t1 tacc)))
+         (ifequal c tt t2d (apply t1 t2d))))))
     (default t))
 )
 
 ; drop duplicates in an n-ary chain
 (program nary_drop_dups ((f term) (t term) (null term)) term
-  (nary_elim f (nary_drop_dups_rec f t) null)
+  (nary_elim f (nary_drop_dups_rec f t null) null)
 )
 
 ; truncate, for example, (or t1 ... tn c) ---> (or t1 ... tn false)
