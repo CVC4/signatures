@@ -308,6 +308,10 @@
 (define transpose (# x term (apply f_transpose x)))
 (declare f_tclosure term)
 (define tclosure (# x term (apply f_tclosure x)))
+(declare f_iden term)
+(define iden (# x term (apply f_iden x)))
+(declare f_join_image term)
+(define join_image (# x term (# y term (apply (apply f_join_image x) y))))
 (declare f_insert term)
 (define insert (# x term (# y term (apply (apply f_insert x) y))))
 
@@ -344,4 +348,13 @@
 (define pto (# x term (# y term (apply (apply f_pto x) y))))
 (declare emp term)
 
-; UF + cardinality
+
+
+; non-standard definitions (temporary)
+(declare f_BV_EAGER_ATOM term)
+(define BV_EAGER_ATOM (# x term (apply f_BV_EAGER_ATOM x)))
+(declare f_SEP_LABEL term)
+(define SEP_LABEL (# x term (# y term (apply (apply f_SEP_LABEL x) y))))
+(declare f_fmf.card term)
+(define fmf.card (# x term (# y term (apply (apply f_fmf.card x) y))))
+
