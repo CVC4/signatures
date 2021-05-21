@@ -100,6 +100,10 @@
 (declare f_eqrange term)
 (define eqrange (# x term (# y term (# z term (# w term (apply (apply (apply (apply f_eqrange x) y) z) w))))))
 
+; Datatypes
+; shared selector for (sort, index)
+(declare sel (! s sort (! z mpz term)))
+
 ; Strings
 (declare emptystr term)
 (declare char (! v mpz term))
