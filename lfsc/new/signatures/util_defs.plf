@@ -23,3 +23,7 @@
 ; get argument from f application, fail otherwise
 (program getarg ((f term) (t term)) term
   (match t ((apply t1 t2) (ifequal t1 f t2 (fail term)))))
+
+; get argument from f application, return self otherwise
+(program try_getarg ((f term) (t term)) term
+  (match t ((apply t1 t2) (ifequal t1 f t2 t)) (default t)))
