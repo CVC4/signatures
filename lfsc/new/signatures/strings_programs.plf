@@ -33,7 +33,7 @@
 ;       len( k ) <= m
 ; ELSE: k = ""
 (program sc_string_reduction_substr ((s term) (n term) (m term)) term
-  (let k (skolem (str.substr s n m))
+  (let k (skolem (sc_to_original (str.substr s n m)))
   (let npm (a.+ n (a.+ m (int 0)))
   (let k1 (skolem (sc_skolem_prefix s n))
   (let k2 (skolem (sc_skolem_suffix_rem s npm))
@@ -66,7 +66,7 @@
 ;    //       k = n + len( k1 )
 ;    // for k1, k2.
 (program sc_string_reduction_indexof ((x term) (y term) (n term)) term
-  (let k (skolem (str.indexof x y n))
+  (let k (skolem (sc_to_original (str.indexof x y n)))
   (let xn (str.substr x n (a.- (str.len x) n))
   (let k1 (skolem (sc_skolem_first_ctn_pre xn y))
   (let k2 (skolem (sc_skolem_first_ctn_post xn y))
@@ -85,7 +85,7 @@
             true)))
 )))))))
 
-(program sc_string_reduction ((t term)) term
+(program sc_string_reduction_pred ((t term)) term
   (match t 
     ((apply t1 t2)
       (match t1
@@ -110,6 +110,9 @@
             ; str.leq
 ))))))))
 
+(program sc_string_reduction ((t term)) term
+  (and (sc_string_reduction_pred t) (and (= t (skolem (sc_to_original t))) true))
+)
 
 ; ite( (str.contains s r), (= s (str.++ sk1 t sk2)), (not (= s t)))
 (program sc_string_eager_reduction_contains ((s term) (t term)) term

@@ -37,7 +37,7 @@
 
 ; ITE
 (declare f_ite (! s sort term))
-(define ite (# s sort (# condition term (# then_branch term (# else_branch term (apply (apply (apply (f_ite s) condition) then_branch) else_branch))))))
+(define ite (# s sort (# c term (# t1 term (# t2 term (apply (apply (apply (f_ite s) c) t1) t2))))))
 
 ; Equality:
 ; f_= is an equality symbol, which is a term, to be used with an apply
