@@ -42,7 +42,7 @@
                      (! s sort
                      (! bodyi term
                      (! p (holds (exists v s body))
-                     (! r (^ (sc_substitute_and_type_check body v (skolem (witness v s body)) s) bodyi)
+                     (! r (^ (sc_substitute_and_type_check body v (sc_mk_skolem (witness v s body)) s) bodyi)
                        (holds bodyi))))))))
 
 (declare exists_intro (! bodyi term
