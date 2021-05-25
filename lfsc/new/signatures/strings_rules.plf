@@ -141,9 +141,9 @@
 (declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) 
   (holds (str.in_re x (re.inter s t)))))))))
 
-(declare string_reduction (! r term (! t term (! u (^ (sc_string_reduction t) r)
-  (holds r)))))))
-(declare string_eager_reduction (! r term (! t term (! u (^ (sc_string_eager_reduction t) r)
-  (holds r)))))
+(declare string_reduction (! r term (! t term (! s sort (! u (^ (sc_string_reduction t s) r)
+  (holds r))))))))
+(declare string_eager_reduction (! r term (! t term (! s sort (! u (^ (sc_string_eager_reduction t s) r)
+  (holds r))))))
 
 (declare re_unfold_pos (! t term (! r term (! s term (! f (holds (str.in_re t r)) (! u (^ (sc_re_unfold_pos t r) s) (holds s)))))))

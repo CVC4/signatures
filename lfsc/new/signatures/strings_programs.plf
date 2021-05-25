@@ -1,5 +1,11 @@
 ; depends: nary_programs.plf
 
+; make empty string of the given sort
+(program sc_mk_emptystr ((s sort)) term
+  (match s
+    ((Seq t) (seq.empty s))
+    (String emptystr)))
+
 ; note we must convert to original form recursively
 (program sc_skolem_prefix ((s term) (n term)) term 
   (str.substr s (int 0) n)
@@ -13,6 +19,8 @@
 ; head and tail for n-ary operators with null terminators
 (program sc_string_head ((t term)) term (nary_head f_str.++ t))
 (program sc_string_tail ((t term)) term (nary_tail f_str.++ t))
+
+; TODO: these should case split on type to construct empty string
 
 ; decompose / concat
 (program sc_string_concat ((t1 term) (t2 term)) term (nary_concat f_str.++ t1 t2 emptystr))
@@ -32,27 +40,27 @@
 ;       ( len( k2 ) = len( s )-(n+m) OR len( k2 ) = 0 ) AND
 ;       len( k ) <= m
 ; ELSE: k = ""
-(program sc_string_reduction_substr ((s term) (n term) (m term)) term
-  (let k (sc_mk_skolem (str.substr s n m))
+(program sc_string_reduction_substr ((x term) (n term) (m term) (s sort)) term
+  (let k (sc_mk_skolem (str.substr x n m))
   (let npm (a.+ n (a.+ m (int 0)))
-  (let k1 (sc_mk_skolem (sc_skolem_prefix s n))
-  (let k2 (sc_mk_skolem (sc_skolem_suffix_rem s npm))
+  (let k1 (sc_mk_skolem (sc_skolem_prefix x n))
+  (let k2 (sc_mk_skolem (sc_skolem_suffix_rem x npm))
   (ite
     ; condition
     (and (a.>= n (int 0))
-      (and (a.> (str.len s) n)
+      (and (a.> (str.len x) n)
         (and (a.> m (int 0))
           true)))
     ; if branch
-    (and (= s (str.++ k1 (str.++ k (str.++ k2 emptystr))))
+    (and (= x (str.++ k1 (str.++ k (str.++ k2 (sc_mk_emptystr s)))))
       (and (= (str.len k1) n)
-        (and (or (= (str.len k2) (a.- (str.len s) npm))
+        (and (or (= (str.len k2) (a.- (str.len x) npm))
                 (or (= (str.len k2) (int 0))
                   false))
           (and (a.<= (str.len k) m)
             true))))
     ; else branch
-    (= k emptystr)
+    (= k (sc_mk_emptystr s))
     )))))
 )
 
@@ -65,7 +73,7 @@
 ;    //       ~contains( str.++( k1, substr( y, 0, len( y ) - 1) ), y ) ^
 ;    //       k = n + len( k1 )
 ;    // for k1, k2.
-(program sc_string_reduction_indexof ((x term) (y term) (n term)) term
+(program sc_string_reduction_indexof ((x term) (y term) (n term) (s sort)) term
   (let k (sc_mk_skolem (str.indexof x y n))
   (let xn (str.substr x n (a.- (str.len x) n))
   (let k1 (sc_mk_skolem (sc_skolem_first_ctn_pre xn y))
@@ -77,15 +85,15 @@
           false)))
     (= k (int (~ 1)))
     (ite
-      (= y emptystr)
+      (= y (sc_mk_emptystr s))
       (= k n)
-      (and (= xn (str.++ k1 (str.++ y (str.++ k2 emptystr))))
-        (and (not (str.contains (str.++ k1 (str.++ (str.substr y (int 0) (a.- (str.len y) (int 1))) emptystr)) y))
+      (and (= xn (str.++ k1 (str.++ y (str.++ k2 (sc_mk_emptystr s)))))
+        (and (not (str.contains (str.++ k1 (str.++ (str.substr y (int 0) (a.- (str.len y) (int 1))) (sc_mk_emptystr s))) y))
           (and (= k (a.+ n (a.+ (str.len k1) (int 0))))
             true)))
 )))))))
 
-(program sc_string_reduction_pred ((t term)) term
+(program sc_string_reduction_pred ((t term) (s sort)) term
   (match t 
     ((apply t1 t2)
       (match t1
@@ -94,8 +102,8 @@
             ;(f_str.contains true)  ; TODO
             ((apply t111 t112) 
               (match t111
-                (f_str.substr (sc_string_reduction_substr t112 t12 t2))
-                (f_str.indexof (sc_string_reduction_indexof t112 t12 t2))
+                (f_str.substr (sc_string_reduction_substr t112 t12 t2 s))
+                (f_str.indexof (sc_string_reduction_indexof t112 t12 t2 s))
                 ;(f_str.replace true)
             ; str.update
             ; str.from_int
@@ -110,18 +118,18 @@
             ; str.leq
 ))))))))
 
-(program sc_string_reduction ((t term)) term
-  (and (sc_string_reduction_pred t) (and (= t (sc_mk_skolem t)) true))
+(program sc_string_reduction ((t term) (s sort)) term
+  (and (sc_string_reduction_pred t s) (and (= t (sc_mk_skolem t)) true))
 )
 
-; ite( (str.contains s r), (= s (str.++ sk1 t sk2)), (not (= s t)))
-(program sc_string_eager_reduction_contains ((s term) (t term)) term
-  (let k1 (sc_mk_skolem (sc_skolem_first_ctn_pre s t))
-  (let k2 (sc_mk_skolem (sc_skolem_first_ctn_post s t))
+; ite( (str.contains t r), (= t (str.++ sk1 r sk2)), (not (= t r)))
+(program sc_string_eager_reduction_contains ((t term) (r term) (s sort)) term
+  (let k1 (sc_mk_skolem (sc_skolem_first_ctn_pre t r))
+  (let k2 (sc_mk_skolem (sc_skolem_first_ctn_post t r))
   (ite
-    (str.contains s t)
-    (= s (str.++ k1 (str.++ t (str.++ k2 emptystr))))
-    (not (= s t)))
+    (str.contains t r)
+    (= t (str.++ k1 (str.++ r (str.++ k2 (sc_mk_emptystr s)))))
+    (not (= t r)))
   ))
 )
 
@@ -142,14 +150,14 @@
       true)))
 )
 
-(program sc_string_eager_reduction ((t term)) term
+(program sc_string_eager_reduction ((t term) (s sort)) term
   (match t 
     ((apply t1 t2)
       (match t1
         (f_str.to_code (sc_string_eager_reduction_to_code t2))
         ((apply t11 t12)
           (match t11
-            (f_str.contains (sc_string_eager_reduction_contains t12 t2))
+            (f_str.contains (sc_string_eager_reduction_contains t12 t2 s))
             ((apply t111 t112)
               (match t111
                 (f_str.indexof (sc_string_eager_reduction_indexof t112 t12 t2)))))))))
