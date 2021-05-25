@@ -101,6 +101,10 @@
 (define eqrange (# x term (# y term (# z term (# w term (apply (apply (apply (apply f_eqrange x) y) z) w))))))
 
 ; Datatypes
+; tester
+(declare is (! c term term))
+; updater
+(declare update (! s term term))
 ; shared selector for (sort, index)
 (declare sel (! s sort (! z mpz term)))
 
@@ -344,7 +348,7 @@
 (define duplicate_removal (# x term (apply f_duplicate_removal x)))
 
 ; Separation Logic
-(declare sep.nil term)
+(declare sep.nil (! s sort term))
 (declare f_sep term)
 (define sep (# x term (# y term (apply (apply f_sep x) y))))
 (declare f_sep_label term)
@@ -353,8 +357,8 @@
 (define wand (# x term (# y term (apply (apply f_wand x) y))))
 (declare f_pto term)
 (define pto (# x term (# y term (apply (apply f_pto x) y))))
-(declare emp term)
-
+(declare f_emp term)
+(define emp (# x term (# y term (apply (apply f_emp x) y))))
 
 
 ; non-standard definitions (temporary)
@@ -364,4 +368,3 @@
 (define SEP_LABEL (# x term (# y term (apply (apply f_SEP_LABEL x) y))))
 (declare f_fmf.card term)
 (define fmf.card (# x term (# y term (apply (apply f_fmf.card x) y))))
-
