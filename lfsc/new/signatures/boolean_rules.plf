@@ -17,13 +17,8 @@
 (declare not_not_elim (! f term (! p (holds (not (not f))) (holds f))))
 
 (declare contra (! f term (! p1 (holds f) (! p2 (holds (not f)) (holds false)))))
-  
-; for AND_ELIM
-; End with left child, (and_elim1 _ _ (and_elim2* _ _))
-; TODO: use nary_extract
-(declare and_elim1 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f1)))))
-(declare and_elim2 (! f1 term (! f2 term (! p (holds (and f1 f2)) (holds f2)))))
-;(declare and_elim (! f1 term (! f2 term (! n mpz (! p (holds f1) (! r (^ (nary_extract f_and f1 n) f2)  (holds f2)))))))
+
+(declare and_elim (! f1 term (! f2 term (! n mpz (! p (holds f1) (! r (^ (nary_extract f_and f1 n) f2)  (holds f2)))))))
 
 ; for AND_INTRO
 ; TODO: use true intro, single rule
