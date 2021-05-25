@@ -42,7 +42,7 @@
                      (! s sort
                      (! bodyi term
                      (! p (holds (exists v s body))
-                     (! r (^ (sc_substitute_and_type_check body v (sc_mk_skolem (witness v s body)) s) bodyi)
+                     (! r (^ (sc_substitute_and_type_check body v (skolem (witness v s body)) s) bodyi)
                        (holds bodyi))))))))
 
 (declare exists_intro (! bodyi term
@@ -54,5 +54,7 @@
                       (! r (^ (sc_substitute_and_type_check body v s u) bodyi)
                         (holds (exists v u body)))))))))
 
-(declare skolem_intro (! t term
-                        (holds (= (skolem t) t))))
+(declare skolem_intro (! u term
+                      (! t term
+                      (! r (^ (sc_mk_skolem t) u)
+                        (holds (= u t))))))
