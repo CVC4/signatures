@@ -36,8 +36,8 @@
 (define xor (# t1 term (# t2 term (apply (apply f_xor t1) t2))))
 
 ; ITE
-(declare f_ite (! s sort term))
-(define ite (# s sort (# c term (# t1 term (# t2 term (apply (apply (apply (f_ite s) c) t1) t2))))))
+(declare f_ite term)
+(define ite (# c term (# t1 term (# t2 term (apply (apply (apply f_ite c) t1) t2)))))
 
 ; Equality:
 ; f_= is an equality symbol, which is a term, to be used with an apply

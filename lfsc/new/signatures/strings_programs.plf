@@ -37,7 +37,7 @@
   (let npm (a.+ n (a.+ m (int 0)))
   (let k1 (sc_mk_skolem (sc_skolem_prefix s n))
   (let k2 (sc_mk_skolem (sc_skolem_suffix_rem s npm))
-  (ite Bool
+  (ite
     ; condition
     (and (a.>= n (int 0))
       (and (a.> (str.len s) n)
@@ -70,13 +70,13 @@
   (let xn (str.substr x n (a.- (str.len x) n))
   (let k1 (sc_mk_skolem (sc_skolem_first_ctn_pre xn y))
   (let k2 (sc_mk_skolem (sc_skolem_first_ctn_post xn y))
-  (ite Bool
+  (ite
     (or (not (str.contains xn y))
       (or (a.> n (str.len x))
         (or (a.> (int 0) n)
           false)))
     (= k (int (~ 1)))
-    (ite Bool
+    (ite
       (= y emptystr)
       (= k n)
       (and (= xn (str.++ k1 (str.++ y (str.++ k2 emptystr))))
@@ -118,7 +118,7 @@
 (program sc_string_eager_reduction_contains ((s term) (t term)) term
   (let k1 (sc_mk_skolem (sc_skolem_first_ctn_pre s t))
   (let k2 (sc_mk_skolem (sc_skolem_first_ctn_post s t))
-  (ite Bool
+  (ite
     (str.contains s t)
     (= s (str.++ k1 (str.++ t (str.++ k2 emptystr))))
     (not (= s t)))
@@ -128,7 +128,7 @@
 ; ite( str.len(s)==1, 0 <= str.code(s) < |A|, str.code(s)=-1 )
 (program sc_string_eager_reduction_to_code ((s term)) term
   (let t (str.to_code s)
-  (ite Bool
+  (ite
     (= (str.len s) (int 1))
     (and (a.>= t (int 0)) (and (a.< t (int 196608)) true))
     (= t (int (~ 1)))))

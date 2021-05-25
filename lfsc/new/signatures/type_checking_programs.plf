@@ -34,7 +34,7 @@
     ; Booleans
     (true Bool)
     (false Bool)
-    ((f_ite s) (arrow Bool (arrow s (arrow s s))))
+    ;((f_ite s) (arrow Bool (arrow s (arrow s s))))
     (f_and (arrow Bool (arrow Bool Bool)))
     (f_distinct (arrow Bool (arrow Bool Bool)))
     (f_or (arrow Bool (arrow Bool Bool)))

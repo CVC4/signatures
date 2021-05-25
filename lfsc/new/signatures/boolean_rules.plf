@@ -48,10 +48,10 @@
 (declare not_xor_elim1 (! f1 term (! f2 term (! p1 (holds (not (xor f1 f2))) (holds (or f1 (or (not f2) false)))))))
 (declare not_xor_elim2 (! f1 term (! f2 term (! p1 (holds (not (xor f1 f2))) (holds (or (not f1) (or f2 false)))))))
 
-(declare ite_elim1 (! c term (! f1 term (! f2 term (! p1 (holds ((ite Bool) c f1 f2)) (holds (or (not c) (or f1 false))))))))
-(declare ite_elim2 (! c term (! f1 term (! f2 term (! p1 (holds ((ite Bool) c f1 f2)) (holds (or c (or f2 false))))))))
-(declare not_ite_elim1 (! c term (! f1 term (! f2 term (! p1 (holds (not ((ite Bool) c f1 f2))) (holds (or (not c) (or (not f1) false))))))))
-(declare not_ite_elim2 (! c term (! f1 term (! f2 term (! p1 (holds (not ((ite Bool) c f1 f2))) (holds (or c (or (not f2) false))))))))
+(declare ite_elim1 (! c term (! f1 term (! f2 term (! p1 (holds (ite c f1 f2)) (holds (or (not c) (or f1 false))))))))
+(declare ite_elim2 (! c term (! f1 term (! f2 term (! p1 (holds (ite c f1 f2)) (holds (or c (or f2 false))))))))
+(declare not_ite_elim1 (! c term (! f1 term (! f2 term (! p1 (holds (not (ite c f1 f2))) (holds (or (not c) (or (not f1) false))))))))
+(declare not_ite_elim2 (! c term (! f1 term (! f2 term (! p1 (holds (not (ite c f1 f2))) (holds (or c (or (not f2) false))))))))
 
 ; DeMorgan rule
 (declare not_and (! c1 term (! c2 term (! p1 (holds (not c1)) (! r (^ (sc_not_and c1) c2) (holds c2))))))
