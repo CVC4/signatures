@@ -117,7 +117,7 @@ axiom notOrElim : ∀ {t : OptionM term} (p : thHolds t) (n : Nat),
   thHolds (reduceNotOr n t)
 
 axiom impliesElim : ∀ {t₁ t₂ : OptionM term},
-  thHolds (mkImplies t₁ t₂) → holds [mkNot t₁, t₂]
+  thHolds (mkImplies t₁ t₂) → thHolds (mkOr (mkNot t₁) t₂)
 
 axiom notImplies1 : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkNot $ mkImplies t₁ t₂) → thHolds t₁
@@ -294,6 +294,19 @@ axiom clOr : ∀ {t : OptionM term} (p : thHolds t), holds (reduceOr t)
 
 axiom scope : ∀ {t₁ t₂ : OptionM term},
   (thHolds t₁ → thHolds t₂) → thHolds (mkOr (mkNot t₁) t₂)
+
+-- collect all terms in OR chain (right-associative)
+def liftOrToImpRecAux : term → Nat → clause
+| term.or (term.not t₀) t₁, 1 => [t₀]
+| term.or (term.not t₀) t₁, n+1 => t₀::(liftOrToImpRecAux t₁ n)
+| t, n               => [t]
+
+def liftOrToImpRec (ot : OptionM term) (n : Nat) (otail : OptionM term) :
+  OptionM term :=
+ ot >>= λ t => otail >>= λ tail => mkImplies (maybeMkAnd (liftOrToImpRecAux t n)) tail
+
+axiom liftNOrToImp : ∀ {t : OptionM term},
+  (p : thHolds t) → (n : Nat) → (tail : OptionM term) → thHolds (liftOrToImpRec t n tail)
 
 ------------------------------------ Holes ------------------------------------
 

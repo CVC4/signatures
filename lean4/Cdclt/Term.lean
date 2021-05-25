@@ -529,6 +529,12 @@ def mkAnd : OptionM term → OptionM term → OptionM term :=
 def mkAndN : List (OptionM term) → OptionM term :=
   constructNaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
+def maybeMkAnd : List (OptionM term) → OptionM term
+| t::[] => t
+| [] => none
+| t₁::t₂::[] => mkAnd t₁ t₂
+| l => mkAndN l
+
 def mkImplies : OptionM term → OptionM term → OptionM term :=
   constructBinaryTerm implies (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 

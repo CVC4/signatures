@@ -127,6 +127,16 @@ show thHolds bot from eqResolve s6 s14
 
 def andp₁t := mkAnd p₁ (val (value.bool true) boolSort)
 
+
+#eval eqab
+#eval eqfafb
+#eval (mkOr (mkNot eqab) eqfafb)
+
+#eval liftOrToImpRecAux (or (not (eq a b)) (eq (f • a) (f • b))) 1
+#eval liftOrToImpRec (mkOr (mkNot eqab) eqfafb) 1 eqfafb
+
+
+
 theorem simpleCong :
   thHolds eqab → thHolds andp₁t → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → holds [] :=
   -- thHolds eqab → thHolds andp₁t → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → thHolds (mkOr (mkNot eqab) eqfafb) :=
@@ -135,14 +145,15 @@ fun a1 : thHolds andp₁t =>
 fun a2 : thHolds ornp₃neqfafb =>
 fun a3 : thHolds p₁ =>
 fun a4 : thHolds ornp₁andp₂p₃ =>
-
-have s0 : holds [mkNot eqab, eqfafb] from clOr (scope (
-  fun a0 : thHolds eqab =>
-  have s0 : thHolds (mkEq b a) from symm a0
-  have s1 : thHolds eqab from symm s0
-  show thHolds eqfafb from cong (@refl f) s1
+have s0 : thHolds (mkOr (mkNot eqab) eqfafb) from
+  (scope (fun a0 : thHolds eqab =>
+    have s0 : thHolds (mkEq b a) from symm a0
+    have s1 : thHolds eqab from symm s0
+    have s2 :thHolds eqfafb from cong (@refl f) s1
+    show thHolds eqfafb from s2
   ))
-have s1 : holds [eqfafb, mkNot eqab] from reorder s0 [1,0]
+have s00 : holds [mkNot eqab, eqfafb] from impliesElim (liftNOrToImp s0 1 eqfafb)
+have s1 : holds [eqfafb, mkNot eqab] from reorder s00 [1,0]
 
 have s2 : holds [andp₂p₃] from R1 (clOr a4) (clAssume a3) p₁
 have s3 : holds ([(mkNot (mkAndN [p₂, p₃])), p₃]) from @cnfAndPos ([p₂, p₃]) 1
