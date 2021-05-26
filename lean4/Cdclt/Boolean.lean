@@ -296,17 +296,24 @@ axiom scope : ∀ {t₁ t₂ : OptionM term},
   (thHolds t₁ → thHolds t₂) → thHolds (mkOr (mkNot t₁) t₂)
 
 -- collect all terms in OR chain (right-associative)
-def liftOrToImpRecAux : term → Nat → clause
+def collectNOrNegArgs : term → Nat → clause
 | term.or (term.not t₀) t₁, 1 => [t₀]
-| term.or (term.not t₀) t₁, n+1 => t₀::(liftOrToImpRecAux t₁ n)
-| t, n               => [t]
+| term.or (term.not t₀) t₁, n+1 => t₀::(collectNOrNegArgs t₁ n)
+| t, _               => [t]
 
-def liftOrToImpRec (ot : OptionM term) (n : Nat) (otail : OptionM term) :
+def liftOrToImpAux (ot : OptionM term) (n : Nat) (otail : OptionM term) :
   OptionM term :=
- ot >>= λ t => otail >>= λ tail => mkImplies (maybeMkAnd (liftOrToImpRecAux t n)) tail
+ ot >>= λ t => otail >>= λ tail => mkImplies (maybeMkAnd (collectNOrNegArgs t n)) tail
 
 axiom liftNOrToImp : ∀ {t : OptionM term},
-  (p : thHolds t) → (n : Nat) → (tail : OptionM term) → thHolds (liftOrToImpRec t n tail)
+  (p : thHolds t) → (n : Nat) → (tail : OptionM term) → thHolds (liftOrToImpAux t n tail)
+
+def liftOrToNegAux (ot : OptionM term) (n : Nat) :
+  OptionM term :=
+ ot >>= λ t => mkNot (maybeMkAnd (collectNOrNegArgs t n))
+
+axiom liftNOrToNeg : ∀ {t : OptionM term},
+  (p : thHolds (mkNot t)) → (n : Nat) → thHolds (liftOrToNegAux t n)
 
 ------------------------------------ Holes ------------------------------------
 
