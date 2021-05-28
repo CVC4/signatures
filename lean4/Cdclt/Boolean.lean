@@ -119,6 +119,9 @@ axiom notOrElim : ∀ {t : OptionM term} (p : thHolds t) (n : Nat),
 axiom impliesElim : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkImplies t₁ t₂) → thHolds (mkOr (mkNot t₁) t₂)
 
+axiom myimpliesElim : ∀ {t₁ t₂ : term},
+  thHolds (implies t₁ t₂) → thHolds (or (not t₁) t₂)
+
 axiom notImplies1 : ∀ {t₁ t₂ : OptionM term},
   thHolds (mkNot $ mkImplies t₁ t₂) → thHolds t₁
 
@@ -286,7 +289,7 @@ axiom cnfIteNeg3 {c t₁ t₂ : OptionM term} :
 
 -- connecting theory reasoning and clausal reasoning
 ---------------- Connecting Theory Reasoning and Clausal Reasoning ----------------
-axiom thAssume : ∀ {t : OptionM term}, holds [t] → thHolds t
+axiom thAssume : ∀ {l : clause}, holds l → thHolds (maybeMkOr l)
 
 axiom clAssume : ∀ {t : OptionM term}, thHolds t → holds [t]
 
@@ -318,6 +321,7 @@ axiom liftNOrToNeg : ∀ {t : OptionM term},
 ------------------------------------ Holes ------------------------------------
 
 axiom trust : ∀ {c₁ c₂ : clause}, holds c₁ → holds c₂
+axiom trustValid : ∀ {c : clause}, holds c
 
 axiom thTrust : ∀ {t₁ t₂ : OptionM term}, thHolds t₁ → thHolds t₂
 

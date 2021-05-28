@@ -27,4 +27,26 @@ axiom trueElim : ∀ {t : Option term}, thHolds (mkEq t top) → thHolds t
 axiom falseIntro : ∀ {t : Option term}, thHolds (mkNot t) → thHolds (mkEq t bot)
 axiom falseElim : ∀ {t : Option term}, thHolds (mkEq t bot) → thHolds (mkNot t)
 
+axiom myrefl {t : term} : thHolds $ eq t t
+
+axiom mysymm : ∀ {t₁ t₂ : term},
+  thHolds (eq t₁ t₂) → thHolds (eq t₂ t₁)
+
+axiom mynegSymm : ∀ {t₁ t₂ : term},
+  thHolds (mkNot $ eq t₁ t₂) → thHolds (mkNot $ eq t₂ t₁)
+
+axiom mytrans : ∀ {t₁ t₂ t₃ : term},
+  thHolds (eq t₁ t₂) → thHolds (eq t₂ t₃) → thHolds (eq t₁ t₃)
+
+axiom mycong : ∀ {f₁ t₁ : term} {f₂ t₂ : term},
+  thHolds (eq f₁ f₂) → thHolds (eq t₁ t₂) →
+        thHolds (eq (app f₁ t₁) (app f₂ t₂))
+
+axiom mytrueIntro : ∀ {t : term}, thHolds t → thHolds (eq t top)
+axiom mytrueElim : ∀ {t : term}, thHolds (eq t top) → thHolds t
+
+axiom myfalseIntro : ∀ {t : term}, thHolds (mkNot t) → thHolds (eq t bot)
+axiom myfalseElim : ∀ {t : term}, thHolds (eq t bot) → thHolds (mkNot t)
+
+
 end eufRules

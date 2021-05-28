@@ -523,15 +523,36 @@ def mkOr : OptionM term → OptionM term → OptionM term :=
 def mkOrN : List (OptionM term) → OptionM term :=
     constructNaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
+def myBinFoldr : (f : term → term → term) → List term → term
+| f, a₁ :: a₂ :: [] => f a₁ a₂
+| f, a :: as => f a (myBinFoldr f as)
+| f, _ => bot
+
+def myMkOrN : List term → term
+| [] => bot
+| t::[] => t
+| l => myBinFoldr or l
+
+def maybeMkOr : List (OptionM term) → OptionM term
+| [] => none
+| t::[] => t
+| t₁::t₂::[] => mkOr t₁ t₂
+| l => mkOrN l
+
 def mkAnd : OptionM term → OptionM term → OptionM term :=
   constructBinaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
 def mkAndN : List (OptionM term) → OptionM term :=
   constructNaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def maybeMkAnd : List (OptionM term) → OptionM term
+def myMkAndN : List term → term
+| [] => bot
 | t::[] => t
+| l => myBinFoldr and l
+
+def maybeMkAnd : List (OptionM term) → OptionM term
 | [] => none
+| t::[] => t
 | t₁::t₂::[] => mkAnd t₁ t₂
 | l => mkAndN l
 
