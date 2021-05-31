@@ -21,10 +21,10 @@ def nTh : clause → Nat → OptionM term :=
   λ c n => join (@List.get? (OptionM term) n c)
 def getLast : clause → OptionM term := λ c => nTh c (c.length - 1)
 def concatCl : clause → clause → clause := @List.append (OptionM term)
-def removeDuplicates : clause → clause
-| [] => []
-| (h::t) => if elem h t then removeDuplicates t else h::(removeDuplicates t)
 
+def removeDuplicates : clause → clause → clause
+| [], _ => []
+| (h::t), s => if elem h s then removeDuplicates t s else h::(removeDuplicates t (h::s))
 
 -- eventually should give Prop
 axiom holds : clause → Type
@@ -53,7 +53,7 @@ axiom R0 : ∀ {c₁ c₂ : clause},
 axiom R1 : ∀ {c₁ c₂ : clause},
   holds c₁ → holds c₂ → (n : OptionM term) → holds (resolveR₁ n c₁ c₂)
 
-axiom factoring : ∀ {c : clause}, holds c → holds (removeDuplicates c)
+axiom factoring : ∀ {c : clause}, holds c → holds (removeDuplicates c [])
 
 axiom reorder : ∀ {c₁ : clause},
   holds c₁ → (perm : List Nat) → holds (List.map (nTh c₁) perm)
