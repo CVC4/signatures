@@ -341,9 +341,9 @@ axiom myCnfItePos3 {c t₁ t₂ : term} :
         ¬t₂
 -/
 axiom cnfIteNeg1 {c t₁ t₂ : term} :
-  holds [fIte c t₁ t₂, c, not t₁]
+  holds [fIte c t₁ t₂, not c, not t₁]
 axiom cnfIteNeg2 {c t₁ t₂ : term} :
-  holds [fIte c t₁ t₂, not c, not t₂]
+  holds [fIte c t₁ t₂, c, not t₂]
 axiom cnfIteNeg3 {c t₁ t₂ : term} :
   holds [fIte c t₁ t₂, not t₁, not t₂]
 
