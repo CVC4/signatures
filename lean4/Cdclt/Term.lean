@@ -493,14 +493,11 @@ def mkAppAux : term → term → OptionM term :=
 -- binary and n-ary application
 def mkApp : OptionM term → OptionM term → OptionM term := bind2 mkAppAux
 
-def mkAppN (t : OptionM term) (l : List (OptionM term)) : OptionM term :=
-  t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
+-- def mkAppN (t : OptionM term) (l : List (OptionM term)) : OptionM term :=
+--   t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
 
-def myMkAppAux : term → term → term :=
-  λ t₁ t₂ => t₁ • t₂
-
-def myMkAppN (t : term) (l : List term) : term :=
-  List.foldl myMkAppAux t l
+def mkAppN (t : term) (l : List term) : term :=
+  List.foldl (λ t₁ t₂ => t₁ • t₂) t l
 
 -- equality
 def mkEq : OptionM term → OptionM term → OptionM term :=
@@ -527,56 +524,44 @@ def mkNot (t : OptionM term) : OptionM term :=
   --                 | _ => none
 
 -- Boolean ops
-def mkOr : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+-- def mkOr : OptionM term → OptionM term → OptionM term :=
+--   constructBinaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkOrN : List (OptionM term) → OptionM term :=
-    constructNaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+-- def mkOrN : List (OptionM term) → OptionM term :=
+--     constructNaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def myBinFoldr : (f : term → term → term) → List term → term
+def termBinFoldr : (f : term → term → term) → List term → term
 | f, a₁ :: a₂ :: [] => f a₁ a₂
-| f, a :: as => f a (myBinFoldr f as)
+| f, a :: as => f a (termBinFoldr f as)
 | f, _ => bot
 
-def myMkOrN : List term → term
+def mkOrN : List term → term
 | [] => bot
 | t::[] => t
-| l => myBinFoldr or l
+| l => termBinFoldr or l
 
-def maybeMkOr : List (OptionM term) → OptionM term
-| [] => none
-| t::[] => t
-| t₁::t₂::[] => mkOr t₁ t₂
-| l => mkOrN l
-
-def myMaybeMkOr : List term → term
+def maybeMkOr : List term → term
 | [] => botConst
 | t::[] => t
 | t₁::t₂::[] => or t₁ t₂
-| l => myMkOrN l
+| l => mkOrN l
 
-def mkAnd : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+-- def mkAnd : OptionM term → OptionM term → OptionM term :=
+--   constructBinaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def mkAndN : List (OptionM term) → OptionM term :=
-  constructNaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
+-- def mkAndN : List (OptionM term) → OptionM term :=
+--   constructNaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
-def myMkAndN : List term → term
+def mkAndN : List term → term
 | [] => bot
 | t::[] => t
-| l => myBinFoldr and l
+| l => termBinFoldr and l
 
-def maybeMkAnd : List (OptionM term) → OptionM term
-| [] => none
-| t::[] => t
-| t₁::t₂::[] => mkAnd t₁ t₂
-| l => mkAndN l
-
-def myMaybeMkAnd : List term → term
+def maybeMkAnd : List term → term
 | [] => top
 | t::[] => t
 | t₁::t₂::[] => and t₁ t₂
-| l => myMkAndN l
+| l => mkAndN l
 
 def mkImplies : OptionM term → OptionM term → OptionM term :=
   constructBinaryTerm implies (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)

@@ -213,16 +213,16 @@ l₁ ∧ ... ∧ lₖ     1 ≤ n ≤ k             ¬(x₁ ∧ ... ∧ xₙ)
 ----------------------------cnfAndPos   ----------------cnfAndNeg
              lᵢ                          ¬x₁ ∨ ... ∨ ¬xₙ
 -/
-axiom cnfAndPos {l : clause} {n : Nat} : holds [not $ myMkAndN l, nTh l n]
-axiom cnfAndNeg {l : clause} : holds $ myMkAndN l :: notList l
+axiom cnfAndPos {l : clause} {n : Nat} : holds [not $ mkAndN l, nTh l n]
+axiom cnfAndNeg {l : clause} : holds $ mkAndN l :: notList l
 
 /-
 x₁ ∨ ... ∨ xₙ           ¬(l₁ ∨ ... ∨ lₖ)     1 ≤ n ≤ k
 -------------cnfOrPos   ------------------------------cnfOrNeg
 x₁ ∨ ... ∨ xₙ                         ¬lᵢ
 -/
-axiom cnfOrPos {l : clause} : holds $ (not $ myMkOrN l) :: l
-axiom cnfOrNeg {l : clause} {n : Nat} : holds [myMkOrN l, not $ nTh l n]
+axiom cnfOrPos {l : clause} : holds $ (not $ mkOrN l) :: l
+axiom cnfOrNeg {l : clause} {n : Nat} : holds [mkOrN l, not $ nTh l n]
 
 /-
 t₁ → t₂  t₁                 ¬(t₁ → t₂)                ¬(t₁ → t₂)
@@ -357,7 +357,7 @@ axiom myCnfIteNeg3 {c t₁ t₂ : term} :
 
 -- connecting theory reasoning and clausal reasoning
 ---------------- Connecting Theory Reasoning and Clausal Reasoning ----------------
-axiom thAssume : ∀ {l : clause}, holds l → thHolds (myMaybeMkOr l)
+axiom thAssume : ∀ {l : clause}, holds l → thHolds (maybeMkOr l)
 
 axiom clAssume : ∀ {t : term}, thHolds t → holds [t]
 
@@ -374,14 +374,14 @@ def collectNOrNegArgs : term → Nat → clause
 
 def liftOrToImpAux (t : term) (n : Nat) (tail : term) :
   term :=
- implies (myMaybeMkAnd (collectNOrNegArgs t n)) tail
+ implies (maybeMkAnd (collectNOrNegArgs t n)) tail
 
 axiom liftNOrToImp : ∀ {t : term},
   (p : thHolds t) → (n : Nat) → (tail : term) → thHolds (liftOrToImpAux t n tail)
 
 def liftOrToNegAux (t : term) (n : Nat) :
   term :=
- not (myMaybeMkAnd (collectNOrNegArgs t n))
+ not (maybeMkAnd (collectNOrNegArgs t n))
 
 axiom liftNOrToNeg : ∀ {t : term},
   (p : thHolds (not t)) → (n : Nat) → thHolds (liftOrToNegAux t n)
