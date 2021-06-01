@@ -249,6 +249,10 @@ open value
 @[matchPattern] def bvRepeatConst (n i : Nat) :=
   const bvRepeatNum (arrow intSort (arrow (bv n) (bv (n * i))))
 
+instance : Inhabited term where
+  default := botConst
+
+deriving instance Inhabited for term
 
 -- macros for creating terms with interpreted constants
 @[matchPattern] def bot : term := val (bool false) boolSort
@@ -344,7 +348,7 @@ open value
 
 def termToString : term → String
 | val v s => valueToString v
-| not t => "¬" ++ termToString t
+| not t => "¬(" ++ termToString t ++ ")"
 | or t₁ t₂ => termToString t₁ ++ " ∨ " ++ termToString t₂
 | and t₁ t₂ => termToString t₁ ++ " ∧ " ++ termToString t₂
 | xor t₁ t₂ => termToString t₁ ++ " ⊕ " ++ termToString t₂
@@ -492,6 +496,12 @@ def mkApp : OptionM term → OptionM term → OptionM term := bind2 mkAppAux
 def mkAppN (t : OptionM term) (l : List (OptionM term)) : OptionM term :=
   t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
 
+def myMkAppAux : term → term → term :=
+  λ t₁ t₂ => t₁ • t₂
+
+def myMkAppN (t : term) (l : List term) : term :=
+  List.foldl myMkAppAux t l
+
 -- equality
 def mkEq : OptionM term → OptionM term → OptionM term :=
   constructBinaryTerm eq (λ s₁ s₂ => s₁ = s₂)
@@ -539,6 +549,12 @@ def maybeMkOr : List (OptionM term) → OptionM term
 | t₁::t₂::[] => mkOr t₁ t₂
 | l => mkOrN l
 
+def myMaybeMkOr : List term → term
+| [] => botConst
+| t::[] => t
+| t₁::t₂::[] => or t₁ t₂
+| l => myMkOrN l
+
 def mkAnd : OptionM term → OptionM term → OptionM term :=
   constructBinaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
@@ -555,6 +571,12 @@ def maybeMkAnd : List (OptionM term) → OptionM term
 | t::[] => t
 | t₁::t₂::[] => mkAnd t₁ t₂
 | l => mkAndN l
+
+def myMaybeMkAnd : List term → term
+| [] => top
+| t::[] => t
+| t₁::t₂::[] => and t₁ t₂
+| l => myMkAndN l
 
 def mkImplies : OptionM term → OptionM term → OptionM term :=
   constructBinaryTerm implies (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
