@@ -59,15 +59,10 @@ axiom reorder : ∀ {c₁ : clause},
 axiom eqResolve : ∀ {t₁ t₂ : term},
   thHolds t₁ → thHolds (eq t₁ t₂) → thHolds t₂
 
-axiom myEqResolve : ∀ {t₁ t₂ : term},
-  thHolds t₁ → thHolds (eq t₁ t₂) → thHolds t₂
-
 axiom modusPonens : ∀ {t₁ t₂ : term},
   thHolds t₁ → thHolds (implies t₁ t₂) → thHolds t₂
 
 axiom notNotElim : ∀ {t : term}, thHolds (not $ not t) → thHolds t
-
-axiom myNotNotElim : ∀ {t : term}, thHolds (not $ not t) → thHolds t
 
 axiom contradiction : ∀ {t : term},
   thHolds t → thHolds (not t) → holds []
@@ -91,16 +86,6 @@ def reduceAnd : Nat → term → term
 axiom andElim : ∀ {t : term},
   thHolds t → (n : Nat) → thHolds (reduceAnd n t)
 
-def myReduceAnd : Nat → term → term
-| 0,     (term.and t _)                 => t
-| 1,     (term.and _ (term.and t _))    => t
-| 1,     (term.and _ t)                 => t
-| (n+1), (term.and _ t@(term.and _ _)) => myReduceAnd n t
-| _,     t                              => t
-
-axiom myAndElim : ∀ {t : term},
-  thHolds t → (n : Nat) → thHolds (myReduceAnd n t)
-
 /-
 l₁  ...  lₙ
 -----------andIntro
@@ -114,42 +99,23 @@ axiom andIntro : ∀ {t₁ t₂ : term},
 ----------------notOrElim
         lᵢ
 -/
--- get n-th in NOT-OR chain (right-associative)
-def reduceOrNth : Nat → term → term
-| 0,     (term.or t _)               => t
-| 1,     (term.or _ t)               => t
-| (n+1), (term.or _ (term.or t₀ t₁)) => reduceOrNth n (or t₀ t₁)
-| _,     t                           => t
-
-axiom notOrElim : ∀ {t : term} (p : thHolds (not t)) (n : Nat),
-  thHolds (not $ reduceOrNth n t)
-
-def myReduceNotOr : Nat → term → term
+def reduceNotOr : Nat → term → term
 | 0,     (term.or t _)               => t
 | 1,     (term.or _ (term.or t _))   => t
 | 1,     (term.or _ t)               => t
-| (n+1), (term.or _ t@(term.or _ _)) => myReduceNotOr n t
+| (n+1), (term.or _ t@(term.or _ _)) => reduceNotOr n t
 | _,     t                           => t
 
-axiom myNotOrElim : ∀ {t : term} (p : thHolds (not t)) (n : Nat),
-  thHolds (not $ myReduceNotOr n t)
+axiom notOrElim : ∀ {t : term} (p : thHolds (not t)) (n : Nat),
+  thHolds (not $ reduceNotOr n t)
 
 axiom impliesElim : ∀ {t₁ t₂ : term},
-  thHolds (implies t₁ t₂) → thHolds (or (not t₁) t₂)
-
-axiom myimpliesElim : ∀ {t₁ t₂ : term},
   thHolds (implies t₁ t₂) → thHolds (or (not t₁) t₂)
 
 axiom notImplies1 : ∀ {t₁ t₂ : term},
   thHolds (not $ implies t₁ t₂) → thHolds t₁
 
 axiom notImplies2 : ∀ {t₁ t₂ : term},
-  thHolds (not $ implies t₁ t₂) → thHolds (not t₂)
-
-axiom myNotImplies1 : ∀ {t₁ t₂ : term},
-  thHolds (not $ implies t₁ t₂) → thHolds t₁
-
-axiom myNotImplies2 : ∀ {t₁ t₂ : term},
   thHolds (not $ implies t₁ t₂) → thHolds (not t₂)
 
 axiom equivElim1 : ∀ {t₁ t₂},
@@ -201,7 +167,6 @@ def reduceNotAnd : term → clause
 axiom notAnd : ∀ {t : term},
   thHolds (not t) → holds (reduceNotAnd t)
 
-
 -------------------- CNF Reasoning (to introduce valid clauses) --------------------
 
 def notList : clause → clause
@@ -236,14 +201,6 @@ holds [implies t₁ t₂, t₁]
 axiom cnfImpliesNeg2 {t₁ t₂ : term} :
   holds [implies t₁ t₂, not t₂]
 
-axiom myCnfImpliesPos {t₁ t₂ : term} :
-  holds [term.not $ implies t₁ t₂, term.not t₁, t₂]
-axiom myCnfImpliesNeg1 {t₁ t₂ : term} :
-holds [implies t₁ t₂, t₁]
-axiom myCnfImpliesNeg2 {t₁ t₂ : term} :
-  holds [implies t₁ t₂, term.not t₂]
-
-
 /-
 t₁ = t₂  ¬t₁              t₁ = t₂  t₁
 ------------cnfEquivPos1  ------------cnfEquivPos2
@@ -255,12 +212,6 @@ axiom cnfEquivPos1 {t₁ t₂ : term} :
 axiom cnfEquivPos2 {t₁ t₂ : term} :
   holds [not $ eq t₁ t₂, t₁, not t₂]
 
-axiom myCnfEquivPos1 {t₁ t₂ : term} :
-  holds [term.not $ eq t₁ t₂, term.not t₁, t₂]
-
-axiom myCnfEquivPos2 {t₁ t₂ : term} :
-  holds [term.not $ eq t₁ t₂, t₁, term.not t₂]
-
 /-
 ¬(t₁ = t₂)  t₁              ¬(t₁ = t₂)  ¬t₁
 --------------cnfEquivNeg1  --------------cnfEquivPos2
@@ -270,11 +221,6 @@ axiom cnfEquivNeg1 {t₁ t₂ : term} :
   holds [eq t₁ t₂, t₁, t₂]
 axiom cnfEquivNeg2 {t₁ t₂ : term} :
   holds [eq t₁ t₂, not t₁, not t₂]
-
-axiom myCnfEquivNeg1 {t₁ t₂ : term} :
-  holds [eq t₁ t₂, t₁, t₂]
-axiom myCnfEquivNeg2 {t₁ t₂ : term} :
-  holds [eq t₁ t₂, not t₁, term.not t₂]
 
 /-
 t₁ ⊕ t₂  ¬t₁              t₁ ⊕ t₂  t₁
@@ -286,11 +232,6 @@ axiom cnfXorPos1 {t₁ t₂ : term} :
 axiom cnfXorPos2 {t₁ t₂ : term} :
   holds [not $ xor t₁ t₂, not t₁, not t₂]
 
-axiom myCnfXorPos1 {t₁ t₂ : term} :
-  holds [term.not $ xor t₁ t₂, t₁, t₂]
-axiom myCnfXorPos2 {t₁ t₂ : term} :
-  holds [term.not $ xor t₁ t₂, term.not t₁, term.not t₂]
-
 /-
 ¬(t₀ ⊕ t₁)  ¬t₁            ¬(t₀ ⊕ t₁)  t₁
 ---------------cnfXorNeg1  --------------cnfXorNeg2
@@ -300,11 +241,6 @@ axiom cnfXorNeg1 {t₁ t₂ : term} :
   holds [xor t₁ t₂, not t₁, t₂]
 axiom cnfXorNeg2 {t₁ t₂ : term} :
   holds [xor t₁ t₂, t₁, not t₂]
-
-axiom myCnfXorNeg1 {t₁ t₂ : term} :
-  holds [xor t₁ t₂, term.not t₁, t₂]
-axiom myCnfXorNeg2 {t₁ t₂ : term} :
-  holds [xor t₁ t₂, t₁, term.not t₂]
 
 /-
 ite c t₁ t₂  c             ite c t₁ t₂  ¬c
@@ -322,14 +258,6 @@ axiom cnfItePos2 {c t₁ t₂ : term} :
 axiom cnfItePos3 {c t₁ t₂ : term} :
   holds [not $ fIte c t₁ t₂, t₁, t₂]
 
-axiom myCnfItePos1 {c t₁ t₂ : term} :
-  holds [term.not $ fIte c t₁ t₂, term.not c, t₁]
-axiom myCnfItePos2 {c t₁ t₂ : term} :
-  holds [term.not $ fIte c t₁ t₂, c, t₂]
-axiom myCnfItePos3 {c t₁ t₂ : term} :
-  holds [term.not $ fIte c t₁ t₂, t₁, t₂]
-
-
 /-
 ¬(ite c t₁ t₂)  ¬c            ¬(ite c t₁ t₂)  c
 ------------------cnfIteNeg1  ------------------cnfIteNeg2
@@ -346,14 +274,6 @@ axiom cnfIteNeg2 {c t₁ t₂ : term} :
   holds [fIte c t₁ t₂, c, not t₂]
 axiom cnfIteNeg3 {c t₁ t₂ : term} :
   holds [fIte c t₁ t₂, not t₁, not t₂]
-
-axiom myCnfIteNeg1 {c t₁ t₂ : term} :
-  holds [fIte c t₁ t₂, c, term.not t₁]
-axiom myCnfIteNeg2 {c t₁ t₂ : term} :
-  holds [fIte c t₁ t₂, term.not c, term.not t₂]
-axiom myCnfIteNeg3 {c t₁ t₂ : term} :
-  holds [fIte c t₁ t₂, term.not t₁, term.not t₂]
-
 
 -- connecting theory reasoning and clausal reasoning
 ---------------- Connecting Theory Reasoning and Clausal Reasoning ----------------
