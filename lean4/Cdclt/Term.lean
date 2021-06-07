@@ -45,6 +45,7 @@ def xorNum     : Nat := impliesNum + 1
 def bIteNum   : Nat := xorNum + 1
 def fIteNum   : Nat := bIteNum + 1
 def eqNum      : Nat := fIteNum + 1
+def distinctNum : Nat := eqNum + 1
 def forallNum  : Nat := eqNum + 1
 def bvBitOfNum : Nat := forallNum + 1
 def bvBbTNum : Nat := bvBitOfNum + 1
@@ -179,6 +180,7 @@ open value
   const bIteNum (arrow boolSort (arrow boolSort (arrow boolSort boolSort)))
 
 @[matchPattern] def eqConst := const eqNum dep
+@[matchPattern] def distinctConst := const distinctNum dep
 @[matchPattern] def fIteConst := const fIteNum dep
 
 @[matchPattern] def plusConst :=
@@ -297,6 +299,8 @@ deriving instance Inhabited for term
 @[matchPattern] def fIte : term → term → term → term :=
   λ t₁ t₂ t₃ => fIteConst • t₁ • t₂ • t₃
 @[matchPattern] def eq : term → term → term := λ t₁ t₂ => eqConst • t₁ • t₂
+@[matchPattern] def distinct : term → term → term :=
+  λ t₁ t₂ => distinctConst • t₁ • t₂
 
 @[matchPattern] def bitOf : Nat → term → term → term :=
   λ n t₁ t₂ => bitOfConst n • t₁ • t₂
