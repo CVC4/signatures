@@ -4,33 +4,6 @@ open proof
 open proof.sort proof.term
 open rules
 
-def mkPlus : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm plus (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
-def mkPlusN : List (OptionM term) → OptionM term :=
-    constructNaryTerm plus (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
-def mkMinus : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm minus (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
-def mkMult : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm mult (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
-def mkMultN : List (OptionM term) → OptionM term :=
-    constructNaryTerm mult (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
-def mkGt : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm gt (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
-def mkGte : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm gte (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
-def mkLt : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm lt (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
-def mkLte : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm lte (λ s₁ s₂ => s₁ = intSort ∧ s₂ = intSort)
-
 namespace arithRules
 
 /-
@@ -43,24 +16,24 @@ namespace arithRules
                   L is (+ L1 L2)
                   R is (+ R1 R2)
 -/
-def sumBounds : OptionM term → OptionM term → OptionM term
+def sumBounds : term → term → term
 | f₁ • t₁₁ • t₁₂, f₂ • t₂₁ • t₂₂ =>
-  mkPlus t₁₁ t₂₁ >>= λ l =>
-  mkPlus t₁₂ t₂₂ >>= λ r =>
+  let l := plus t₁₁ t₂₁
+  let r := plus t₁₂ t₂₂
   match f₁, f₂ with
-  | ltConst, ltConst => mkLt l r
-  | ltConst, lteConst => mkLt l r
-  | ltConst, eqConst => mkLt l r
-  | lteConst, ltConst => mkLt l r
-  | lteConst, lteConst => mkLte l r
-  | lteConst, eqConst => mkLte l r
-  | eqConst, ltConst => mkLt l r
-  | eqConst, lteConst => mkLte l r
-  | eqConst, eqConst => mkLte l r
-  | _, _ => none
-| _, _ => none
+  | ltConst, ltConst => lt l r
+  | ltConst, lteConst => lt l r
+  | ltConst, eqConst => lt l r
+  | lteConst, ltConst => lt l r
+  | lteConst, lteConst => lte l r
+  | lteConst, eqConst => lte l r
+  | eqConst, ltConst => lt l r
+  | eqConst, lteConst => lte l r
+  | eqConst, eqConst => lte l r
+  | _,_ => term.undef
+| _,_ => term.undef
 
-axiom sumUb : ∀ {t₁ t₂ : OptionM term}, thHolds t₁ → thHolds t₂ → thHolds (sumBounds t₁ t₂)
+axiom sumUb : ∀ {t₁ t₂ : term}, thHolds t₁ → thHolds t₂ → thHolds (sumBounds t₁ t₂)
 
 /-
 ======= Multiplication with positive factor
@@ -71,44 +44,43 @@ Conclusion: (=> (and (> m 0) (rel lhs rhs)) (rel (* m lhs) (* m rhs)))
 Where rel is a relation symbol.
 -/
 
-def multPosFactorAux (m : OptionM term) (t : OptionM term) : OptionM term :=
-  m >>= λ m' =>
+def multPosFactorAux (m : term) (t : term) : term :=
   match t with
   | f • t₁ • t₂ =>
-    mkGt m' (val (value.integer 0) intSort) >>= λ ph₁ =>
-    mkAnd ph₁ t >>= λ ph₂ =>
-    mkMult m' t₁ >>= λ ph₃ =>
-    mkMult m' t₂ >>= λ ph₄ =>
-    (match f with
-    | gtConst => mkGt ph₃ ph₄
-    | gteConst => mkGte ph₃ ph₄
-    | ltConst => mkLt ph₃ ph₄
-    | lteConst => mkLte ph₃ ph₄
-    | eqConst => mkEq ph₃ ph₄
-    | _ => none) >>= λ ph₄ => mkImplies ph₂ ph₄
-  | _ => none
+    let ph₁ := gt m (val (value.integer 0) intSort)
+    let ph₂ := and ph₁ t
+    let ph₃ := mult m t₁
+    let ph₄ := mult m t₂
+    implies ph₂ (match f with
+    | gtConst => gt ph₃ ph₄
+    | gteConst => gte ph₃ ph₄
+    | ltConst => lt ph₃ ph₄
+    | lteConst => lte ph₃ ph₄
+    | eqConst => eq ph₃ ph₄
+    | _ => undef)
+  | _ => undef
 
-axiom multPosFactor : ∀ {t : OptionM term} (m : OptionM term),
+axiom multPosFactor : ∀ {t : term} (m : term),
   thHolds (multPosFactorAux m t)
 
-def multNegFactorAux (m : OptionM term) (t : OptionM term) : OptionM term :=
-  m >>= λ m' =>
+def multNegFactorAux (m : term) (t : term) : term :=
   match t with
   | f • t₁ • t₂ =>
-    mkLt m' (val (value.integer 0) intSort) >>= λ ph₁ =>
-    mkAnd ph₁ t >>= λ ph₂ =>
-    mkMult m' t₁ >>= λ ph₃ =>
-    mkMult m' t₂ >>= λ ph₄ =>
-    (match f with
-    | gtConst => mkLt ph₃ ph₄
-    | gteConst => mkLte ph₃ ph₄
-    | ltConst => mkGt ph₃ ph₄
-    | lteConst => mkGte ph₃ ph₄
-    | eqConst => mkEq ph₃ ph₄
-    | _ => none) >>= λ ph₄ => mkImplies ph₂ ph₄
-  | _ => none
+    let ph₁ := lt m (val (value.integer 0) intSort)
+    let ph₂ := and ph₁ t
+    let ph₃ := mult m t₁
+    let ph₄ := mult m t₂
+    implies ph₂ (match f with
+    | gtConst => lt ph₃ ph₄
+    | gteConst => lte ph₃ ph₄
+    | ltConst => gt ph₃ ph₄
+    | lteConst => gte ph₃ ph₄
+    | eqConst => eq ph₃ ph₄
+    | _ => undef)
+  | _ => undef
 
-axiom multNegFactor : ∀ {t : OptionM term} (m : OptionM term),
+axiom multNegFactor : ∀ {t : term} (m : term),
   thHolds (multNegFactorAux m t)
+
 
 end arithRules

@@ -27,6 +27,7 @@ inductive sort : Type where
 | atom : Nat → sort
 | arrow : sort → sort → sort
 | bv : Nat → sort
+| undef : sort
 deriving DecidableEq
 
 namespace sort
@@ -85,11 +86,20 @@ def gtNum : Nat := multNum + 1
 def gteNum : Nat := gtNum + 1
 def ltNum : Nat := gteNum + 1
 def lteNum : Nat := ltNum + 1
+
 def boolNum : Nat := 1
 def intNum : Nat := boolNum + 1
 def strNum : Nat := intNum + 1
+def RENum : Nat := strNum + 1
+
+def emptyStrNum : Nat := RENum + 1
+def strPlusNum : Nat := emptyStrNum + 1
+def strLengthNum : Nat := strPlusNum + 1
+def inReNum : Nat := strLengthNum + 1
+def REInterNum : Nat := inReNum + 1
 
 def sortToString : sort → String
+| undef => "undef"
 | dep => "blah"
 | atom n => toString n
 | arrow s1 s2 => "(" ++ sortToString s1 ++ " → " ++ sortToString s2 ++ ")"
@@ -97,15 +107,13 @@ def sortToString : sort → String
 
 instance : ToString sort where toString := sortToString
 
-/- mkArrowN curries multi-argument types
+/- arrowN curries multi-argument types
    f : X₁ × X₂ × ... into
    f : X₁ → X₂ → ... -/
-def mkArrowN : List (OptionM sort) → OptionM sort
-| some s::t =>
-  match t with
-  | [] => s
-  | _ => mkArrowN t >>= λ x => arrow s x
-| _ => none
+def arrowN : List sort → sort
+| [s] => s
+| s₁::s₂::t => arrow s₁ (arrowN (s₂::t))
+| _ => undef
 
 end sort
 
@@ -136,8 +144,9 @@ instance: ToString value where toString := valueToString
    Quantified variables are also
    parameterized by a Nat -/
 inductive term : Type where
-| val : value → OptionM sort → term
-| const : Nat → OptionM sort → term
+| undef : term
+| val : value → sort → term
+| const : Nat → sort → term
 | app : term → term → term
 | qforall : Nat → term → term
 deriving DecidableEq
@@ -152,7 +161,8 @@ open value
 -- Sort definitions
 @[matchPattern] def boolSort := atom boolNum
 @[matchPattern] def intSort := atom intNum
-@[matchPattern] def stringSort := atom strNum
+@[matchPattern] def strSort := atom strNum
+@[matchPattern] def RESort := atom RENum
 
 -- Interpreted constants
 @[matchPattern] def botConst := const botNum boolSort
@@ -189,7 +199,7 @@ open value
 @[matchPattern] def bitOfConst (n : Nat) :=
   const bvBitOfNum (arrow (bv n) (arrow intSort boolSort))
 @[matchPattern] def bbTConst (n : Nat) :=
-  const bvBbTNum (mkArrowN (List.append (List.replicate n (some boolSort)) [bv n]))
+  const bvBbTNum (arrowN (List.append (List.replicate n boolSort) [bv n]))
 @[matchPattern] def bvEqConst (n : Nat) :=
   const bvEqNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvNotConst (n : Nat) :=
@@ -248,6 +258,11 @@ open value
   const bvSignExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
 @[matchPattern] def bvRepeatConst (n i : Nat) :=
   const bvRepeatNum (arrow intSort (arrow (bv n) (bv (n * i))))
+@[matchPattern] def emptyStrConst := const emptyStrNum strSort
+@[matchPattern] def strPlusConst := const strPlusNum (arrow strSort (arrow strSort strSort))
+@[matchPattern] def strLengthConst := const strLengthNum (arrow strSort intSort)
+@[matchPattern] def inREConst := const strLengthNum (arrow RESort (arrow strSort boolSort))
+@[matchPattern] def REInterConst := const REInterNum (arrow RESort (arrow RESort RESort))
 
 instance : Inhabited term where
   default := botConst
@@ -345,8 +360,15 @@ deriving instance Inhabited for term
   λ n i t₁ t₂ => bvSignExtConst n i • t₁ • t₂
 @[matchPattern] def bvRepeat : Nat → Nat → term → term → term :=
   λ n i t₁ t₂ => bvRepeatConst n i • t₁ • t₂
+@[matchPattern] def emptyStr : term := emptyStrConst
+@[matchPattern] def strPlus : term → term → term :=
+  λ t₁ t₂ => strPlusConst • t₁ • t₂
+@[matchPattern] def strLength : term → term := λ t => strLengthConst • t
+@[matchPattern] def inRE : term → term → term := λ t₁ t₂ => inREConst • t₁ • t₂
+@[matchPattern] def REInter : term → term → term := λ t₁ t₂ => REInterConst • t₁ • t₂
 
 def termToString : term → String
+| undef => "undef"
 | val v s => valueToString v
 | not t => "¬(" ++ termToString t ++ ")"
 | or t₁ t₂ => termToString t₁ ++ " ∨ " ++ termToString t₂
@@ -403,131 +425,50 @@ def termToString : term → String
 instance : ToString term where toString := termToString
 
 -- computing the sort of terms
-def sortOfAux : term → OptionM sort
+def sortOf : term → sort
+| undef => sort.undef
 | val (value.bool _) _ => boolSort
 | val (bitvec l) _ =>
-    do let len ← List.length l if len = 0 then none else bv len
-| val (value.char _) _ => stringSort
+    do let len ← List.length l if len = 0 then sort.undef else bv len
+| val (value.char _) _ => strSort
 | val (integer _) _ => intSort
 | eq t₁ t₂ =>
-    sortOfAux t₁ >>= λ s₁ =>
-    sortOfAux t₂ >>= λ s₂ =>
-    if s₁ = s₂ then boolSort else none
+    let s₁ := sortOf t₁
+    let s₂ := sortOf t₂
+    if s₁ = s₂ then boolSort else sort.undef
 | fIte c t₁ t₂ =>
-    sortOfAux c >>= λ s₁ =>
-    sortOfAux t₁ >>= λ s₂ =>
-    sortOfAux t₂ >>= λ s₃ =>
-    if s₁ = boolSort ∧ s₂ = s₃ then s₂ else none
-| eqConst • t => sortOfAux t >>= λ s => arrow s boolSort
-| f • t =>
-    sortOfAux f >>= λ sf =>
-    sortOfAux t >>= λ st =>
+    let s₁ := sortOf c
+    let s₂ := sortOf t₁
+    let s₃ := sortOf t₂
+    if s₁ = boolSort ∧ s₂ = s₃ then s₂ else sort.undef
+| eqConst • t =>
+  sort.arrow (sortOf t) boolSort
+| term.app f t =>
+    let sf := sortOf f
+    let st := sortOf t
     match sf with
     | arrow st s => s
-    | _ => none
+    | _ => sort.undef
 | qforall v t =>
-    sortOfAux t >>= λ st => if st = boolSort then st else none
+    let st := sortOf t
+    if st = boolSort then st else sort.undef
 | const _ s => s
 
-def sortOf (t : OptionM term) : OptionM sort := t >>= λ t' => sortOfAux t'
-
-/- bind : (x : m α) → (f : (α → m α))
-   unpacks the term from the monad x and applies
-   f to it. bind2 and bind3 are versions of bind where
-   f is binary and ternary respectively, with the
-   arguments reordered. -/
-def bind2 {m : Type → Type} [Monad m] {α β γ : Type}
-  (f : α → β → m γ) (a : m α) (b : m β) : m γ :=
-    a >>= λ a' => b >>= λ b' => f a' b'
-
-def bind3 {m : Type → Type} [Monad m] {α β γ δ : Type}
-  (f : α → β → γ → m δ) (a : m α) (b : m β) (c : m γ) : m δ :=
-    a >>= λ a' => b >>= λ b' => c >>= λ c' => f a' b' c'
-
-/-  return : α → m α
-    (return x) puts x in a monad box -/
-/- Similar to above, but for unpacking a list -/
-def bindN {m : Type u → Type v} [Monad m] {α : Type u}
-  : List (m α) → m (List α)
-| [] => return []
-| h :: t => h >>= λ h' => bindN t >>= λ t' => return h' :: t'
-
-/- term constructors for binary and n-ary terms. `test` is the
-   predicate on the sort of the arguments that needs to be satisfied -/
-def constructBinaryTerm (constructor : term → term → term)
-  (test : sort → sort → Bool) : OptionM term → OptionM term → OptionM term :=
-  bind2 $ λ t₁ t₂ =>
-    -- sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-    -- if test s₁ s₂ then constructor t₁ t₂ else none
-    constructor t₁ t₂
-
-/- A right fold that should run on lists that have at least two
-   elements. It is so that no initial term is required -/
-def binFoldr : (f : term → term → OptionM term) → List term → OptionM term
-  | f, []      => none
-  | f, a₁ :: a₂ :: [] => f a₁ a₂
-  | f, a :: as =>
-    binFoldr f as >>= λ s' =>
-    f a s'
-
-def constructNaryTerm (constructor : term → term → term)
-  (test : sort → sort → Bool) (l : List (OptionM term)) : OptionM term :=
-      bindN l >>= λ l' =>
-      match l' with
-      | h₁ :: h₂ :: t =>
-        binFoldr (λ t₁ t₂ : term => constructor t₁ t₂) l'
-           -- sortOf t₁ >>= λ s₁ => sortOf t₂ >>= λ s₂ =>
-           --   if test s₁ s₂ then constructor t₁ t₂ else none) l'
-      | _ => none
-
--- application of term to term
-def mkAppAux : term → term → OptionM term :=
-  λ t₁ t₂ => t₁ • t₂
-    -- sortOf t₁ >>= λ s₁ =>
-    -- sortOf t₂ >>= λ s₂ =>
-    -- match s₁ with
-    -- | arrow s₂ _ => t₁ • t₂
-    -- | dep => t₁ • t₂
-    -- | _ => none
-
--- binary and n-ary application
-def mkApp : OptionM term → OptionM term → OptionM term := bind2 mkAppAux
-
--- def mkAppN (t : OptionM term) (l : List (OptionM term)) : OptionM term :=
---   t >>= λ t' => bindN l >>= λ l' => List.foldlM mkAppAux t' l'
-
-def mkAppN (t : term) (l : List term) : term :=
-  List.foldl (λ t₁ t₂ => t₁ • t₂) t l
-
--- equality
-def mkEq : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm eq (λ s₁ s₂ => s₁ = s₂)
+def appN (t : term) (l : List term) : term :=
+  List.foldl term.app t l
 
 -- if-then-else
-def mkIteAux (c t₁ t₂ : term) : OptionM term :=
-  sortOf t₁ >>= λ s₁ => if s₁ = boolSort then bIte c t₁ t₂ else fIte c t₁ t₂
-  -- match sortOf c with
-  -- | some boolSort => match sortOf t₁, sortOf t₂ with
-  --                    | some boolSort, some boolSort => bIte c t₁ t₂
-  --                    | some s₁, some s₂ => if s₁ = s₂ then fIte c t₁ t₂ else none
-  --                    | _, _ => none
-  -- | _ => none
-
-def mkIte : OptionM term → OptionM term → OptionM term → OptionM term :=
-  bind3 mkIteAux
+--def mkIte (c t₁ t₂ : term) : term :=
+--  let s₁ := sortOf t₁ if s₁ = boolSort then bIte c t₁ t₂ else fIte c t₁ t₂
 
 -- negation
-def mkNot (t : OptionM term) : OptionM term :=
-  t >>= λ t' => not t'
-  -- t >>= λ t' => match sortOf t' with
-  --                 | some boolSort => not t'
-  --                 | _ => none
+--def mkNot : term → term := not
 
 -- Boolean ops
--- def mkOr : OptionM term → OptionM term → OptionM term :=
+-- def mkOr : term → term → term :=
 --   constructBinaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
--- def mkOrN : List (OptionM term) → OptionM term :=
+-- def mkOrN : List (term) → term :=
 --     constructNaryTerm or (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
 
 def termBinFoldr : (f : term → term → term) → List term → term
@@ -535,59 +476,31 @@ def termBinFoldr : (f : term → term → term) → List term → term
 | f, a :: as => f a (termBinFoldr f as)
 | f, _ => bot
 
-def mkOrN : List term → term
+def orN : List term → term
 | [] => bot
 | t::[] => t
-| l => termBinFoldr or l
+| s₁::s₂::t => or s₁ (orN (s₂::t))
 
-def maybeMkOr : List term → term
-| [] => botConst
-| t::[] => t
-| t₁::t₂::[] => or t₁ t₂
-| l => mkOrN l
-
--- def mkAnd : OptionM term → OptionM term → OptionM term :=
---   constructBinaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
-
--- def mkAndN : List (OptionM term) → OptionM term :=
---   constructNaryTerm and (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
-
-def mkAndN : List term → term
+def andN : List term → term
 | [] => bot
 | t::[] => t
-| l => termBinFoldr and l
+| s₁::s₂::t => and s₁ (andN (s₂::t))
 
-def maybeMkAnd : List term → term
-| [] => top
-| t::[] => t
-| t₁::t₂::[] => and t₁ t₂
-| l => mkAndN l
-
-def mkImplies : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm implies (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
-
-def mkIff : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm iff (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
-
-def mkXor : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm xor (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
-
-def mkNand : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm nand (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
-
-def mkNor : OptionM term → OptionM term → OptionM term :=
-  constructBinaryTerm nor (λ s₁ s₂ => s₁ = boolSort ∧ s₂ = boolSort)
-
-def mkForall (v : Nat) (body : OptionM term) : OptionM term :=
-  body >>= λ body' => (qforall v body')
-
+def mkForall (v : Nat) (body : term) : term :=
+  qforall v body
 
 /- Aux functions to create values -/
-def mkValInt : Int → term :=
+@[matchPattern] def mkValInt : Int → term :=
 λ i => val (value.integer i) intSort
+
+def mkValChar : Char → term := λ c =>
+ val (value.char c.val.toNat) strSort
 
 def mkValBV : List Bool → term :=
 λ l => val (value.bitvec l) (bv (List.length l))
+
+def mkValChars : List Char → term :=
+ List.foldl strPlus emptyStr ∘ List.map mkValChar
 
 end term
 

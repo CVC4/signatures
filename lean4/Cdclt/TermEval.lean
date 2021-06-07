@@ -8,17 +8,16 @@ namespace proof
 namespace term
 
 
-partial def termEval (ot : OptionM term) : OptionM term :=
-  ot >>= λ t =>
+partial def termEval (t : term) : term :=
   match t with
   | top => top
   | bot => bot
   | term.not t₁ =>
-    do let t₁' ← termEval t₁
-       match t₁' with
-       | top => bot
-       | bot => top
-       | _ => t
+    let t₁' := termEval t₁
+    match t₁' with
+    | top => bot
+    | bot => top
+    | _ => t
   | and t₁ t₂ =>
     do let t₁' ← termEval t₁
        let t₂' ← termEval t₂
@@ -44,17 +43,17 @@ partial def termEval (ot : OptionM term) : OptionM term :=
        | top, top => top
        | _, _ => t
   | xor t₁ t₂ =>
-    do let t₁' ← termEval t₁
-       let t₂' ← termEval t₂
-       match t₁', t₂' with
-       | bot, top => top
-       | top, bot => top
-       | top, top => bot
-       | bot, bot => bot
-       | _, _ => t
+    let t₁' := termEval t₁
+    let t₂' := termEval t₂
+    match t₁', t₂' with
+    | bot, top => top
+    | top, bot => top
+    | top, top => bot
+    | bot, bot => bot
+    | _, _ => t
   | eq t₁ t₂ =>
-    do let t₁' ← termEval t₁
-       let t₂' ← termEval t₂
+    do let t₁' := termEval t₁
+       let t₂' := termEval t₂
        match t₁', t₂' with
        | bot, top => bot
        | top, bot => bot
@@ -62,34 +61,38 @@ partial def termEval (ot : OptionM term) : OptionM term :=
        | bot, bot => top
        | _, _ => t
   | bIte c t₁ t₂ =>
-    do let c' ← termEval c
-       match c' with
-       | top => termEval t₁
-       | bot => termEval t₂
-       | _ => t
+    let c' := termEval c
+    match c' with
+    | top => termEval t₁
+    | bot => termEval t₂
+    | _ => t
   | fIte c t₁ t₂ =>
-    do let c' ← termEval c
-       match c' with
-       | top => termEval t₁
-       | bot => termEval t₂
-       | _ => t
+    let c' := termEval c
+    match c' with
+    | top => termEval t₁
+    | bot => termEval t₂
+    | _ => t
   | bitOf n b'' i'' =>
-    do let b' ← termEval b''
-       let i' ← termEval i''
-       match b', i' with
+    let b' := termEval b''
+    let i' := termEval i''
+    match b', i' with
     | val (value.bitvec b) _, val (value.integer i) _ =>
       match (List.get? (Int.toNat (n - i - 1)) b) with
         | some bit => if bit then top else bot
-        | none => none
+        | none => term.undef
     | _, _ => t
+  | gt (mkValInt i₁) (mkValInt i₂) => if i₁ > i₂ then term.top else term.bot
+  | gte (mkValInt i₁) (mkValInt i₂) => if i₁ >= i₂ then term.top else term.bot
+  | lt (mkValInt i₁) (mkValInt i₂) => if i₁ < i₂ then term.top else term.bot
+  | lte (mkValInt i₁) (mkValInt i₂) => if i₁ <= i₂ then term.top else term.bot
   | app t₁ t₂ =>
-    do let t₁' ← termEval t₁
-       let t₂' ← termEval t₂
-       (app t₁' t₂')
+    let t₁' := termEval t₁
+    let t₂' := termEval t₂
+    (app t₁' t₂')
   | _ => t
 
-#check termEval (mkAnd top bot)
-#eval termEval (mkAnd top bot)
+#check termEval (and top bot)
+#eval termEval (and top bot)
 end term
 
 end proof

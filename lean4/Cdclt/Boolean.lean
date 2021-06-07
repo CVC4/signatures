@@ -9,9 +9,6 @@ namespace rules
 notation "clause" => List term
 
 -- clause manipulation rules
-def join : OptionM (OptionM α) → OptionM α
-| some t => t
-| _ => none
 
 universes u v w
 def comp {α : Sort u} {β : Sort v} {φ : Sort w}
@@ -178,16 +175,16 @@ l₁ ∧ ... ∧ lₖ     1 ≤ n ≤ k             ¬(x₁ ∧ ... ∧ xₙ)
 ----------------------------cnfAndPos   ----------------cnfAndNeg
              lᵢ                          ¬x₁ ∨ ... ∨ ¬xₙ
 -/
-axiom cnfAndPos {l : clause} {n : Nat} : holds [not $ mkAndN l, nTh l n]
-axiom cnfAndNeg {l : clause} : holds $ mkAndN l :: notList l
+axiom cnfAndPos {l : clause} {n : Nat} : holds [not $ andN l, nTh l n]
+axiom cnfAndNeg {l : clause} : holds $ andN l :: notList l
 
 /-
 x₁ ∨ ... ∨ xₙ           ¬(l₁ ∨ ... ∨ lₖ)     1 ≤ n ≤ k
 -------------cnfOrPos   ------------------------------cnfOrNeg
 x₁ ∨ ... ∨ xₙ                         ¬lᵢ
 -/
-axiom cnfOrPos {l : clause} : holds $ (not $ mkOrN l) :: l
-axiom cnfOrNeg {l : clause} {n : Nat} : holds [mkOrN l, not $ nTh l n]
+axiom cnfOrPos {l : clause} : holds $ (not $ orN l) :: l
+axiom cnfOrNeg {l : clause} {n : Nat} : holds [orN l, not $ nTh l n]
 
 /-
 t₁ → t₂  t₁                 ¬(t₁ → t₂)                ¬(t₁ → t₂)
@@ -277,7 +274,7 @@ axiom cnfIteNeg3 {c t₁ t₂ : term} :
 
 -- connecting theory reasoning and clausal reasoning
 ---------------- Connecting Theory Reasoning and Clausal Reasoning ----------------
-axiom thAssume : ∀ {l : clause}, holds l → thHolds (maybeMkOr l)
+axiom thAssume : ∀ {l : clause}, holds l → thHolds (orN l)
 
 axiom clAssume : ∀ {t : term}, thHolds t → holds [t]
 
@@ -294,14 +291,14 @@ def collectNOrNegArgs : term → Nat → clause
 
 def liftOrToImpAux (t : term) (n : Nat) (tail : term) :
   term :=
- implies (maybeMkAnd (collectNOrNegArgs t n)) tail
+ implies (andN (collectNOrNegArgs t n)) tail
 
 axiom liftNOrToImp : ∀ {t : term},
   (p : thHolds t) → (n : Nat) → (tail : term) → thHolds (liftOrToImpAux t n tail)
 
 def liftOrToNegAux (t : term) (n : Nat) :
   term :=
- not (maybeMkAnd (collectNOrNegArgs t n))
+ not (andN (collectNOrNegArgs t n))
 
 axiom liftNOrToNeg : ∀ {t : term},
   (p : thHolds (not t)) → (n : Nat) → thHolds (liftOrToNegAux t n)
