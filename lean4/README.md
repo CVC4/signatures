@@ -5,8 +5,15 @@
 Run
 
 ```
-leanpkg build
+leanpkg configure
+leanpkg build bin LINK_OPTS=-rdynamic
 ```
+
+## Check
+
+For example:
+
+$ time ./build/bin/Cdclt Cdclt/examples/tmpResult.lean
 
 ## Lean File Structure
 `Term.lean` contains the term structure.
