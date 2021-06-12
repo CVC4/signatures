@@ -15,6 +15,8 @@ For example:
 
 $ time ./build/bin/Cdclt Cdclt/examples/tmpResult.lean
 
+(this has the path to lean library harcoded and also required copying the directory of the siganuter olean files to root dir of the lean library)
+
 ## Lean File Structure
 `Term.lean` contains the term structure.
 
