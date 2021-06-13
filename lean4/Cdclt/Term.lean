@@ -24,9 +24,15 @@ namespace proof
    length -/
 inductive sort : Type where
 | dep : sort
+-- id
 | atom : Nat → sort
+-- domain sort, range sort
 | arrow : sort → sort → sort
+-- size
 | bv : Nat → sort
+-- index sort, element sort
+| array : sort → sort → sort
+-- placeholder if not using Option
 | undef : sort
 deriving DecidableEq
 
@@ -80,6 +86,7 @@ def bvConcatNum : Nat := bvExtractNum + 1
 def bvZeroExtNum : Nat := bvConcatNum + 1
 def bvSignExtNum : Nat := bvZeroExtNum + 1
 def bvRepeatNum : Nat := bvSignExtNum + 1
+
 def plusNum : Nat := bvRepeatNum + 1
 def minusNum : Nat := plusNum + 1
 def multNum : Nat := minusNum + 1
@@ -88,23 +95,29 @@ def gteNum : Nat := gtNum + 1
 def ltNum : Nat := gteNum + 1
 def lteNum : Nat := ltNum + 1
 
-def boolNum : Nat := 1
-def intNum : Nat := boolNum + 1
-def strNum : Nat := intNum + 1
-def RENum : Nat := strNum + 1
+def selectNum : Nat := ltNum + 1
+def storeNum : Nat := selectNum + 1
 
-def emptyStrNum : Nat := RENum + 1
+def emptyStrNum : Nat := storeNum + 1
 def strPlusNum : Nat := emptyStrNum + 1
 def strLengthNum : Nat := strPlusNum + 1
 def inReNum : Nat := strLengthNum + 1
 def REInterNum : Nat := inReNum + 1
 
+-- sorts
+def boolNum : Nat := 1
+def intNum : Nat := boolNum + 1
+def strNum : Nat := intNum + 1
+def RENum : Nat := strNum + 1
+
+
 def sortToString : sort → String
 | undef => "undef"
 | dep => "blah"
 | atom n => toString n
-| arrow s1 s2 => "(" ++ sortToString s1 ++ " → " ++ sortToString s2 ++ ")"
 | bv n => "bv " ++ toString n
+| arrow s1 s2 => "(" ++ sortToString s1 ++ " → " ++ sortToString s2 ++ ")"
+| array i e => "(array " ++ sortToString i ++ " " ++ sortToString e ++ ")"
 
 instance : ToString sort where toString := sortToString
 
@@ -197,6 +210,9 @@ open value
   const ltNum (arrow intSort (arrow intSort boolSort))
 @[matchPattern] def lteConst :=
   const lteNum (arrow intSort (arrow intSort boolSort))
+
+@[matchPattern] def selectConst := const selectNum dep
+@[matchPattern] def storeConst := const storeNum dep
 
 @[matchPattern] def bitOfConst (n : Nat) :=
   const bvBitOfNum (arrow (bv n) (arrow intSort boolSort))
@@ -302,6 +318,12 @@ deriving instance Inhabited for term
 @[matchPattern] def distinct : term → term → term :=
   λ t₁ t₂ => distinctConst • t₁ • t₂
 
+@[matchPattern] def select : term → term → term :=
+  λ t₁ t₂ => selectConst • t₁ • t₂
+
+@[matchPattern] def store : term → term → term → term :=
+  λ t₁ t₂ t₃ => storeConst • t₁ • t₂ • t₃
+
 @[matchPattern] def bitOf : Nat → term → term → term :=
   λ n t₁ t₂ => bitOfConst n • t₁ • t₂
 @[matchPattern] def bbT : Nat → term := λ n => bbTConst n
@@ -380,10 +402,10 @@ def termToString : term → String
 | xor t₁ t₂ => termToString t₁ ++ " ⊕ " ++ termToString t₂
 | implies t₁ t₂ => termToString t₁ ++ " ⇒ " ++ termToString t₂
 | bIte c t₁ t₂ =>
-  termToString c ++ " ? " ++ termToString t₁ ++ " : " ++ termToString t₂
+    termToString c ++ " ? " ++ termToString t₁ ++ " : " ++ termToString t₂
 | eq t₁ t₂ => termToString t₁ ++ " ≃ " ++ termToString t₂
 | fIte c t₁ t₂ =>
-  termToString c ++ " ? " ++ termToString t₁ ++ " : " ++ termToString t₂
+    termToString c ++ " ? " ++ termToString t₁ ++ " : " ++ termToString t₂
 | plus t₁ t₂ => termToString t₁ ++ " + " ++ termToString t₂
 | minus t₁ t₂ => termToString t₁ ++ " - " ++ termToString t₂
 | mult t₁ t₂ => termToString t₁ ++ " * " ++ termToString t₂
@@ -391,6 +413,9 @@ def termToString : term → String
 | gte t₁ t₂ => termToString t₁ ++ " ≥ " ++ termToString t₂
 | lt t₁ t₂ => termToString t₁ ++ " < " ++ termToString t₂
 | lte t₁ t₂ => termToString t₁ ++ " ≤ " ++ termToString t₂
+| select t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
+| store t₁ t₂ t₃ =>
+    termToString t₁ ++ "[" ++ termToString t₂ ++ "] := " ++ termToString t₃
 | bitOf _ t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
 | const 11 _ => "bbT"
 /-| bvEq _ t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
@@ -440,6 +465,21 @@ def sortOf : term → sort
     let s₁ := sortOf t₁
     let s₂ := sortOf t₂
     if s₁ = s₂ then boolSort else sort.undef
+| select a i =>
+    let sa := sortOf a
+    let si := sortOf i
+    match sa with
+    | array indexSort elementSort =>
+            if si = indexSort then elementSort else sort.undef
+    | _ => sort.undef
+| store a i e =>
+    let sa := sortOf a
+    let si := sortOf i
+    let se := sortOf e
+    match sa with
+    | array indexSort elementSort =>
+            if si = indexSort ∧ se = elementSort then sa else sort.undef
+    | _ => sort.undef
 | fIte c t₁ t₂ =>
     let s₁ := sortOf c
     let s₂ := sortOf t₁
