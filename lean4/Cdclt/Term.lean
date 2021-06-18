@@ -163,6 +163,7 @@ inductive term : Type where
 | const : Nat → sort → term
 | app : term → term → term
 | qforall : Nat → term → term
+| choice : Nat → term → term
 deriving DecidableEq
 
 namespace term
@@ -414,8 +415,9 @@ def termToString : term → String
 | lt t₁ t₂ => termToString t₁ ++ " < " ++ termToString t₂
 | lte t₁ t₂ => termToString t₁ ++ " ≤ " ++ termToString t₂
 | select t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
-| store t₁ t₂ t₃ =>
+| store t₁ t₂ t₃ => "(" ++
     termToString t₁ ++ "[" ++ termToString t₂ ++ "] := " ++ termToString t₃
+    ++ ")"
 | bitOf _ t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
 | const 11 _ => "bbT"
 /-| bvEq _ t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
@@ -450,6 +452,7 @@ def termToString : term → String
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
+| choice v t => "ε " ++ toString v ++ " . " ++ termToString t
 
 instance : ToString term where toString := termToString
 
@@ -496,6 +499,7 @@ def sortOf : term → sort
 | qforall v t =>
     let st := sortOf t
     if st = boolSort then st else sort.undef
+| choice v t => sortOf t
 | const _ s => s
 
 def appN (t : term) (l : List term) : term :=

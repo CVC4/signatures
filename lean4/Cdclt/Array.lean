@@ -17,7 +17,9 @@ axiom readOverWriteContra : ∀ {a e i₁ i₂ : term},
 axiom readOverWriteIdentity : ∀ {a e i : term},
   thHolds (eq (select (store a i e) i) e)
 
-axiom arrayExt : ∀ {a₁ a₂ k : term},
+axiom arrayExt : ∀ {a₁ a₂ : term} (x : Nat) (s : sort),
+  let c := const x s
+  let k := (choice x (not (eq (select a₁ c) (select a₂ c))))
   thHolds (not (eq a₁ a₂)) → thHolds (not (eq (select a₁ k) (select a₂ k)))
 
 end arrayRules
