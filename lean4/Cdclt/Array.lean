@@ -8,7 +8,7 @@ namespace arrayRules
 
 axiom readOverWrite : ∀ {a e i₁ i₂ : term},
   thHolds (not (eq i₁ i₂)) →
-    thHolds (eq (select (store a i₂ e) i₁) (select a i₁))
+    thHolds (eq (select (store a i₁ e) i₂) (select a i₂))
 
 axiom readOverWriteContra : ∀ {a e i₁ i₂ : term},
   thHolds (not (eq (select (store a i₂ e) i₁) (select a i₁))) →
