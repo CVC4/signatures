@@ -142,15 +142,10 @@
     (= t (int (~ 1)))))
 )
 
-; (and
-;   (or (= (f x y n) (- 1)) (>= (f x y n) n))
-;       (<= (f x y n) (str.len x)))
+; (and (or (= (str.indexof x y n) (- 1)) (>= (str.indexof x y n) n)) (<= (str.indexof x y n) (str.len x)))
 (program sc_string_eager_reduction_indexof ((x term) (y term) (n term)) term
   (let t (str.indexof x y n)
-  (and
-    (or (= t (int (~ 1)))
-      (or (a.>= t n)
-        false))
+  (and (or (= t (int (~ 1))) (or (a.>= t n) false))
     (and (a.<= t (str.len x))
       true)))
 )
