@@ -1,5 +1,4 @@
 import Lean.Elab.Frontend
-import Cdclt.Euf
 
 open Lean
 
