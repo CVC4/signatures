@@ -452,8 +452,8 @@ def termToString : term → String
 | bvRepeat _ _ t₁ t₂ => "repeat " ++ termToString t₁ ++ " " ++ termToString t₂-/
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
-| qforall v t => "∀ " ++ toString v ++ " . " ++ termToString t
-| choice v t => "ε " ++ toString v ++ " . " ++ termToString t
+| qforall v t => "(∀ " ++ toString v ++ " . " ++ termToString t ++ ")"
+| choice v t => "(ε " ++ toString v ++ " . " ++ termToString t ++ ")"
 | skolem t => "(@sk " ++ termToString t ++ ")"
 
 instance : ToString term where toString := termToString
