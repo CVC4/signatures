@@ -106,6 +106,20 @@ def reduceNotOr : Nat → term → term
 axiom notOrElim : ∀ {t : term} (p : thHolds (not t)) (n : Nat),
   thHolds (not $ reduceNotOr n t)
 
+/-
+¬(l₁ ∧ ... ∧ lₙ)
+----------------notAnd
+¬l₁ ∨ ... ∨ ¬lₙ
+-/
+def reduceNotAnd : term → clause
+| term.and t₀ (term.and t₁ t₂) => not t₀ :: not t₁ :: reduceNotAnd t₂
+| term.and t₀ t₁               => [not t₀, not t₁]
+| t                            => [not t]
+
+axiom notAnd : ∀ {t : term},
+  thHolds (not t) → holds (reduceNotAnd t)
+
+
 axiom impliesElim : ∀ {t₁ t₂ : term},
   thHolds (implies t₁ t₂) → thHolds (or (not t₁) t₂)
 
@@ -150,19 +164,6 @@ axiom notIteElim1 : ∀ {c t₁ t₂ : term},
 
 axiom notIteElim2 : ∀ {c t₁ t₂ : term},
   thHolds (not $ fIte c t₁ t₂) → holds [c, not t₂]
-
-/-
-¬(l₁ ∧ ... ∧ lₙ)
-----------------notAnd
-¬l₁ ∨ ... ∨ ¬lₙ
--/
-def reduceNotAnd : term → clause
-| term.and t₀ (term.and t₁ t₂) => not t₀ :: not t₁ :: reduceNotAnd t₂
-| term.and t₀ t₁               => [not t₀, not t₁]
-| t                            => [t]
-
-axiom notAnd : ∀ {t : term},
-  thHolds (not t) → holds (reduceNotAnd t)
 
 -------------------- CNF Reasoning (to introduce valid clauses) --------------------
 
