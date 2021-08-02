@@ -27,4 +27,7 @@ axiom trueElim : ∀ {t : term}, thHolds (eq t top) → thHolds t
 axiom falseIntro : ∀ {t : term}, thHolds (not t) → thHolds (eq t bot)
 axiom falseElim : ∀ {t : term}, thHolds (eq t bot) → thHolds (not t)
 
+-- Need to guarentee that t does not contain the choice variable
+axiom skolemIntro : ∀ {t : term}, thHolds (eq (choice 0 t) t)
+
 end eufRules
