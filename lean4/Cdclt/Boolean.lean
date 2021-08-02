@@ -119,7 +119,6 @@ def reduceNotAnd : term → clause
 axiom notAnd : ∀ {t : term},
   thHolds (not t) → holds (reduceNotAnd t)
 
-
 axiom impliesElim : ∀ {t₁ t₂ : term},
   thHolds (implies t₁ t₂) → thHolds (or (not t₁) t₂)
 

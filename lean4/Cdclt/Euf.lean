@@ -27,7 +27,11 @@ axiom trueElim : ∀ {t : term}, thHolds (eq t top) → thHolds t
 axiom falseIntro : ∀ {t : term}, thHolds (not t) → thHolds (eq t bot)
 axiom falseElim : ∀ {t : term}, thHolds (eq t bot) → thHolds (not t)
 
--- Need to guarentee that t does not contain the choice variable
+-- TODO: need to guarentee that t does not contain the choice variable
 axiom skolemIntro : ∀ {t : term}, thHolds (eq (choice 0 t) t)
+
+axiom iteIntro : ∀ {t₀ t₁ t₂ : term},
+  let t := (fIte t₀ t₁ t₂)
+  thHolds (fIte t₀ (eq t t₁) (eq t t₂))
 
 end eufRules
