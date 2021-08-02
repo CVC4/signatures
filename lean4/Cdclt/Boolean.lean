@@ -302,7 +302,7 @@ def liftOrToNegAux (t : term) (n : Nat) :
  not (andN (collectNOrNegArgs t n))
 
 axiom liftNOrToNeg : ∀ {t : term},
-  (p : thHolds (not t)) → (n : Nat) → thHolds (liftOrToNegAux t n)
+  (p : thHolds t) → (n : Nat) → thHolds (liftOrToNegAux t n)
 
 ------------------------------------ Holes ------------------------------------
 
