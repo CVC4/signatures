@@ -276,6 +276,8 @@ axiom cnfIteNeg3 {c t₁ t₂ : term} :
 ---------------- Connecting Theory Reasoning and Clausal Reasoning ----------------
 axiom thAssume : ∀ {l : clause}, holds l → thHolds (orN l)
 
+axiom clSingleton : ∀ {l : clause}, holds l → holds [orN l]
+
 axiom clAssume : ∀ {t : term}, thHolds t → holds [t]
 
 axiom clOr : ∀ {t : term} (p : thHolds t), holds (reduceOr t)
