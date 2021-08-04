@@ -17,10 +17,10 @@ def f₃ := const 108 (arrowN [U, U])
 
 theorem binCong :
   thHolds (eq a₁ a₂) → thHolds (eq b₁ b₂) → (thHolds (eq (app (app f₁ a₁) b₁) (app (app f₁ a₂) b₂))) :=
-λ s0 : thHolds (eq a₁ a₂) =>
-λ s1 : thHolds (eq b₁ b₂) =>
-have s2 : thHolds (eq f₁ f₁) from refl
-show (thHolds (eq (app (app f₁ a₁) b₁) (app (app f₁ a₂) b₂))) from cong (cong s2 s0) s1
+fun s0 : thHolds (eq a₁ a₂) =>
+fun s1 : thHolds (eq b₁ b₂) =>
+  have s2 : thHolds (eq f₁ f₁) := refl
+  show (thHolds (eq (app (app f₁ a₁) b₁) (app (app f₁ a₂) b₂))) from cong (cong s2 s0) s1
 
 /-
 (SCOPE |:conclusion| (not (and (= a b) (or (not p3) (not (= (f a) (f b)))) p1 (or (not p1) (and p2 p3))))
@@ -79,21 +79,20 @@ theorem simpleCongRw :
 λ s1 : thHolds ornp₃neqfafb =>
 λ s2 : thHolds p₁ =>
 λ s3 : thHolds ornp₁andp₂p₃ =>
+have s4 : thHolds andp₂p₃ := thAssume (R1 (clOr s3) (clAssume s2) p₁)
+have s5 : thHolds p₃ := andElim s4 1
+have s6 : thHolds neqfafb := thAssume (R1 (clOr s1) (clAssume s5) p₃)
 
-have s4 : thHolds andp₂p₃ from thAssume (R1 (clOr s3) (clAssume s2) p₁)
-have s5 : thHolds p₃ from andElim s4 1
-have s6 : thHolds neqfafb from thAssume (R1 (clOr s1) (clAssume s5) p₃)
-
-have s7 : thHolds eqfafb from cong refl s0
+have s7 : thHolds eqfafb := cong refl s0
 let s8_1 := @refl eqConst
 let s8_2 := (cong s8_1 s7)
-have s8 : thHolds eqeqfafbeqfbfb from cong s8_2 (@refl fb)
-have s9 : thHolds eqneqfafbneqfbfb from cong (@refl notConst) s8
-have s10 : thHolds (eq (not top) bot) from thTrustValid
-have s11 : thHolds eqfbfbtop from thTrustValid
-have s12 : thHolds ((eq neqfbfb) (not top)) from cong (@refl notConst) s11
-have s13 : thHolds (eq neqfbfb bot) from trans s12 s10
-have s14 : thHolds eqneqfafbbot from trans s9 s13
+have s8 : thHolds eqeqfafbeqfbfb := cong s8_2 (@refl fb)
+have s9 : thHolds eqneqfafbneqfbfb := cong (@refl notConst) s8
+have s10 : thHolds (eq (not top) bot) := thTrustValid
+have s11 : thHolds eqfbfbtop := thTrustValid
+have s12 : thHolds ((eq neqfbfb) (not top)) := cong (@refl notConst) s11
+have s13 : thHolds (eq neqfbfb bot) := trans s12 s10
+have s14 : thHolds eqneqfafbbot := trans s9 s13
 show thHolds bot from eqResolve s6 s14
 
 /-

@@ -10,7 +10,7 @@ notation "clause" => List term
 
 -- clause manipulation rules
 
-universes u v w
+universe u v w
 def comp {α : Sort u} {β : Sort v} {φ : Sort w}
   (f : β → φ) (g : α → β) : α → φ := fun x => f (g x)
 
