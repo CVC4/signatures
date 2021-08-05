@@ -126,43 +126,32 @@ show thHolds bot from eqResolve s6 s14
 
 def andp₁t := and p₁ (val (value.bool true) boolSort)
 
+theorem simpleCong :
+ thHolds eqab → thHolds andp₁t → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → holds [] :=
+fun a0 : thHolds eqab =>
+fun a1 : thHolds andp₁t =>
+fun a2 : thHolds ornp₃neqfafb =>
+fun a3 : thHolds p₁ =>
+fun a4 : thHolds ornp₁andp₂p₃ =>
+have s0 : thHolds (or (not eqab) eqfafb) :=
+ (scope (fun a0 : thHolds eqab =>
+   have s0 : thHolds (eq b a) := symm a0
+   have s1 : thHolds eqab := symm s0
+   have s2 :thHolds eqfafb := cong (@refl f) s1
+   show thHolds eqfafb from s2
+ ))
+have s00 : holds [not eqab, eqfafb] := clOr (impliesElim (liftNOrToImp s0 1 eqfafb))
+have s1 : holds [eqfafb, not eqab] := reorder s00 [1,0]
 
-#eval eqab
-#eval eqfafb
-#eval (or (not eqab) eqfafb)
+have s2 : holds [andp₂p₃] := R1 (clOr a4) (clAssume a3) p₁
+have s3 : holds ([(not (andN [p₂, p₃])), p₃]) := @cnfAndPos ([p₂, p₃]) 1
+have s4 : holds [p₃, not andp₂p₃] := reorder s3 [1,0]
 
---#eval liftOrToImpRecAux (or (not (eq a b)) (eq (f • a) (f • b))) 1
---#eval liftOrToImpRec (or (not eqab) eqfafb) 1 eqfafb
+have s5 : thHolds (eq andp₁t p₁) := thTrustValid
+have s6 : thHolds p₁ := eqResolve a1 s5
+have s7 : holds [andp₂p₃] := R1 (clOr a4) (clAssume s6) p₁
+have s8 : holds [p₃] := R1 s4 s7 andp₂p₃
 
+have s9 : holds [neqfafb] := R1 (clOr a2) s8 p₃
 
-
---theorem simpleCong :
---  thHolds eqab → thHolds andp₁t → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → holds [] :=
---  -- thHolds eqab → thHolds andp₁t → thHolds ornp₃neqfafb → thHolds p₁ → thHolds ornp₁andp₂p₃ → thHolds (or (not eqab) eqfafb) :=
---fun a0 : thHolds eqab =>
---fun a1 : thHolds andp₁t =>
---fun a2 : thHolds ornp₃neqfafb =>
---fun a3 : thHolds p₁ =>
---fun a4 : thHolds ornp₁andp₂p₃ =>
---have s0 : thHolds (or (not eqab) eqfafb) from
---  (scope (fun a0 : thHolds eqab =>
---    have s0 : thHolds (eq b a) from symm a0
---    have s1 : thHolds eqab from symm s0
---    have s2 :thHolds eqfafb from cong (@refl f) s1
---    show thHolds eqfafb from s2
---  ))
---have s00 : holds [not eqab, eqfafb] from impliesElim (liftNOrToImp s0 1 eqfafb)
---have s1 : holds [eqfafb, not eqab] from reorder s00 [1,0]
---
---have s2 : holds [andp₂p₃] from R1 (clOr a4) (clAssume a3) p₁
---have s3 : holds ([(not (andN [p₂, p₃])), p₃]) from @cnfAndPos ([p₂, p₃]) 1
---have s4 : holds [p₃, not andp₂p₃] from reorder s3 [1,0]
---
---have s5 : thHolds (eq andp₁t p₁) from thTrustValid
---have s6 : thHolds p₁ from eqResolve a1 s5
---have s7 : holds [andp₂p₃] from R1 (clOr a4) (clAssume s6) p₁
---have s8 : holds [p₃] from R1 s4 s7 andp₂p₃
---
---have s9 : holds [neqfafb] from R1 (clOr a2) s8 p₃
---
---show holds [] from R1 (R0 s1 s9 eqfafb) (clOr a0) eqab
+show holds [] from R1 (R0 s1 s9 eqfafb) (clOr a0) eqab
