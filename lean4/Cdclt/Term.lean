@@ -162,9 +162,9 @@ inductive term : Type where
 | val : value → sort → term
 | const : Nat → sort → term
 | app : term → term → term
-| qforall : Nat → term → term
 | choice : Nat → term → term
-| skolem : term → term
+| qforall : Nat → term → term
+| lambda : Nat → term → term
 deriving DecidableEq
 
 namespace term
@@ -454,7 +454,7 @@ def termToString : term → String
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "(∀ " ++ toString v ++ " . " ++ termToString t ++ ")"
 | choice v t => "(ε " ++ toString v ++ " . " ++ termToString t ++ ")"
-| skolem t => "(@sk " ++ termToString t ++ ")"
+| lambda v t => "(λ " ++ toString v ++ ". " ++ termToString t ++ ")"
 
 instance : ToString term where toString := termToString
 
@@ -502,7 +502,7 @@ def sortOf : term → sort
     let st := sortOf t
     if st = boolSort then st else sort.undef
 | choice v t => sortOf t
-| skolem t => sortOf t
+| lambda v t => sortOf t
 | const _ s => s
 
 def appN (t : term) (l : List term) : term :=
