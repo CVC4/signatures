@@ -220,10 +220,68 @@ open value
   const bvBitOfNum (arrow (bv n) (arrow intSort boolSort))
 @[matchPattern] def bbTConst (n : Nat) :=
   const bvBbTNum (arrowN (List.append (List.replicate n boolSort) [bv n]))
+@[matchPattern] def bvEqConst :=
+  const bvEqNum dep
+@[matchPattern] def bvNotConst := const bvNotNum dep
+@[matchPattern] def bvAndConst :=
+  const bvAndNum dep
+@[matchPattern] def bvOrConst :=
+  const bvOrNum dep
+@[matchPattern] def bvXorConst :=
+  const bvXorNum dep
+@[matchPattern] def bvNandConst :=
+  const bvNandNum dep
+@[matchPattern] def bvNorConst :=
+  const bvNorNum dep
+@[matchPattern] def bvXnorConst :=
+  const bvXnorNum dep
+@[matchPattern] def bvCompConst :=
+  const bvCompNum dep
+@[matchPattern] def bvUltConst :=
+  const bvUltNum dep
+@[matchPattern] def bvUleConst :=
+  const bvUleNum dep
+@[matchPattern] def bvUgtConst :=
+  const bvUgtNum dep
+@[matchPattern] def bvUgeConst :=
+  const bvUgeNum dep
+@[matchPattern] def bvSltConst :=
+  const bvSltNum dep
+@[matchPattern] def bvSleConst :=
+  const bvSleNum dep
+@[matchPattern] def bvSgtConst :=
+  const bvSgtNum dep
+@[matchPattern] def bvSgeConst :=
+  const bvSgeNum dep
+@[matchPattern] def bvAddConst :=
+  const bvAddNum dep
+@[matchPattern] def bvNegConst :=
+  const bvNegNum dep
+@[matchPattern] def bvSubConst :=
+  const bvSubNum dep
+@[matchPattern] def bvMulConst :=
+  const bvMulNum dep
+@[matchPattern] def bvShlConst :=
+  const bvShlNum dep
+@[matchPattern] def bvLShrConst :=
+  const bvLShrNum dep
+@[matchPattern] def bvAShrConst :=
+  const bvAShrNum dep
+@[matchPattern] def bvExtractConst :=
+  const bvExtractNum dep
+@[matchPattern] def bvConcatConst :=
+  const bvConcatNum dep
+@[matchPattern] def bvZeroExtConst :=
+  const bvZeroExtNum dep
+@[matchPattern] def bvSignExtConst :=
+  const bvSignExtNum dep
+@[matchPattern] def bvRepeatConst :=
+  const bvRepeatNum dep
+
+/-
 @[matchPattern] def bvEqConst (n : Nat) :=
   const bvEqNum (arrow (bv n) (arrow (bv n) boolSort))
-@[matchPattern] def bvNotConst (n : Nat) :=
-  const bvNotNum (arrow (bv n) (bv n))
+@[matchPattern] def bvNotConst (n : Nat) := const bvNotNum (arrow (bv n) (bv n))
 @[matchPattern] def bvAndConst (n : Nat) :=
   const bvAndNum (arrow (bv n) (arrow (bv n) (bv n)))
 @[matchPattern] def bvOrConst (n : Nat) :=
@@ -278,6 +336,8 @@ open value
   const bvSignExtNum (arrow (bv n) (arrow intSort (bv (n + i))))
 @[matchPattern] def bvRepeatConst (n i : Nat) :=
   const bvRepeatNum (arrow intSort (arrow (bv n) (bv (n * i))))
+-/
+
 @[matchPattern] def emptyStrConst := const emptyStrNum strSort
 @[matchPattern] def strPlusConst := const strPlusNum (arrow strSort (arrow strSort strSort))
 @[matchPattern] def strLengthConst := const strLengthNum (arrow strSort intSort)
@@ -329,65 +389,65 @@ deriving instance Inhabited for term
 @[matchPattern] def bitOf : Nat → term → term → term :=
   λ n t₁ t₂ => bitOfConst n • t₁ • t₂
 @[matchPattern] def bbT : Nat → term := λ n => bbTConst n
-@[matchPattern] def bvEq : Nat → term → term → term :=
-  λ n t₁ t₂ => bvEqConst n • t₁ • t₂
-@[matchPattern] def bvNot : Nat → term → term :=
-  λ n t => bvNotConst n • t
-@[matchPattern] def bvAnd : Nat → term → term → term :=
-  λ n t₁ t₂ => bvAndConst n • t₁ • t₂
-@[matchPattern] def bvOr : Nat → term → term → term :=
-  λ n t₁ t₂ => bvAndConst n • t₁ • t₂
-@[matchPattern] def bvXor : Nat → term → term → term :=
-  λ n t₁ t₂ => bvXorConst n • t₁ • t₂
-@[matchPattern] def bvNand : Nat → term → term → term :=
-  λ n t₁ t₂ => bvNandConst n • t₁ • t₂
-@[matchPattern] def bvNor : Nat → term → term → term :=
-  λ n t₁ t₂ => bvNorConst n • t₁ • t₂
-@[matchPattern] def bvXnor : Nat → term → term → term :=
-  λ n t₁ t₂ => bvXnorConst n • t₁ • t₂
-@[matchPattern] def bvComp : Nat → term → term → term :=
-  λ n t₁ t₂ => bvCompConst n • t₁ • t₂
-@[matchPattern] def bvUlt : Nat → term → term → term :=
-  λ n t₁ t₂ => bvUltConst n • t₁ • t₂
-@[matchPattern] def bvUle : Nat → term → term → term :=
-  λ n t₁ t₂ => bvUleConst n • t₁ • t₂
-@[matchPattern] def bvUgt : Nat → term → term → term :=
-  λ n t₁ t₂ => bvUgtConst n • t₁ • t₂
-@[matchPattern] def bvUge : Nat → term → term → term :=
-  λ n t₁ t₂ => bvUgeConst n • t₁ • t₂
-@[matchPattern] def bvSlt : Nat → term → term → term :=
-  λ n t₁ t₂ => bvSltConst n • t₁ • t₂
-@[matchPattern] def bvSle : Nat → term → term → term :=
-  λ n t₁ t₂ => bvSleConst n • t₁ • t₂
-@[matchPattern] def bvSgt : Nat → term → term → term :=
-  λ n t₁ t₂ => bvSgtConst n • t₁ • t₂
-@[matchPattern] def bvSge : Nat → term → term → term :=
-  λ n t₁ t₂ => bvSgeConst n • t₁ • t₂
-@[matchPattern] def bvAdd : Nat → term → term → term :=
-  λ n t₁ t₂ => bvAddConst n • t₁ • t₂
-@[matchPattern] def bvNeg : Nat → term → term :=
-  λ n t => bvNegConst n • t
-@[matchPattern] def bvSub : Nat → term → term → term :=
-  λ n t₁ t₂ => bvSubConst n • t₁ • t₂
-@[matchPattern] def bvMul : Nat → term → term → term :=
-  λ n t₁ t₂ => bvMulConst n • t₁ • t₂
-@[matchPattern] def bvShl : Nat → term → term → term :=
-  λ n t₁ t₂ => bvShlConst n • t₁ • t₂
-@[matchPattern] def bvLShr : Nat → term → term → term :=
-  λ n t₁ t₂ => bvLShrConst n • t₁ • t₂
-@[matchPattern] def bvAShr : Nat → term → term → term :=
-  λ n t₁ t₂ => bvAShrConst n • t₁ • t₂
+@[matchPattern] def bvEq : term → term → term :=
+  λ t₁ t₂ => bvEqConst • t₁ • t₂
+@[matchPattern] def bvNot : term → term :=
+  λ t => bvNotConst • t
+@[matchPattern] def bvAnd : term → term → term :=
+  λ t₁ t₂ => bvAndConst • t₁ • t₂
+@[matchPattern] def bvOr : term → term → term :=
+  λ t₁ t₂ => bvOrConst • t₁ • t₂
+@[matchPattern] def bvXor : term → term → term :=
+  λ t₁ t₂ => bvXorConst • t₁ • t₂
+@[matchPattern] def bvNand : term → term → term :=
+  λ t₁ t₂ => bvNandConst • t₁ • t₂
+@[matchPattern] def bvNor : term → term → term :=
+  λ t₁ t₂ => bvNorConst • t₁ • t₂
+@[matchPattern] def bvXnor : term → term → term :=
+  λ t₁ t₂ => bvXnorConst • t₁ • t₂
+@[matchPattern] def bvComp : term → term → term :=
+  λ t₁ t₂ => bvCompConst • t₁ • t₂
+@[matchPattern] def bvUlt : term → term → term :=
+  λ t₁ t₂ => bvUltConst • t₁ • t₂
+@[matchPattern] def bvUle : term → term → term :=
+  λ t₁ t₂ => bvUleConst • t₁ • t₂
+@[matchPattern] def bvUgt : term → term → term :=
+  λ t₁ t₂ => bvUgtConst • t₁ • t₂
+@[matchPattern] def bvUge : term → term → term :=
+  λ t₁ t₂ => bvUgeConst • t₁ • t₂
+@[matchPattern] def bvSlt : term → term → term :=
+  λ t₁ t₂ => bvSltConst • t₁ • t₂
+@[matchPattern] def bvSle : term → term → term :=
+  λ t₁ t₂ => bvSleConst • t₁ • t₂
+@[matchPattern] def bvSgt : term → term → term :=
+  λ t₁ t₂ => bvSgtConst • t₁ • t₂
+@[matchPattern] def bvSge : term → term → term :=
+  λ t₁ t₂ => bvSgeConst • t₁ • t₂
+@[matchPattern] def bvAdd : term → term → term :=
+  λ t₁ t₂ => bvAddConst • t₁ • t₂
+@[matchPattern] def bvNeg : term → term :=
+  λ t => bvNegConst • t
+@[matchPattern] def bvSub : term → term → term :=
+  λ t₁ t₂ => bvSubConst • t₁ • t₂
+@[matchPattern] def bvMul : term → term → term :=
+  λ t₁ t₂ => bvMulConst • t₁ • t₂
+@[matchPattern] def bvShl : term → term → term :=
+  λ t₁ t₂ => bvShlConst • t₁ • t₂
+@[matchPattern] def bvLShr : term → term → term :=
+  λ t₁ t₂ => bvLShrConst • t₁ • t₂
+@[matchPattern] def bvAShr : term → term → term :=
+  λ t₁ t₂ => bvAShrConst • t₁ • t₂
 @[matchPattern] def bvExtract :
-  Nat → Nat → Nat → term → term → term → term :=
-  λ n i j t₁ t₂ t₃ => bvExtractConst n i j • t₁ • t₂ • t₃
-@[matchPattern] def bvConcat : Nat → Nat → term → term → term :=
-  λ n m t₁ t₂ => bvConcatConst n m • t₁ • t₂
-@[matchPattern] def bvZeroExt : Nat → Nat → term → term → term :=
-  λ n i t₁ t₂ => bvZeroExtConst n i • t₁ • t₂
-@[matchPattern] def bvSignExt : Nat → Nat → term → term → term :=
-  λ n i t₁ t₂ => bvSignExtConst n i • t₁ • t₂
-@[matchPattern] def bvRepeat : Nat → Nat → term → term → term :=
-  λ n i t₁ t₂ => bvRepeatConst n i • t₁ • t₂
+  term → term → term → term :=
+  λ t₁ t₂ t₃ => bvExtractConst • t₁ • t₂ • t₃
+@[matchPattern] def bvConcat : term → term → term :=
+  λ t₁ t₂ => bvConcatConst • t₁ • t₂
+@[matchPattern] def bvZeroExt : term → term → term :=
+  λ t₁ t₂ => bvZeroExtConst • t₁ • t₂
+@[matchPattern] def bvSignExt : term → term → term :=
+  λ t₁ t₂ => bvSignExtConst • t₁ • t₂
+@[matchPattern] def bvRepeat : term → term → term :=
+  λ t₁ t₂ => bvRepeatConst • t₁ • t₂
 @[matchPattern] def emptyStr : term := emptyStrConst
 @[matchPattern] def strPlus : term → term → term :=
   λ t₁ t₂ => strPlusConst • t₁ • t₂
@@ -421,35 +481,35 @@ def termToString : term → String
     ++ ")"
 | bitOf _ t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
 | const 11 _ => "bbT"
-/-| bvEq _ t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
-| bvNot _ t => "¬_bv" ++ termToString t
-| bvAnd _ t₁ t₂ => termToString t₁ ++ " ∧_bv " ++ termToString t₂
-| bvOr _ t₁ t₂ => termToString t₁ ++ " ∨_bv " ++ termToString t₂
-| bvXor _ t₁ t₂ => termToString t₁ ++ " ⊕_bv " ++ termToString t₂
-| bvNand _ t₁ t₂ => "BVNand " ++ termToString t₁ ++ " " ++ termToString t₂
-| bvNor _ t₁ t₂ => "BVNor " ++ termToString t₁ ++ " " ++ termToString t₂
-| bvXnor _ t₁ t₂ => "BVXnor " ++ termToString t₁ ++ " " ++ termToString t₂
-| bvComp _ t₁ t₂ => "BVComp " ++ termToString t₁ ++ " " ++ termToString t₂
-| bvUlt _ t₁ t₂ => termToString t₁ ++ " <ᵤ " ++ termToString t₂
-| bvUle _ t₁ t₂ => termToString t₁ ++ " ≤ᵤ " ++ termToString t₂
-| bvUgt _ t₁ t₂ => termToString t₁ ++ " >ᵤ " ++ termToString t₂
-| bvUge _ t₁ t₂ => termToString t₁ ++ " ≥ᵤ " ++ termToString t₂
-| bvSlt _ t₁ t₂ => termToString t₁ ++ " <ₛ " ++ termToString t₂
-| bvSle _ t₁ t₂ => termToString t₁ ++ " ≤ₛ " ++ termToString t₂
-| bvSgt _ t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂
-| bvSge _ t₁ t₂ => termToString t₁ ++ " ≥ₛ " ++ termToString t₂
-| bvAdd _ t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂
-| bvNeg _ t => "-_bv " ++ termToString t
-| bvSub _ t₁ t₂ => termToString t₁ ++ " -_bv " ++ termToString t₂
-| bvMul _ t₁ t₂ => termToString t₁ ++ " *_bv " ++ termToString t₂
-| bvShl _ t₁ t₂ => termToString t₁ ++ " << " ++ termToString t₂
-| bvLShr _ t₁ t₂ => termToString t₁ ++ " >> " ++ termToString t₂
-| bvAShr _ t₁ t₂ => termToString t₁ ++ " >>ₐ " ++ termToString t₂-/
-/-| bvExtract _ _ _ t₁ t₂ t₃ => ((termToString t₁) ++ "[" ++ (termToString t₂) ++ ":" ++ (termToString t₃) ++ "]")
-| bvConcat _ _ t₁ t₂ => termToString t₁ ++ " ++ " ++ termToString t₂
-| bvZeroExt _ _ t₁ t₂ => "zeroExt " ++ termToString t₁ ++ " " ++ termToString t₂
-| bvSignExt _ _ t₁ t₂ => "signExt " ++ termToString t₁ ++ " " ++ termToString t₂
-| bvRepeat _ _ t₁ t₂ => "repeat " ++ termToString t₁ ++ " " ++ termToString t₂-/
+| bvEq t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
+| bvNot t => "¬_bv" ++ termToString t
+| bvAnd t₁ t₂ => termToString t₁ ++ " ∧_bv " ++ termToString t₂
+| bvOr t₁ t₂ => termToString t₁ ++ " ∨_bv " ++ termToString t₂
+| bvXor t₁ t₂ => termToString t₁ ++ " ⊕_bv " ++ termToString t₂
+| bvNand t₁ t₂ => "BVNand " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvNor t₁ t₂ => "BVNor " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvXnor t₁ t₂ => "BVXnor " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvComp t₁ t₂ => "BVComp " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvUlt t₁ t₂ => termToString t₁ ++ " <ᵤ " ++ termToString t₂
+| bvUle t₁ t₂ => termToString t₁ ++ " ≤ᵤ " ++ termToString t₂
+| bvUgt t₁ t₂ => termToString t₁ ++ " >ᵤ " ++ termToString t₂
+| bvUge t₁ t₂ => termToString t₁ ++ " ≥ᵤ " ++ termToString t₂
+| bvSlt t₁ t₂ => termToString t₁ ++ " <ₛ " ++ termToString t₂
+| bvSle t₁ t₂ => termToString t₁ ++ " ≤ₛ " ++ termToString t₂
+| bvSgt t₁ t₂ => termToString t₁ ++ " >ₛ " ++ termToString t₂
+| bvSge t₁ t₂ => termToString t₁ ++ " ≥ₛ " ++ termToString t₂
+| bvAdd t₁ t₂ => termToString t₁ ++ " +_bv " ++ termToString t₂
+| bvNeg t => "-_bv " ++ termToString t
+| bvSub t₁ t₂ => termToString t₁ ++ " -_bv " ++ termToString t₂
+| bvMul t₁ t₂ => termToString t₁ ++ " *_bv " ++ termToString t₂
+| bvShl t₁ t₂ => termToString t₁ ++ " << " ++ termToString t₂
+| bvLShr t₁ t₂ => termToString t₁ ++ " >> " ++ termToString t₂
+| bvAShr t₁ t₂ => termToString t₁ ++ " >>ₐ " ++ termToString t₂
+| bvExtract t₁ t₂ t₃ => ((termToString t₁) ++ "[" ++ (termToString t₂) ++ ":" ++ (termToString t₃) ++ "]")
+| bvConcat t₁ t₂ => termToString t₁ ++ " ++ " ++ termToString t₂
+| bvZeroExt t₁ t₂ => "zeroExt " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvSignExt t₁ t₂ => "signExt " ++ termToString t₁ ++ " " ++ termToString t₂
+| bvRepeat t₁ t₂ => "repeat " ++ termToString t₁ ++ " " ++ termToString t₂
 | const id _ => toString id
 | f • t =>  "(" ++ (termToString f) ++ " " ++ (termToString t) ++ ")"
 | qforall v t => "(∀ " ++ toString v ++ " . " ++ termToString t ++ ")"
