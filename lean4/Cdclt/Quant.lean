@@ -49,6 +49,6 @@ axiom bind : ∀ {v : Nat} {t₁ t₂ : term},
   thHolds (eq t₂ t₂) → thHolds (eq (qforall v t₁) (qforall v t₂))
 
 axiom bindLambda : ∀ {v : Nat} {t₁ t₂ : term},
-  thHolds (eq t₂ t₂) → thHolds (eq (lambda v t₁) (lambda v t₂))
+  thHolds (eq t₁ t₂) → thHolds (eq (lambda v t₁) (lambda v t₂))
 
 end quantRules
