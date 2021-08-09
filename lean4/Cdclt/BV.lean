@@ -69,9 +69,10 @@ match (s₁, s₂) with
         | some b => if b then top else bot
         | none => none
     -- or BV can be a var
-    | _ => bitOf n t₁ t₂) else none
+    | _ => bitOf t₁ t₂) else none
   | _ => none
 | (_, _) => none
+
 #eval mkBitOf (mkValBV [true, false, true, false]) (mkValInt 0)
 #eval mkBitOf (mkValBV [true, false, true, false]) (mkValInt 1)
 #eval mkBitOf (mkValBV [true, false, true, false]) (mkValInt 4)
@@ -86,9 +87,9 @@ match (s₁, s₂) with
    with option terms representing each bit.
 -/
 def bitOfListAux : Nat → term →  Nat → List term
-| n, t, 0 => bitOf n t (mkValInt (Int.ofNat (n - 1))) :: []
+| n, t, 0 => bitOf t (mkValInt (Int.ofNat (n - 1))) :: []
 | n, t, (i + 1) => if i+1 >= n then [] else
-                   (bitOf n t (mkValInt
+                   (bitOf t (mkValInt
                                 (Int.ofNat (n - (i + 1) - 1)))
                    ) :: (bitOfListAux n t i)
 
@@ -105,9 +106,9 @@ def bitOfList (n : Nat) (t : term) : List term :=  bitOfListAux n t (n-1)
 
 /- bitOfNRev works like bitOfN but in reverse -/
 def bitOfListRevAux : Nat → term → Nat → List term
-| n, t, 0 => bitOf n t (mkValInt (Int.ofNat 0)) :: []
+| n, t, 0 => bitOf t (mkValInt (Int.ofNat 0)) :: []
 | n, t, (i + 1) => if i+1 >= n then [] else
-                   (bitOf n t (mkValInt
+                   (bitOf t (mkValInt
                                 (Int.ofNat (i + 1)))
                    ) :: (bitOfListRevAux n t i)
 
@@ -130,7 +131,7 @@ Construct a BV term that is a bbT (bit-blasted term)
 of the bools in l
 -/
 @[matchPattern] def mkBbT (l : List term) : term :=
-  appN (bbT (List.length l)) l
+  appN bbT l
 
 #eval mkBbT ([top, top, top, top])
 
@@ -1074,10 +1075,10 @@ for b[n] → b[0],
 n is expected to be log2(len(b))
 -/
 def bvLeftShift : Nat → Nat → term → term → term
-| n, 0, a, b => fIte (eq (bitOf n b (mkValInt 0)) top) (leftShift n a) a
+| n, 0, a, b => fIte (eq (bitOf b (mkValInt 0)) top) (leftShift n a) a
 | n, (i + 1), a, b =>
                   let res := (bvLeftShift n i a b)
-                  (fIte (eq (bitOf n b (mkValInt (Int.ofNat (n+1)))) top)
+                  (fIte (eq (bitOf b (mkValInt (Int.ofNat (n+1)))) top)
                               (leftShiftN n res (2^(i+1))) res)
 
 #eval termEval (bvLeftShift 3 2 (mkValBV [false, false, true]) (mkValBV [false, false,
@@ -1140,7 +1141,7 @@ def lRightShiftVal : List Bool → List Bool
 -- Need a modified bitOfN for right shifts
 def bitOfListRShAux : Nat → term → Nat → List term
 | n, t, 0 => []
-| n, t, (i + 1) => (bitOf n t (mkValInt (Int.ofNat (i + 1))))
+| n, t, (i + 1) => (bitOf t (mkValInt (Int.ofNat (i + 1))))
                     :: (bitOfListRShAux n t i)
 
 #eval bitOfListRShAux 4 (const 21 (bv 4)) 3
@@ -1166,10 +1167,10 @@ for b[n] → b[0],
 n is expected to be log2(len(b))
 -/
 def bvLRightShift : Nat → Nat → term → term → term
-| n, 0, a, b => fIte (eq (bitOf n b (mkValInt 0)) top) (lRightShift n a) a
+| n, 0, a, b => fIte (eq (bitOf b (mkValInt 0)) top) (lRightShift n a) a
 | n, (i + 1), a, b =>
                   let res := (bvLRightShift n i a b)
-                  (fIte (eq (bitOf n b (mkValInt (Int.ofNat (i+1)))) top)
+                  (fIte (eq (bitOf b (mkValInt (Int.ofNat (i+1)))) top)
                               (lRightShiftN n res (2^(i+1))) res)
 
 /-
@@ -1231,7 +1232,7 @@ def head : List Bool → Bool
 | [] => false
 
 def sign (n : Nat) (t : term) : term :=
-  (bitOf n t (mkValInt (Int.ofNat (n-1))))
+  (bitOf t (mkValInt (Int.ofNat (n-1))))
 
 def aRightShift  (n : Nat) (t : term) : term :=
   mkBbT ((sign n t) ::
@@ -1256,10 +1257,10 @@ for b[n] → b[0],
 n is expected to be log2(len(b))
 -/
 def bvARightShift : Nat → Nat → term → term → term
-| n, 0, a, b => fIte (eq (bitOf n b (mkValInt 0)) top) (aRightShift n a) a
+| n, 0, a, b => fIte (eq (bitOf b (mkValInt 0)) top) (aRightShift n a) a
 | n, (i + 1), a, b =>
                   let res := (bvARightShift n i a b)
-                  (fIte (eq (bitOf n b (mkValInt (Int.ofNat (i+1)))) top)
+                  (fIte (eq (bitOf b (mkValInt (Int.ofNat (i+1)))) top)
                               (aRightShiftN n res (2^(i+1))) res)
 
 /-

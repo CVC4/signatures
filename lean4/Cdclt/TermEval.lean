@@ -72,11 +72,11 @@ partial def termEval (t : term) : term :=
     | top => termEval t₁
     | bot => termEval t₂
     | _ => t
-  | bitOf n b'' i'' =>
+  | bitOf b'' i'' =>
     let b' := termEval b''
     let i' := termEval i''
     match b', i' with
-    | val (value.bitvec b) _, val (value.integer i) _ =>
+    | val (value.bitvec b) (bv n), val (value.integer i) _ =>
       match (List.get? (Int.toNat (n - i - 1)) b) with
         | some bit => if bit then top else bot
         | none => term.undef

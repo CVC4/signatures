@@ -216,10 +216,10 @@ open value
 @[matchPattern] def selectConst := const selectNum dep
 @[matchPattern] def storeConst := const storeNum dep
 
-@[matchPattern] def bitOfConst (n : Nat) :=
-  const bvBitOfNum (arrow (bv n) (arrow intSort boolSort))
-@[matchPattern] def bbTConst (n : Nat) :=
-  const bvBbTNum (arrowN (List.append (List.replicate n boolSort) [bv n]))
+@[matchPattern] def bitOfConst :=
+  const bvBitOfNum dep
+@[matchPattern] def bbTConst :=
+  const bvBbTNum dep
 @[matchPattern] def bvEqConst :=
   const bvEqNum dep
 @[matchPattern] def bvNotConst := const bvNotNum dep
@@ -386,9 +386,9 @@ deriving instance Inhabited for term
 @[matchPattern] def store : term → term → term → term :=
   λ t₁ t₂ t₃ => storeConst • t₁ • t₂ • t₃
 
-@[matchPattern] def bitOf : Nat → term → term → term :=
-  λ n t₁ t₂ => bitOfConst n • t₁ • t₂
-@[matchPattern] def bbT : Nat → term := λ n => bbTConst n
+@[matchPattern] def bitOf : term → term → term :=
+  λ t₁ t₂ => bitOfConst • t₁ • t₂
+@[matchPattern] def bbT : term := bbTConst
 @[matchPattern] def bvEq : term → term → term :=
   λ t₁ t₂ => bvEqConst • t₁ • t₂
 @[matchPattern] def bvNot : term → term :=
@@ -479,8 +479,8 @@ def termToString : term → String
 | store t₁ t₂ t₃ => "(" ++
     termToString t₁ ++ "[" ++ termToString t₂ ++ "] := " ++ termToString t₃
     ++ ")"
-| bitOf _ t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
-| const 11 _ => "bbT"
+| bitOf t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
+| bbT => "bbT"
 | bvEq t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
 | bvNot t => "¬_bv" ++ termToString t
 | bvAnd t₁ t₂ => termToString t₁ ++ " ∧_bv " ++ termToString t₂
