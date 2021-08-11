@@ -6,9 +6,7 @@ open proof
 open proof.sort proof.term
 open rules
 
-namespace proof
-
-namespace term
+namespace bvRules
 
 /-
 Endian-ness:
@@ -122,6 +120,19 @@ def bitOfListRev (n : Nat) (t: term) : List term := bitOfListRevAux n t (n-1)
 -- #eval bitOfListRev (const 21 (bv 3)) 4
 -- #eval bitOfListRev (mkValBV [true, true, true, false]) 3
 
+/- bitOfN t n
+   bit-blasts a BV constant or variable.
+   t is the BV term and n is its length.
+   bitOfN t n returns a list of length n
+   with option terms representing each bit.
+-/
+
+def bbTtoListAux : Nat → term →  Nat → List term
+| n, (bbT • t), 0 => [t]
+| n, (t₁ • t₂), (i + 1) => List.concat (bbTtoListAux n t₁ i) t₂
+| _, _, _ => []
+
+def bbTtoList (n : Nat) (t : term) : List term :=  bbTtoListAux n t (n-1)
 
 --------------------------------------- Bitwise Operators ---------------------------------------
 
@@ -166,8 +177,34 @@ respective elements of ot₁ and ot₂
 -/
 def bblastBvBitwise (n : Nat) (t₁ t₂ : term)
                     (constructor : term → term → term) : term :=
-    mkBbT (zip (bitOfList n t₁) (bitOfList n t₂) constructor)
+    mkBbT (zip (bbTtoList n t₁) (bbTtoList n t₂) constructor)
 
+/- ------------------------
+ BV values and variables
+--------------------------- -/
+
+---- Values
+def bblastBvVal : term → term
+| val (value.bitvec l) (bv n) => mkBbTVal bbT l
+| _ => undef
+
+#eval bblastBvVal (mkValBV [true, false, true])
+
+axiom bbBvVal : ∀ {t : term},
+  thHolds (eq t (bblastBvVal t))
+
+#check (bbBvVal : thHolds (eq (mkValBV [true, false, true]) (bbT • top • bot • top)))
+
+---- Variables
+def bblastBvVar (n : Nat) (t : term) : term := mkBbTVar n n bbT t
+
+#eval bblastBvVar 2 (mkValBV [true, false])
+
+axiom bbBvVar : ∀ {t : term} (n : Nat),
+  thHolds (eq t (bblastBvVar n t))
+
+def tbv := const 1001 (bv 2)
+#check (bbBvVar 2 : thHolds (eq tbv (bbT • (bitOf tbv (mkValInt 0)) • (bitOf tbv (mkValInt 1)))))
 
 /- -----------
  BV equality
@@ -175,7 +212,7 @@ def bblastBvBitwise (n : Nat) (t₁ t₂ : term)
 
 -- If terms are well-typed, construct their BV Eq application
 -- def mkBvEq : OptionM term → OptionM term → OptionM term :=
---   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvEq
+--   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ eq
 
 /-
 If terms are well-typed, construct their bit-blasted BV eq
@@ -184,30 +221,46 @@ If terms are well-typed, construct their bit-blasted BV eq
     xₙ = yₙ ∧ ... ∧ x₀ = y₀
 -/
 def bblastBvEq (n : Nat) (t₁ t₂ : term) : term :=
-  andN (zip (bitOfList n t₁) (bitOfList n t₂) bvEq)
+  andN (zip (bbTtoList n t₁) (bbTtoList n t₂) eq)
 
 -- 0000 = 1111
 #eval bblastBvEq 4
-                 (mkValBV [false, false, false, false])
-                 (mkValBV [true, true, true, true])
+                 (bblastBvVal $ mkValBV [false, false, false, false])
+                 (bblastBvVal $ mkValBV [true, true, true, true])
 
-#eval termEval (bblastBvEq 4 (mkValBV [false, false, false, false]) (mkValBV [true, true, true, true]))
+#eval termEval (bblastBvEq 4 (bblastBvVal $ mkValBV [false, false, false, false]) (bblastBvVal $ mkValBV [true, true, true, true]))
 
 -- 010 = 010
-#eval bblastBvEq 3 (mkValBV [false, true, true])
-  (mkValBV [false, true, true])
-#eval termEval (bblastBvEq 3 (mkValBV [false, true, true])
-  (mkValBV [false, true, true]))
+#eval bblastBvEq 3 (bblastBvVal $ mkValBV [false, true, true])
+  (bblastBvVal $ mkValBV [false, true, true])
+#eval termEval (bblastBvEq 3 (bblastBvVal $ mkValBV [false, true, true])
+  (bblastBvVal $ mkValBV [false, true, true]))
 -- Using variables
-#eval bblastBvEq 4 (const 21 (bv 4))
-  (mkValBV [false, false, false, true])
-#eval bblastBvEq 4 (const 21 (bv 4)) (const 22 (bv 4))
+#eval bblastBvEq 4 (bblastBvVar 4 (const 21 (bv 4)))
+  (bblastBvVal $ mkValBV [false, false, false, true])
+#eval bblastBvEq 4 (bblastBvVar 4 (const 21 (bv 4))) (bblastBvVar 4 (const 22 (bv 4)))
 
 -- Bit-blasting BvEq rule
 axiom bbBvEq : ∀ {t₁ t₂ : term} (n : Nat),
-  thHolds (eq (bvEq t₁ t₂) (bblastBvEq n t₁ t₂))
+  thHolds (eq (eq t₁ t₂) (bblastBvEq n t₁ t₂))
 
-/- ------
+def eqSimp : term → term → term
+| top, t₂ => t₂
+| bot, t₂ => not t₂
+| t₁, top => t₁
+| t₁, bot => not t₁
+| t₁, t₂ => (eq t₁ t₂)
+
+def bblastBvEqVal (n : Nat) (t₁ t₂ : term) : term :=
+  andN (zip (bbTtoList n t₁) (bbTtoList n t₂) eqSimp)
+
+#eval bblastBvEqVal 4 (bblastBvVar 4 (const 21 (bv 4)))
+  (bblastBvVal $ mkValBV [false, false, false, true])
+
+axiom bbBvEqVal : ∀ {t₁ t₂ : term} (n : Nat),
+  thHolds (eq (eq t₁ t₂) (bblastBvEqVal n t₁ t₂))
+
+/-------
  BV not
 ------- -/
 
@@ -254,29 +307,44 @@ If terms are well-typed, construct their bit-blasted BV and
 -----------------------------------------
     [xₙ ∧ yₙ ... x₁ ∧ y₁  x₀ ∧ y₀]
 -/
-def bblastBvAnd (n : Nat) (t₁ t₂ : term) : term := bblastBvBitwise n t₁ t₂ bvAnd
+def bblastBvAnd (n : Nat) (t₁ t₂ : term) : term := bblastBvBitwise n t₁ t₂ and
 
 -- 0000 ∧ 1111
-#eval bblastBvAnd 4 (mkValBV [false, false, false, false])
-  (mkValBV [true, true, true, true])
-#eval termEval (bblastBvAnd 4 (mkValBV [false, false, false, false])
-  (mkValBV [true, true, true, true]))
+#eval bblastBvAnd 4 (bblastBvVal $ mkValBV [false, false, false, false])
+  (bblastBvVal $ mkValBV [true, true, true, true])
+#eval termEval (bblastBvAnd 4 (bblastBvVal $ mkValBV [false, false, false, false])
+  (bblastBvVal $ mkValBV [true, true, true, true]))
 -- 0111 ∧ 1101
-#eval bblastBvAnd 4 (mkValBV [false, true, true, true])
-  (mkValBV [true, true, false, true])
-#eval termEval (bblastBvAnd 4 (mkValBV [false, true, true, true])
-  (mkValBV [true, true, false, true]))
+#eval bblastBvAnd 4 (bblastBvVal $ mkValBV [false, true, true, true])
+  (bblastBvVal $ mkValBV [true, true, false, true])
+#eval termEval (bblastBvAnd 4 (bblastBvVal $ mkValBV [false, true, true, true])
+  (bblastBvVal $ mkValBV [true, true, false, true]))
 -- Using variables
-#eval bblastBvAnd 4 (const 21 (bv 4))
-  (mkValBV [false, false, false, false])
-#eval bblastBvAnd 4 (const 21 (bv 4)) (const 22 (bv 4))
+#eval bblastBvAnd 4 (bblastBvVar 4 (const 21 (bv 4)))
+  (bblastBvVal $ mkValBV [false, false, false, false])
+#eval bblastBvAnd 4 (bblastBvVar 4 (const 21 (bv 4))) (bblastBvVar 4 (const 22 (bv 4)))
 
 -- Bit-blasting BvAnd rule
 axiom bbBvAnd : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvAnd t₁ t₂) (bblastBvAnd n t₁ t₂))
 
+def andSimp : term → term → term
+| top, t₂ => t₂
+| bot, t₂ => bot
+| t₁, top => t₁
+| t₁, bot => bot
+| t₁, t₂ => (and t₁ t₂)
 
-/- -----
+def bblastBvAndVal (n : Nat) (t₁ t₂ : term) : term :=
+  bblastBvBitwise n t₁ t₂ andSimp
+
+#eval bblastBvAndVal 4 (bblastBvVar 4 (const 21 (bv 4)))
+  (bblastBvVal $ mkValBV [false, false, false, true])
+
+axiom bbBvAndVal : ∀ {t₁ t₂ : term} (n : Nat),
+  thHolds (eq (bvAnd t₁ t₂) (bblastBvAndVal n t₁ t₂))
+
+/------
  BV or
 ----- -/
 
@@ -510,45 +578,96 @@ axiom bbBvComp : ∀ {t₁ t₂ : term} (n : Nat),
 --   λ ot₁ ot₂ => checkBinaryBV ot₁ ot₂ bvUlt
 
 /-
-                  [xₙ ... x₁ x₀] <ᵤ [yₙ ... y₀ y₁]
+                  [x₀ ... xₙ] <ᵤ [y₀ ... yₙ]
 -------------------------------------------------------------------------
     (¬xₙ ∧ yₙ) ∨ ((xₙ ↔ yₙ) ∧ ([x_{n-1} ... x₀] <ᵤ [y_{n-1} ... y₀]))
 -/
-def boolListUlt : List term → List term → term
-| [h₁], [h₂] => and (not h₁) h₂
-| (h₁ :: t₁), (h₂ :: t₂) => (or (and (not h₁) h₂) (and (eq h₁ h₂) (boolListUlt t₁ t₂)))
-| _, _ => undef
+def bblastBvUltAux : List term → List term → term → term
+| [], [], acc => acc
+| (h₁ :: tl₁), (h₂ :: tl₂), acc =>
+      bblastBvUltAux tl₁ tl₂ (or (and (eq h₂ h₁) acc) (and (not h₁) h₂))
+| _, _, _ => undef
 
 /-
 If terms are well-typed, construct their bit-blasted
 unsigned less than comparison
 -/
 def bblastBvUlt (n : Nat) (t₁ t₂ : term) : term :=
-  boolListUlt (bitOfList n t₁) (bitOfList n t₂)
+  let l₁ := (bbTtoList n t₁)
+  let l₂ := (bbTtoList n t₂)
+  match l₁, l₂ with
+  | h₁::tl₁, h₂::tl₂ => bblastBvUltAux tl₁ tl₂ (and (not h₁) h₂)
+  | _, _ => undef
+
+-- 01 <ᵤ 10
+#eval bblastBvUlt 2 (bblastBvVal $ mkValBV [true, false])
+  (bblastBvVal $ mkValBV [false, true])
 
 -- 0000 <ᵤ 1111
-#eval bblastBvUlt 4 (mkValBV [false, false, false, false])
-  (mkValBV [true, true, true, true])
+#eval bblastBvUlt 4 (bblastBvVal $ mkValBV [false, false, false, false])
+  (bblastBvVal $ mkValBV [true, true, true, true])
 #eval termEval (bblastBvUlt 4 (mkValBV [false, false, false, false])
   (mkValBV [true, true, true, true]))
 -- 0010 <ᵤ 0011
-#eval bblastBvUlt 4 (mkValBV [false, false, true, false])
-  (mkValBV [false, false, true, true])
-#eval termEval (bblastBvUlt 4 (mkValBV [false, false, true, false])
-  (mkValBV [false, false, true, true]))
--- 10 <ᵤ 01
-#eval bblastBvUlt 4 (mkValBV [true, false])
-  (mkValBV [false, true])
-#eval termEval (bblastBvUlt 4 (mkValBV [true, false])
-  (mkValBV [false, true]))
+#eval bblastBvUlt 4 (bblastBvVal $ mkValBV [false, true, false, false])
+  (bblastBvVal $ mkValBV [true, true, false, false])
+#eval termEval (bblastBvUlt 4 (mkValBV [false, true, false, false])
+  (mkValBV [true, true, false, false]))
+
+#eval termEval (bblastBvUlt 4 (bblastBvVal $ mkValBV [true, false])
+  (bblastBvVal $ mkValBV [false, true]))
 -- Using variables
-#eval bblastBvUlt 4 (const 21 (bv 4))
-  (mkValBV [false, false, false, false])
-#eval bblastBvUlt 4 (const 21 (bv 4)) (const 22 (bv 4))
+#eval bblastBvVar 4 $ const 1001 (bv 4)
+#eval bbTtoList 4 $ bblastBvVar 4 $ const 1001 (bv 4)
+#eval bblastBvVal $ mkValBV [false, false, false, false]
+
+#eval bblastBvUlt 4 (bblastBvVar 4 $ const 1001 (bv 4))
+  (bblastBvVal $ mkValBV [false, false, false, false])
+
+#eval bblastBvUlt 4 (const 21 (bv 4)) (const 1002 (bv 4))
 
 -- Bit-blasting BvUlt rule
 axiom bbBvUlt : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvUlt t₁ t₂) (bblastBvUlt n t₁ t₂))
+
+def boolListUltVal : List term → List term → term → term
+| [], [], acc => acc
+| (h₁ :: tl₁), (bot :: tl₂), bot =>
+      boolListUltVal tl₁ tl₂ bot
+| (h₁ :: tl₁), (top :: tl₂), bot =>
+      boolListUltVal tl₁ tl₂ (not h₁)
+| (bot :: tl₁), (h₂ :: tl₂), bot =>
+      boolListUltVal tl₁ tl₂ h₂
+| (top :: tl₁), (h₂ :: tl₂), bot =>
+      boolListUltVal tl₁ tl₂ bot
+| (h₁ :: tl₁), (bot :: tl₂), acc =>
+      boolListUltVal tl₁ tl₂ (and (not h₁) acc)
+| (h₁ :: tl₁), (top :: tl₂), acc =>
+      boolListUltVal tl₁ tl₂ (or (and h₁ acc) (not h₁))
+| (bot :: tl₁), (h₂ :: tl₂), acc =>
+      boolListUltVal tl₁ tl₂ (or (and (not h₂) acc) h₂)
+| (top :: tl₁), (h₂ :: tl₂), acc =>
+      boolListUltVal tl₁ tl₂ (and h₂ acc)
+-- | (h₁ :: tl₁), (h₂ :: tl₂), acc =>
+--       boolListUlt tl₁ tl₂ (or (and (eq h₂ h₁) acc) (and (not h₁) h₂))
+| _, _, _ => undef
+
+/-
+If terms are well-typed, construct their bit-blasted
+unsigned less than comparison
+-/
+def bblastBvUltVal (n : Nat) (t₁ t₂ : term) : term :=
+  let l₁ := (bbTtoList n t₁)
+  let l₂ := (bbTtoList n t₂)
+  match l₁, l₂ with
+  | h₁::tl₁, bot::tl₂ => boolListUltVal tl₁ tl₂ bot
+  | h₁::tl₁, top::tl₂ => boolListUltVal tl₁ tl₂ (not h₁)
+  | bot::tl₁, h₂::tl₂ => boolListUltVal tl₁ tl₂ h₂
+  | top::tl₁, h₂::tl₂ => boolListUltVal tl₁ tl₂ bot
+  | _, _ => undef
+
+axiom bbBvUltVal : ∀ {t₁ t₂ : term} (n : Nat),
+  thHolds (eq (bvUlt t₁ t₂) (bblastBvUltVal n t₁ t₂))
 
 
 /- -----------------------------------
@@ -565,11 +684,11 @@ unsigned less than or equal to comparison
       x ≤ᵤ y
 ------------------
 (x <ᵤ y) ∨ (x = y)
--/
+
 def bblastBvUle (n : Nat) (t₁ t₂ : term) : term :=
   let bitOfLt₁ := (bitOfList n t₁)
   let bitOfLt₂ := (bitOfList n t₂)
-  or (boolListUlt bitOfLt₁ bitOfLt₂) (andN (zip bitOfLt₁ bitOfLt₂ eq))
+  term.or (boolListUlt bitOfLt₁ bitOfLt₂) (andN (zip bitOfLt₁ bitOfLt₂ eq))
 
 -- 0000 ≤ᵤ 1111
 #eval bblastBvUle 4 (mkValBV [false, false, false, false])
@@ -594,7 +713,7 @@ def bblastBvUle (n : Nat) (t₁ t₂ : term) : term :=
 -- Bit-blasting BvUle rule
 axiom bbBvUle : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvUle t₁ t₂) (bblastBvUle n t₁ t₂))
-
+-/
 
 /- ----------------------
  BV unsigned greater than
@@ -703,10 +822,10 @@ axiom bbBvUge : ∀ {t₁ t₂ : term} (n : Nat),
                 [xₙ ... x₁ x₀] <ₛ [yₙ ... y₀ y₁]
 ---------------------------------------------------------------------
   (xₙ ∧ ¬yₙ) ∨ (xₙ ↔ yₙ ∧ ([x_{n-1} ... x₀] <ᵤ [y_{n-1} ... y₀]))
--/
+
 def boolListSlt : List term → List term → term
 | [h₁], [h₂] => (and h₁ (not h₂))
-| (h₁ :: t₁), (h₂ :: t₂) => (or (and h₁ (not h₂)) (and (eq h₁ h₂) (boolListUlt t₁ t₂)))
+| (h₁ :: t₁), (h₂ :: t₂) => (term.or (and h₁ (not h₂)) (term.and (eq h₁ h₂) (boolListUlt t₁ t₂)))
 | _, _ => undef
 
 /-
@@ -739,7 +858,7 @@ def bblastBvSlt (n : Nat) (t₁ t₂ : term) : term :=
 -- Bit-blasting BvUgt rule
 axiom bbBvSlt : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvSlt t₁ t₂) (bblastBvSlt n t₁ t₂))
-
+-/
 
 /- -------------------------------
  BV signed less than or equal to
@@ -755,7 +874,7 @@ signed less than or equal to comparison
        x ≤ₛ y
 ------------------
 (x <ₛ y) ∨ (x = y)
--/
+
 def bblastBvSle (n : Nat) (t₁ t₂ : term) : term :=
   or (boolListSlt (bitOfList n t₁) (bitOfList n t₂))
      (andN (zip (bitOfList n t₁) (bitOfList n t₂) eq))
@@ -783,7 +902,7 @@ def bblastBvSle (n : Nat) (t₁ t₂ : term) : term :=
 -- Bit-blasting BvSle rule
 axiom bbBvSle : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvSle t₁ t₂) (bblastBvSle n t₁ t₂))
-
+-/
 
 /- ----------------------
  BV signed greater than
@@ -912,41 +1031,40 @@ def boolListAddAux : term → List term → List term → List term
 | _, _, _ => []
 
 def boolListAdd (l₁ l₂ : List term) : term :=
-  mkBbT (List.reverse (boolListAddAux bot l₁ l₂))
+  mkBbT (boolListAddAux bot l₁ l₂)
 
 -- If terms are well-typed, construct their bit-blasted BV add
 def bblastBvAdd (n : Nat) (t₁ t₂ : term) : term :=
-  boolListAdd (bitOfListRev n t₁) (bitOfListRev n t₂)
+  boolListAdd (bbTtoList n t₁) (bbTtoList n t₂)
 
 -- 0000 + 1111
-#eval bblastBvAdd 4 (mkValBV [false, false, false, false])
-  (mkValBV [true, true, true, true])
-#eval termEval (bblastBvAdd 4 (mkValBV [false, false, false, false])
-  (mkValBV [true, true, true, true]))
+#eval bblastBvAdd 4 (bblastBvVal $ mkValBV [false, false, false, false])
+  (bblastBvVal $ mkValBV [true, true, true, true])
+#eval termEval (bblastBvAdd 4 (bblastBvVal $ mkValBV [false, false, false, false])
+  (bblastBvVal $ mkValBV [true, true, true, true]))
 -- 1111 + 1111
-#eval bblastBvAdd 4 (mkValBV [true, true, true, true])
-  (mkValBV [true, true, true, true])
-#eval termEval (bblastBvAdd 4 (mkValBV [true, true, true, true])
-  (mkValBV [true, true, true, true]))
+#eval bblastBvAdd 4 (bblastBvVal $ mkValBV [true, true, true, true])
+  (bblastBvVal $ mkValBV [true, true, true, true])
+#eval termEval (bblastBvAdd 4 (bblastBvVal $ mkValBV [true, true, true, true])
+  (bblastBvVal $ mkValBV [true, true, true, true]))
 -- 0101 + 0010
-#eval bblastBvAdd 4 (mkValBV [false, true, false, true])
-  (mkValBV [false, false, true, false])
-#eval termEval (bblastBvAdd 4 (mkValBV [false, true, false, true])
-  (mkValBV [false, false, true, false]))
+#eval bblastBvAdd 4 (bblastBvVal $ mkValBV [false, true, false, false])
+  (bblastBvVal $ mkValBV [true, false, true, false])
+#eval termEval (bblastBvAdd 4 (bblastBvVal $ mkValBV [false, true, false, false])
+  (bblastBvVal $ mkValBV [true, false, true, false]))
 -- 1111 + 0001
-#eval bblastBvAdd 4 (mkValBV [true, true, true, true])
-  (mkValBV [false, false, false, true])
-#eval termEval (bblastBvAdd 4 (mkValBV [true, true, true, true])
-  (mkValBV [false, false, false, true]))
+#eval bblastBvAdd 4 (bblastBvVal $ mkValBV [true, true, true, true])
+  (bblastBvVal $ mkValBV [false, false, false, true])
+#eval termEval (bblastBvAdd 4 (bblastBvVal $ mkValBV [true, true, true, true])
+  (bblastBvVal $ mkValBV [false, false, false, true]))
 -- Using variables
-#eval bblastBvAdd 4 (const 21 (bv 4))
-  (mkValBV [false, false, false, false])
-#eval bblastBvAdd 4 (const 21 (bv 4)) (const 22 (bv 4))
+#eval bblastBvAdd 4 (bblastBvVar 4 (const 21 (bv 4)))
+  (bblastBvVal $ mkValBV [false, false, false, false])
+#eval bblastBvAdd 4 ( bblastBvVar 4 (const 21 (bv 4))) (bblastBvVar 4 (const 22 (bv 4)))
 
 -- Bit-blasting BvAdd rule
 axiom bbBvAdd : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvAdd t₁ t₂) (bblastBvAdd n t₁ t₂))
-
 
 /- -----------
  BV Negation
@@ -979,7 +1097,7 @@ If term is well-typed, construct its bit-blasted BV neg
 bvneg x = bvadd (bvnot x) 1
 -/
 def bblastBvNeg (n : Nat) (t : term) : term :=
-  boolListAdd (List.map not (bitOfListRev n t)) (genRevOne n)
+  boolListAdd (List.map term.not (bitOfListRev n t)) (genRevOne n)
 
 -- -0000
 #eval bblastBvNeg 4 (mkValBV [false, false, false, false])
@@ -1016,7 +1134,7 @@ def bblastBvSub (n : Nat) (t₁ t₂ : term) : term :=
   mkBbT (List.reverse (boolListAddAux
     top
     (bitOfListRev n t₁)
-    ((List.map not (bitOfListRev n t₂)))))
+    ((List.map term.not (bitOfListRev n t₂)))))
 
 -- 1110-0000
 #eval bblastBvSub 4 (mkValBV [true, true, true, false])
@@ -1093,7 +1211,7 @@ ite(b <ᵤ l,
       ite(b[s], a << 2^s, a)),
     [00..0]ₗ)
 where len(a) = l and [00..0]ₗ is a BV with l 0's
--/
+
 
 def bblastBvShl (n : Nat) (t₁ t₂ : term) : term :=
   fIte (boolListUlt (bitOfList n t₂) (bitOfList n (nat2BV n n)))
@@ -1123,7 +1241,7 @@ def bblastBvShl (n : Nat) (t₁ t₂ : term) : term :=
 -- Bit-blasting BvShl rule
 axiom bbBvShl : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvShl t₁ t₂) (bblastBvShl n t₁ t₂))
-
+-/
 
 /- ----------------------
  BV Logical Right Shift
@@ -1182,7 +1300,7 @@ ite(b <ᵤ l,
       ite(b[s], a >> 2^s, a)),
     [00..0]ₗ)
 where len(a) = l and [00..0]ₗ is a BV with l 0's
--/
+
 def bblastBvLShr (n : Nat) (t₁ t₂ : term) : term :=
   fIte (boolListUlt (bitOfList n t₂) (bitOfList n (nat2BV n n)))
     (bvLRightShift n ((log2 n) - 1) t₁ t₂)
@@ -1211,7 +1329,7 @@ def bblastBvLShr (n : Nat) (t₁ t₂ : term) : term :=
 -- Bit-blasting BvLShr rule
 axiom bbBvLShr : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvLShr t₁ t₂) (bblastBvLShr n t₁ t₂))
-
+-/
 
 /- ------------------------
  BV Arithmetic Right Shift
@@ -1272,7 +1390,7 @@ ite(b <ᵤ l,
       ite(b[s], a >>ₐ 2^s, a)),
     [00..0]ₗ)
 where len(a) = l and [00..0]ₗ is a BV with l 0's
--/
+
 def bblastBvAShr (n : Nat) (t₁ t₂ : term) : term :=
   fIte (boolListUlt (bitOfList n t₂) (bitOfList n (nat2BV n n)))
     (bvARightShift n ((log2 n) - 1) t₁ t₂)
@@ -1306,7 +1424,7 @@ def bblastBvAShr (n : Nat) (t₁ t₂ : term) : term :=
 -- Bit-blasting BvAShr rule
 axiom bbBvAShr : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvAShr t₁ t₂) (bblastBvAShr n t₁ t₂))
-
+-/
 
 ---------------------------- BV Length Manipulating Operators ----------------------------
 
@@ -1337,27 +1455,27 @@ def removeLastN : List α → Nat → List α
 
 /-
 If terms are well-typed, construct their bit-blasted BV extraction
-[xₙ ... x₀]   0 ≤ j ≤ i < n
+[x₀ ... xₙ]   0 ≤ j ≤ i < n
 ----------------------------
        [xⱼ ... xᵢ]
 -/
 def bblastBvExtract (n : Nat) (t i j : term) : term :=
     match i, j with
     | (val (value.integer i₁) _), (val (value.integer j₁) _) =>
-         mkBbT (removeLastN (List.drop (n - (Int.toNat i₁) - 1) (bitOfList n t)) (Int.toNat j₁))
+         mkBbT (List.drop (Int.toNat j₁) (removeLastN (bbTtoList n t) (n - (Int.toNat i₁) - 1)))
     | _, _ => undef
 
-#eval bblastBvExtract 4 (mkValBV [false, false, true, false])
+#eval bblastBvExtract 4 (bblastBvVal $ mkValBV [false, false, true, false])
   (mkValInt 3) (mkValInt 2)
-#eval bblastBvExtract 4 (mkValBV [false, false, true, false])
-  (mkValInt 1) (mkValInt 1)
-#eval bblastBvExtract 4 (mkValBV [false, false, true, false])
+#eval bblastBvExtract 4 (bblastBvVal $ mkValBV [false, false, true, false])
+  (mkValInt 2) (mkValInt 2)
+#eval bblastBvExtract 4 (bblastBvVal $ mkValBV [false, false, true, false])
   (mkValInt 3) (mkValInt 0)
 -- Bad call
-#eval bblastBvExtract 4 (mkValBV [false, false, true, false])
+#eval bblastBvExtract 4 (bblastBvVal $ mkValBV [false, false, true, false])
   (mkValInt 1) (mkValInt 2)
 -- Using variables
-#eval bblastBvExtract 4 (const 21 (bv 4)) (mkValInt 2)
+#eval bblastBvExtract 4 (bblastBvVar 4 (const 21 (bv 4))) (mkValInt 2)
   (mkValInt 1)
 
 -- Bit-blasting BvExtract rule
@@ -1365,7 +1483,7 @@ axiom bbBvExtract : ∀ {t i j : term} (n : Nat),
   thHolds (eq (bvExtract t i j) (bblastBvExtract n t i j))
 
 
-/- ---------------
+/----------------
  BV Concatenation
 ---------------- -/
 
@@ -1384,26 +1502,25 @@ If terms are BVs construct their bit-blasted BV concat
    [xₙ ... x₁ x₀ yₙ ... y₁ y₀]
 -/
 def bblastBvConcat (n₁ n₂ : Nat) (t₁ t₂ : term) : term :=
-  mkBbT (List.append (bitOfList n₁ t₁) (bitOfList n₂ t₂))
+  mkBbT (List.append (bbTtoList n₂ t₂) (bbTtoList n₁ t₁))
 
 -- 0000 ++ 1111
-#eval bblastBvConcat 4 4 (mkValBV [false, false, false, false])
-  (mkValBV [true, true, true, true])
+#eval bblastBvConcat 4 4 (bblastBvVal $ mkValBV [false, false, false, false])
+  (bblastBvVal $ mkValBV [true, true, true, true])
 -- 11 + 111
-#eval bblastBvConcat 2 3 (mkValBV [true, true])
-  (mkValBV [true, true, true])
--- 1 + 110
-#eval bblastBvConcat 1 3 (mkValBV [true])
-  (mkValBV [true, true, false])
+#eval bblastBvConcat 2 3 (bblastBvVal $ mkValBV [true, true])
+  (bblastBvVal $ mkValBV [true, true, true])
+-- 1 + 011
+#eval bblastBvConcat 1 3 (bblastBvVal $ mkValBV [true])
+  (bblastBvVal $ mkValBV [true, true, false])
 -- Using variables
-#eval bblastBvConcat 2 2 (const 21 (bv 2))
-  (mkValBV [false, false])
-#eval bblastBvConcat 2 2 (const 21 (bv 2)) (const 22 (bv 2))
+#eval bblastBvConcat 2 2 (bblastBvVar 2 (const 21 (bv 2)))
+  (bblastBvVal $ mkValBV [false, false])
+#eval bblastBvConcat 2 2 (bblastBvVar 2 (const 21 (bv 2))) (bblastBvVar 2 (const 22 (bv 2)))
 
 -- Bit-blasting BvConcat rule
 axiom bbBvConcat : ∀ {t₁ t₂ : term} (n₁ n₂ : Nat),
   thHolds (eq (bvConcat t₁ t₂) (bblastBvConcat n₁ n₂ t₁ t₂))
-
 
 /- ---------------
  BV Zero Extend
@@ -1475,7 +1592,7 @@ def bblastSignExt (n : Nat) (t i : term) : term :=
     match i with
     | val (value.integer i₁) intSort =>
       match hd (bitOfList n t) with
-      | undef => undef
+      | term.undef => undef
       | sign => mkBbT (List.append (List.replicate (Int.toNat i₁) sign) (bitOfList n t))
     | _ => undef
 
@@ -1537,6 +1654,4 @@ def bblastRepeat (n : Nat) (i t : term) : term :=
 axiom bbBvRepeat : ∀ {t₁ t₂ : term} (n : Nat),
   thHolds (eq (bvRepeat t₁ t₂) (bblastRepeat n t₁ t₂))
 
-end term
-
-end proof
+end bvRules
