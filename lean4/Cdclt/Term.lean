@@ -55,8 +55,7 @@ def distinctNum : Nat := eqNum + 1
 def forallNum  : Nat := eqNum + 1
 def bvBitOfNum : Nat := forallNum + 1
 def bvBbTNum : Nat := bvBitOfNum + 1
-def bvEqNum : Nat := bvBbTNum + 1
-def bvNotNum : Nat := bvEqNum + 1
+def bvNotNum : Nat := bvBbTNum + 1
 def bvAndNum : Nat := bvNotNum + 1
 def bvOrNum : Nat := bvAndNum + 1
 def bvXorNum : Nat := bvOrNum + 1
@@ -220,8 +219,6 @@ open value
   const bvBitOfNum dep
 @[matchPattern] def bbTConst :=
   const bvBbTNum dep
-@[matchPattern] def bvEqConst :=
-  const bvEqNum dep
 @[matchPattern] def bvNotConst := const bvNotNum dep
 @[matchPattern] def bvAndConst :=
   const bvAndNum dep
@@ -279,8 +276,6 @@ open value
   const bvRepeatNum dep
 
 /-
-@[matchPattern] def bvEqConst (n : Nat) :=
-  const bvEqNum (arrow (bv n) (arrow (bv n) boolSort))
 @[matchPattern] def bvNotConst (n : Nat) := const bvNotNum (arrow (bv n) (bv n))
 @[matchPattern] def bvAndConst (n : Nat) :=
   const bvAndNum (arrow (bv n) (arrow (bv n) (bv n)))
@@ -389,8 +384,6 @@ deriving instance Inhabited for term
 @[matchPattern] def bitOf : term → term → term :=
   λ t₁ t₂ => bitOfConst • t₁ • t₂
 @[matchPattern] def bbT : term := bbTConst
-@[matchPattern] def bvEq : term → term → term :=
-  λ t₁ t₂ => bvEqConst • t₁ • t₂
 @[matchPattern] def bvNot : term → term :=
   λ t => bvNotConst • t
 @[matchPattern] def bvAnd : term → term → term :=
@@ -459,8 +452,8 @@ def termToString : term → String
 | undef => "undef"
 | val v s => valueToString v
 | not t => "¬(" ++ termToString t ++ ")"
-| or t₁ t₂ => termToString t₁ ++ " ∨ " ++ termToString t₂
-| and t₁ t₂ => termToString t₁ ++ " ∧ " ++ termToString t₂
+| or t₁ t₂ => "(" ++ termToString t₁ ++ " ∨ " ++ termToString t₂ ++ ")"
+| and t₁ t₂ => "(" ++ termToString t₁ ++ " ∧ " ++ termToString t₂ ++ ")"
 | xor t₁ t₂ => termToString t₁ ++ " ⊕ " ++ termToString t₂
 | implies t₁ t₂ => termToString t₁ ++ " ⇒ " ++ termToString t₂
 | bIte c t₁ t₂ =>
@@ -481,7 +474,6 @@ def termToString : term → String
     ++ ")"
 | bitOf t₁ t₂ => termToString t₁ ++ "[" ++ termToString t₂ ++ "]"
 | bbT => "bbT"
-| bvEq t₁ t₂ => termToString t₁ ++ " ≃_bv " ++ termToString t₂
 | bvNot t => "¬_bv" ++ termToString t
 | bvAnd t₁ t₂ => termToString t₁ ++ " ∧_bv " ++ termToString t₂
 | bvOr t₁ t₂ => termToString t₁ ++ " ∨_bv " ++ termToString t₂
@@ -609,6 +601,18 @@ def mkValChar : Char → term := λ c =>
 
 def mkValBV : List Bool → term :=
 λ l => val (value.bitvec l) (bv (List.length l))
+
+def mkBbTVal : term → List Bool → term
+| acc, [] => acc
+| acc, h::tl => mkBbTVal (acc • (if h then top else bot)) tl
+
+-- #eval mkBbTVal bbT [true,false,false,false]
+
+def mkBbTVar : Nat → Nat → term → term → term
+| n, 0, acc, t => acc
+| n, i+1, acc, t => mkBbTVar n i (acc • (bitOf t $ mkValInt $ n - (i+1))) t
+
+-- #eval mkBbTVar 4 4 bbT (const 10001 (bv 4))
 
 def mkValChars : List Char → term :=
  List.foldl strPlus emptyStr ∘ List.map mkValChar
