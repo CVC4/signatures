@@ -62,3 +62,10 @@
   (! f term
   (! r (^ (sc_arith_mult_neg m f) res)
     (holds res))))))
+
+(declare arith_trichotomy
+  (! t term
+  (! s term
+  (! p (holds (a.>= t s))
+  (! p (holds (a.<= t s))
+    (holds (= t s)))))))
