@@ -30,6 +30,20 @@
     (f_a.<= f_a.>=)
     (f_a.>= f_a.<=)))
 
+(program sc_arith_rel_neg ((r term)) term
+  (match r
+    (f_a.< f_a.>=)
+    (f_a.> f_a.<=)
+    (f_a.<= f_a.>)
+    (f_a.>= f_a.<)))
+
+; return the conclusion relation in the arithmetic trichotomy rule
+(program sc_arith_rel_trichotomy ((r1 term) (r2 term)) term
+  (match r1
+    (f_= (match r2 (f_a.> f_a.<) (f_a.< f_a.>)))
+    (f_a.> (match r2 (f_= f_a.<) (f_a.< f_=)))
+    (f_a.< (match r2 (f_= f_a.>) (f_a.> f_=)))))
+
 ; t2 in n-ary form
 (program sc_arith_add_nary ((t1 term) (t2 term)) term
   (a.+ t1 t2))
@@ -42,3 +56,15 @@
 
 (program sc_arith_<_zero ((t term)) term
   (a.< t (int 0)))
+
+; get relation for the negation of f
+(program sc_arith_get_rel_neg ((f term)) term
+  (match f
+    ((apply f1 f2)
+      (ifequal f1 f_not
+        (sc_arith_get_rel f2)
+        (sc_arith_rel_neg (sc_arith_get_rel f))))))
+
+; get the atom for possibly negated literal f
+(program sc_arith_get_atom ((f term)) term
+  (match f ((apply f1 f2) (ifequal f1 f_not f2 f))))

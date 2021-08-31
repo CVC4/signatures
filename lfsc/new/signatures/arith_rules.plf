@@ -63,9 +63,26 @@
   (! r (^ (sc_arith_mult_neg m f) res)
     (holds res))))))
 
+(program sc_arith_trichotomy ((f1 term) (f2 term)) term
+  (let r1 (sc_arith_get_rel_neg f1)
+  (let a1 (sc_arith_get_atom f1)
+  (let lhs1 (sc_arith_get_lhs a1)
+  (let rhs1 (sc_arith_get_rhs a1)
+  (let r2 (sc_arith_get_rel_neg f2)
+  (let a2 (sc_arith_get_atom f1)
+  (let lhs2 (sc_arith_get_lhs a2)
+  (let rhs2 (sc_arith_get_rhs a2)
+    (ifequal lhs1 lhs2
+      (ifequal rhs1 rhs2
+        (apply (apply (sc_arith_rel_trichotomy r1 r2) lhs1) rhs1)
+        (fail term))
+      (fail term)))))))))))
+
 (declare arith_trichotomy
-  (! t term
-  (! s term
-  (! p (holds (a.>= t s))
-  (! p (holds (a.<= t s))
-    (holds (= t s)))))))
+  (! res term
+  (! f1 term
+  (! f2 term
+  (! p (holds f1)
+  (! p (holds f2)
+  (! r (^ (sc_arith_trichotomy f1 f2) res)
+    (holds res))))))))
