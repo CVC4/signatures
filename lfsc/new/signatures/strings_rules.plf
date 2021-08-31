@@ -86,6 +86,30 @@
                    (! r (^ (sc_concat_eq s t rev) res) 
                       (holds res))))))))
 
+;  // ======== Concat unify
+;  // Children: (P1:(= (str.++ t1 t2) (str.++ s1 s2)),
+;  //            P2:(= (str.len t1) (str.len s1)))
+;  // Arguments: (b), indicating if reverse direction
+;  // ---------------------
+;  // Conclusion: (= t1 s1)
+;  CONCAT_UNIFY,
+
+(program sc_concat_unify ((s term) (t term) (s1 term) (t1 term) (rev flag)) Ok
+  (ifequal (sc_string_head (sc_string_rev s rev)) s1
+    (ifequal (sc_string_head (sc_string_rev t rev)) t1
+      ok
+      (fail Ok))
+    (fail Ok)))
+
+(declare concat_unify (! s term
+                      (! t term
+                      (! s1 term
+                      (! t1 term
+                      (! rev flag
+                      (! p (holds (= s t))
+                      (! p1 (holds (= (str.len s1) (str.len t1)))
+                      (! r (^ (sc_concat_unify s t s1 t1 rev) ok)
+                          (holds (= s1 t1)))))))))))
 
 ;  // ======== Concat constant split
 ;  // Children: (P1:(= (str.++ t1 t2) (str.++ c s2)),
@@ -105,7 +129,6 @@
 ;  // Conclusion: (= t2 (str.++ r c))
 ;  // where
 ;  //   r = (witness ((z String)) (= z (pre t2 (- (str.len t2) 1)))).
-
 
 (program sc_concat_csplit ((thead term) (t term) (s term) (rev flag)) term
   (match (sc_string_to_flat_form t rev)
