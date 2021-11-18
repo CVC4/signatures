@@ -1,0 +1,66 @@
+#!/bin/bash
+
+
+# usage [-t N]? [binary] [options]
+TIMEOUT=60
+
+function measure()
+{
+  ulimit -t $TIMEOUT; time $@
+}
+
+function test_benchmark()
+{
+  PROG=$BINARY
+  TEST=$1
+  OPTS=$2
+  cat $TEST > /dev/null
+  $BINARY $@ --strings-exp --check-proofs --proof-granularity=dsl-rewrite -t final-pf-hole --dag-thresh=0
+  RVAL=$?
+  RESULT="E$RVAL:$EXEC_TIME"
+  if [ $RVAL == 137 ]; then
+    RESULT="E$RVAL:timeout $EXEC_TIME"
+  fi
+}
+
+TIMEFORMAT=%2R
+echo "==============================================="
+if [ X$1 = X'-t' ]; then
+  TIMEOUT=$2
+  shift
+  shift
+fi
+BINARY=$1
+shift
+echo "Run with binary $BINARY options $@, timeout $TIMEOUT"
+echo "==============================================="
+
+> temp.txt
+
+test_benchmark ./carsten/policy_variable.smt2 $@ >> temp.txt
+test_benchmark ./carsten/non_termination_regular_expression4.smt2 $@ >> temp.txt
+test_benchmark ./carsten/non_termination_regular_expression2.smt2 $@ >> temp.txt
+test_benchmark ./carsten/non_termination_regular_expression5.smt2 $@ >> temp.txt
+test_benchmark ./carsten/non_termination_regular_expression6.smt2 $@ >> temp.txt
+test_benchmark ./carsten/non_termination_regular_expression.smt2 $@ >> temp.txt
+test_benchmark ./liana/unknown1.smt2 $@ >> temp.txt
+test_benchmark ./bruno/for_cvc5_orig.smt2 $@ >> temp.txt
+test_benchmark ./bruno/prob1.smt2 $@ >> temp.txt
+test_benchmark ./bruno/prob2.smt2 $@ >> temp.txt
+test_benchmark ./bruno/other_timeouts/prob2_check_helper.smt2 $@ >> temp.txt
+test_benchmark ./bruno/other_timeouts/prob2_with_helper.smt2 $@ >> temp.txt
+test_benchmark ./bruno/other_timeouts/prob1.smt2 $@ >> temp.txt
+test_benchmark ./bruno/other_timeouts/prob2_contains_rule.smt2 $@ >> temp.txt
+test_benchmark ./bruno/other_timeouts/prob2.smt2 $@ >> temp.txt
+test_benchmark ./bruno/other_timeouts/prob1_check_helper.smt2 $@ >> temp.txt
+test_benchmark ./bruno/other_timeouts/prob1_with_helper.smt2 $@ >> temp.txt
+test_benchmark ./bruno/main_problem/for_cvc5_with_helpers.smt2 $@ >> temp.txt
+test_benchmark ./bruno/main_problem/for_cvc5_check_helper.smt2 $@ >> temp.txt
+test_benchmark ./bruno/main_problem/for_cvc5_orig.smt2 $@ >> temp.txt
+
+echo "=============================================== Missing rewrites"
+cat temp.txt | grep "hole THEORY" > temp-rc.txt
+sed -i 's/.*hole/hole/g' temp-rc.txt
+cat temp-rc.txt
+
+#rm temp.txt

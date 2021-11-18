@@ -1,0 +1,28 @@
+#!/bin/bash
+
+function test_benchmark()
+{
+  echo "Check proofs for $1"
+  cvc5_gen_and_check.sh $@ --strings-exp
+}
+
+test_benchmark ./carsten/policy_variable.smt2 $@
+test_benchmark ./carsten/non_termination_regular_expression4.smt2 $@
+test_benchmark ./carsten/non_termination_regular_expression2.smt2 $@
+test_benchmark ./carsten/non_termination_regular_expression5.smt2 $@
+test_benchmark ./carsten/non_termination_regular_expression6.smt2 $@
+test_benchmark ./carsten/non_termination_regular_expression.smt2 $@
+test_benchmark ./liana/unknown1.smt2 $@
+test_benchmark ./bruno/for_cvc5_orig.smt2 $@
+test_benchmark ./bruno/prob1.smt2 $@
+test_benchmark ./bruno/prob2.smt2 $@
+test_benchmark ./bruno/other_timeouts/prob2_check_helper.smt2 $@
+test_benchmark ./bruno/other_timeouts/prob2_with_helper.smt2 $@
+test_benchmark ./bruno/other_timeouts/prob1.smt2 $@
+test_benchmark ./bruno/other_timeouts/prob2_contains_rule.smt2 $@
+test_benchmark ./bruno/other_timeouts/prob2.smt2 $@
+test_benchmark ./bruno/other_timeouts/prob1_check_helper.smt2 $@
+test_benchmark ./bruno/other_timeouts/prob1_with_helper.smt2 $@
+test_benchmark ./bruno/main_problem/for_cvc5_with_helpers.smt2 $@
+test_benchmark ./bruno/main_problem/for_cvc5_check_helper.smt2 $@
+test_benchmark ./bruno/main_problem/for_cvc5_orig.smt2 $@
